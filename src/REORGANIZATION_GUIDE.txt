@@ -1,0 +1,169 @@
+FILE STRUCTURE REORGANIZATION GUIDE
+====================================
+
+NEW STRUCTURE:
+--------------
+
+/pages/
+  /account/
+    /login/
+      - LoginView.tsx                           [DONE - CREATED]
+      /components/
+        - TenantSelectionDialog.tsx            [DONE - CREATED]
+    
+    /forgot-password/
+      - ForgotPasswordView.tsx                  [MOVE FROM: /components/views/ForgotPasswordView.tsx]
+    
+    /validate-2fa/
+      - Validate2FAView.tsx                     [MOVE FROM: /components/views/Validate2FAView.tsx]
+
+  /app/
+    /dashboard/
+      - DashboardView.tsx                       [MOVE FROM: /components/views/DashboardView.tsx]
+    
+    /notifications/
+      - NotificationsView.tsx                   [MOVE FROM: /components/views/NotificationsView.tsx]
+    
+    /clients/
+      - ClientManagementView.tsx                [MOVE FROM: /components/views/ClientManagementView.tsx]
+      /components/
+        - ClientList.tsx                        [MOVE FROM: /components/ClientList.tsx]
+        - ClientFolder.tsx                      [MOVE FROM: /components/ClientFolder.tsx]
+        - AddTeamMember.tsx                     [MOVE FROM: /components/AddTeamMember.tsx]
+        - ClientNameWithLink.tsx                [MOVE FROM: /components/ClientNameWithLink.tsx]
+        - ClientGroupsDialog.tsx                [MOVE FROM: /components/ClientGroupsDialog.tsx]
+        - ManageClientGroupsDialog.tsx          [MOVE FROM: /components/ManageClientGroupsDialog.tsx]
+      /tabs/
+        - SnapshotTab.tsx                       [MOVE FROM: /components/folder-tabs/SnapshotTab.tsx]
+        - DetailsTab.tsx                        [MOVE FROM: /components/folder-tabs/DetailsTab.tsx]
+        - DemographicsTab.tsx                   [MOVE FROM: /components/folder-tabs/DemographicsTab.tsx]
+        - CommunicationTab.tsx                  [MOVE FROM: /components/folder-tabs/CommunicationTab.tsx]
+        - FilesTab.tsx                          [MOVE FROM: /components/folder-tabs/FilesTab.tsx]
+        - DocumentsTab.tsx                      [MOVE FROM: /components/folder-tabs/DocumentsTab.tsx]
+        - NotesTab.tsx                          [MOVE FROM: /components/folder-tabs/NotesTab.tsx]
+        - ProjectsTab.tsx                       [MOVE FROM: /components/folder-tabs/ProjectsTab.tsx]
+        - InvoicesTab.tsx                       [MOVE FROM: /components/folder-tabs/InvoicesTab.tsx]
+        - SignatureTab.tsx                      [MOVE FROM: /components/folder-tabs/SignatureTab.tsx]
+        - OrganizersTab.tsx                     [MOVE FROM: /components/folder-tabs/OrganizersTab.tsx]
+        - TeamsTab.tsx                          [MOVE FROM: /components/folder-tabs/TeamsTab.tsx]
+        - ActivityTab.tsx                       [MOVE FROM: /components/folder-tabs/ActivityTab.tsx]
+        - ChatChannelTab.tsx                    [MOVE FROM: /components/folder-tabs/ChatChannelTab.tsx]
+    
+    /documents/
+      - IncomingDocumentsView.tsx               [MOVE FROM: /components/views/IncomingDocumentsView.tsx]
+    
+    /signatures/
+      - SignaturesView.tsx                      [MOVE FROM: /components/views/SignaturesView.tsx]
+      - SignatureTemplatesView.tsx              [MOVE FROM: /components/views/SignatureTemplatesView.tsx]
+      - NewTemplateView.tsx                     [MOVE FROM: /components/views/NewTemplateView.tsx]
+      - UseTemplateView.tsx                     [MOVE FROM: /components/views/UseTemplateView.tsx]
+      - UploadDocumentView.tsx                  [MOVE FROM: /components/views/UploadDocumentView.tsx]
+      - Form8879View.tsx                        [MOVE FROM: /components/views/Form8879View.tsx]
+      /components/
+        - NewSignatureRequestDialog.tsx         [MOVE FROM: /components/NewSignatureRequestDialog.tsx]
+        - UseTemplateDialog.tsx                 [MOVE FROM: /components/UseTemplateDialog.tsx]
+        - Form8879Dialog.tsx                    [MOVE FROM: /components/Form8879Dialog.tsx]
+    
+    /calendar/
+      - CalendarView.tsx                        [MOVE FROM: /components/views/CalendarView.tsx]
+      /components/
+        - ScheduleMeetingDialog.tsx             [MOVE FROM: /components/ScheduleMeetingDialog.tsx]
+    
+    /chat/
+      - ChatView.tsx                            [MOVE FROM: /components/views/ChatView.tsx]
+    
+    /billing/
+      - BillingView.tsx                         [MOVE FROM: /components/views/BillingView.tsx]
+    
+    /client-portal/
+      - ClientPortalView.tsx                    [MOVE FROM: /components/views/ClientPortalView.tsx]
+    
+    /settings/
+      - SettingsView.tsx                        [MOVE FROM: /components/views/SettingsView.tsx]
+      - MyAccountView.tsx                       [MOVE FROM: /components/views/MyAccountView.tsx]
+      - ChangePasswordView.tsx                  [MOVE FROM: /components/views/ChangePasswordView.tsx]
+      - CompanySettingsView.tsx                 [MOVE FROM: /components/views/CompanySettingsView.tsx]
+      - NavigationView.tsx                      [MOVE FROM: /components/views/NavigationView.tsx]
+      - PlatformBrandingView.tsx                [MOVE FROM: /components/views/PlatformBrandingView.tsx]
+      /tabs/
+        - FirmTab.tsx                           [MOVE FROM: /components/company-settings-tabs/FirmTab.tsx]
+        - TeamTab.tsx                           [MOVE FROM: /components/company-settings-tabs/TeamTab.tsx]
+        - RolesTab.tsx                          [MOVE FROM: /components/company-settings-tabs/RolesTab.tsx]
+        - GlobalSettingsTab.tsx                 [MOVE FROM: /components/company-settings-tabs/GlobalSettingsTab.tsx]
+        - MultifactorTab.tsx                    [MOVE FROM: /components/company-settings-tabs/MultifactorTab.tsx]
+    
+    /help/
+      - HelpView.tsx                            [MOVE FROM: /components/views/HelpView.tsx]
+
+/components/
+  /layout/
+    - Header.tsx                                [MOVE FROM: /components/Header.tsx]
+    - Sidebar.tsx                               [MOVE FROM: /components/Sidebar.tsx]
+    - CollapsedSidebar.tsx                      [MOVE FROM: /components/CollapsedSidebar.tsx]
+  
+  /common/
+    - ProtectedRoute.tsx                        [KEEP IN: /components/ProtectedRoute.tsx]
+    - BrandedButton.tsx                         [MOVE FROM: /components/BrandedButton.tsx]
+    - FilterPanel.tsx                           [MOVE FROM: /components/FilterPanel.tsx]
+    - BrandingColorReference.tsx                [MOVE FROM: /components/BrandingColorReference.tsx]
+    - AddActionItemDialog.tsx                   [MOVE FROM: /components/AddActionItemDialog.tsx]
+    - AddNoteDialog.tsx                         [MOVE FROM: /components/AddNoteDialog.tsx]
+  
+  /team/
+    - TeamMemberProfile.tsx                     [MOVE FROM: /components/TeamMemberProfile.tsx]
+    /tabs/
+      - SnapshotTab.tsx                         [MOVE FROM: /components/team-member-tabs/SnapshotTab.tsx]
+      - DemographicsTab.tsx                     [MOVE FROM: /components/team-member-tabs/DemographicsTab.tsx]
+      - CommunicationTab.tsx                    [MOVE FROM: /components/team-member-tabs/CommunicationTab.tsx]
+      - DocumentsTab.tsx                        [MOVE FROM: /components/team-member-tabs/DocumentsTab.tsx]
+      - NotesTab.tsx                            [MOVE FROM: /components/team-member-tabs/NotesTab.tsx]
+      - ActivityTab.tsx                         [MOVE FROM: /components/team-member-tabs/ActivityTab.tsx]
+      - ChatChannelTab.tsx                      [MOVE FROM: /components/team-member-tabs/ChatChannelTab.tsx]
+  
+  /navigation/
+    /tabs/
+      - MainNavigationTab.tsx                   [MOVE FROM: /components/navigation-tabs/MainNavigationTab.tsx]
+      - TopbarNavigationTab.tsx                 [MOVE FROM: /components/navigation-tabs/TopbarNavigationTab.tsx]
+      - ClientFolderTab.tsx                     [MOVE FROM: /components/navigation-tabs/ClientFolderTab.tsx]
+      - ClientPortalNavigationTab.tsx           [MOVE FROM: /components/navigation-tabs/ClientPortalNavigationTab.tsx]
+  
+  /ui/                                          [KEEP AS IS]
+  /figma/                                       [KEEP AS IS]
+
+
+CLEANUP (Files to DELETE after migration):
+-------------------------------------------
+- /components/views/*  (all files - move to new structure)
+- /components/folder-tabs/*  (move to /pages/app/clients/tabs/)
+- /components/company-settings-tabs/*  (move to /pages/app/settings/tabs/)
+- /components/team-member-tabs/*  (move to /components/team/tabs/)
+- /components/navigation-tabs/*  (move to /components/navigation/tabs/)
+- /components/TenantSelectionDialog.tsx  (already moved to /pages/account/login/components/)
+
+
+ROUTE UPDATES NEEDED:
+---------------------
+Update /routes/AppRoutes.tsx to import from new paths:
+  - /pages/account/login/LoginView
+  - /pages/account/forgot-password/ForgotPasswordView
+  - /pages/account/validate-2fa/Validate2FAView
+  - /pages/app/*/*.tsx for all app views
+
+
+IMPORT PATH UPDATES:
+--------------------
+All moved files need import path updates:
+  - Context imports: ../../../contexts/ or ../../../../contexts/
+  - Component imports: Update relative paths based on new location
+  - UI component imports: Update to correct relative path to /components/ui/
+  - Asset imports: Keep figma:asset/ imports as-is
+
+
+BENEFITS OF NEW STRUCTURE:
+---------------------------
+✓ Clear separation between account and app pages
+✓ Module-based organization (clients, signatures, billing, etc.)
+✓ Components co-located with their feature
+✓ Easy to find and navigate
+✓ Scalable for future features
+✓ Follows domain-driven design principles

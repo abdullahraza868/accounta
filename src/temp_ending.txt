@@ -1,0 +1,8 @@
+          };
+          setConfiguredRoles([...configuredRoles, newRole]);
+          toast.success('Firm user recipient added');
+        }}
+      />
+    </div>
+  );
+}

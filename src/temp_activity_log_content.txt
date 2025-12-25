@@ -1,0 +1,22 @@
+This file contains the activity log UI that needs to be added to EmailView.tsx
+
+The activity log should replace the middle and right columns when showActivityLog is true.
+
+Layout:
+- Left column: Email folders menu (stays the same)
+- Middle + Right combined: Activity log with cards grid
+
+Activity cards:
+- Sent (Send icon)
+- Delivered (Check icon)
+- Opened (Eye icon  
+- Clicked (MousePointerClick icon)
+- Bounced (AlertCircle icon)
+- Replied (Reply icon)
+
+Each card should:
+- Have icon at top center
+- Label below icon
+- Count number
+- Be fully clickable
+- On click, show list of emails in that category on left, details on right

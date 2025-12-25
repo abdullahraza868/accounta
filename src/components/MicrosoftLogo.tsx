@@ -1,0 +1,10 @@
+export function MicrosoftLogo({ className = "w-5 h-5" }: { className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 23 23" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <rect width="11" height="11" fill="#F25022"/>
+      <rect x="12" width="11" height="11" fill="#7FBA00"/>
+      <rect y="12" width="11" height="11" fill="#00A4EF"/>
+      <rect x="12" y="12" width="11" height="11" fill="#FFB900"/>
+    </svg>
+  );
+}

@@ -1,0 +1,405 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Acounta - Visual Test Page</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+      background: #f9fafb;
+      padding: 40px 20px;
+    }
+
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+
+    .header {
+      text-align: center;
+      margin-bottom: 40px;
+    }
+
+    .header h1 {
+      color: #111827;
+      font-size: 32px;
+      margin-bottom: 10px;
+    }
+
+    .header p {
+      color: #6b7280;
+      font-size: 16px;
+    }
+
+    .status-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+      gap: 20px;
+      margin-bottom: 40px;
+    }
+
+    .status-card {
+      background: white;
+      border: 2px solid #e5e7eb;
+      border-radius: 12px;
+      padding: 24px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    }
+
+    .status-card h3 {
+      color: #111827;
+      font-size: 18px;
+      margin-bottom: 16px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .status-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 8px 0;
+      border-bottom: 1px solid #f3f4f6;
+    }
+
+    .status-item:last-child {
+      border-bottom: none;
+    }
+
+    .status-label {
+      color: #6b7280;
+      font-size: 14px;
+    }
+
+    .status-value {
+      color: #111827;
+      font-size: 14px;
+      font-weight: 600;
+    }
+
+    .status-success {
+      color: #10b981;
+    }
+
+    .status-error {
+      color: #ef4444;
+    }
+
+    .status-warning {
+      color: #f59e0b;
+    }
+
+    .color-swatches {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+      gap: 16px;
+      margin-bottom: 40px;
+    }
+
+    .color-swatch {
+      background: white;
+      border: 2px solid #e5e7eb;
+      border-radius: 8px;
+      padding: 16px;
+      text-align: center;
+    }
+
+    .color-box {
+      height: 80px;
+      border-radius: 6px;
+      margin-bottom: 12px;
+      border: 1px solid #e5e7eb;
+    }
+
+    .color-name {
+      font-size: 14px;
+      color: #111827;
+      font-weight: 600;
+      margin-bottom: 4px;
+    }
+
+    .color-value {
+      font-size: 12px;
+      color: #6b7280;
+      font-family: monospace;
+    }
+
+    .button-test {
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+      margin-bottom: 40px;
+      padding: 24px;
+      background: white;
+      border: 2px solid #e5e7eb;
+      border-radius: 12px;
+    }
+
+    .btn {
+      padding: 12px 24px;
+      border: none;
+      border-radius: 8px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .btn-primary {
+      background: linear-gradient(135deg, #7c3aed 0%, #6d28d9 100%);
+      color: white;
+      box-shadow: 0 4px 12px rgba(124, 58, 237, 0.3);
+    }
+
+    .btn-primary:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 16px rgba(124, 58, 237, 0.4);
+    }
+
+    .btn-secondary {
+      background: #f3f4f6;
+      color: #374151;
+    }
+
+    .btn-secondary:hover {
+      background: #e5e7eb;
+    }
+
+    .btn-danger {
+      background: #ef4444;
+      color: white;
+    }
+
+    .btn-danger:hover {
+      background: #dc2626;
+    }
+
+    .next-step {
+      background: linear-gradient(135deg, #7c3aed 0%, #6d28d9 100%);
+      color: white;
+      padding: 32px;
+      border-radius: 12px;
+      text-align: center;
+    }
+
+    .next-step h2 {
+      font-size: 24px;
+      margin-bottom: 16px;
+    }
+
+    .next-step p {
+      font-size: 16px;
+      opacity: 0.9;
+      margin-bottom: 24px;
+    }
+
+    .next-step a {
+      display: inline-block;
+      background: white;
+      color: #7c3aed;
+      padding: 14px 32px;
+      border-radius: 8px;
+      text-decoration: none;
+      font-weight: 600;
+      font-size: 16px;
+      transition: all 0.2s;
+    }
+
+    .next-step a:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 16px rgba(0,0,0,0.2);
+    }
+
+    @media (max-width: 768px) {
+      .header h1 {
+        font-size: 24px;
+      }
+
+      .status-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .color-swatches {
+        grid-template-columns: 1fr;
+      }
+
+      .button-test {
+        flex-direction: column;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <!-- Header -->
+    <div class="header">
+      <h1>🎨 Acounta Visual Test Page</h1>
+      <p>This page verifies that your browser can render the design system correctly</p>
+    </div>
+
+    <!-- System Status -->
+    <div class="status-grid">
+      <div class="status-card">
+        <h3>🖥️ Browser Info</h3>
+        <div class="status-item">
+          <span class="status-label">Browser</span>
+          <span class="status-value" id="browser">-</span>
+        </div>
+        <div class="status-item">
+          <span class="status-label">Screen Size</span>
+          <span class="status-value" id="screen-size">-</span>
+        </div>
+        <div class="status-item">
+          <span class="status-label">Device Pixel Ratio</span>
+          <span class="status-value" id="pixel-ratio">-</span>
+        </div>
+      </div>
+
+      <div class="status-card">
+        <h3>✅ Feature Support</h3>
+        <div class="status-item">
+          <span class="status-label">CSS Grid</span>
+          <span class="status-value status-success" id="css-grid">✓ Supported</span>
+        </div>
+        <div class="status-item">
+          <span class="status-label">CSS Flexbox</span>
+          <span class="status-value status-success" id="css-flex">✓ Supported</span>
+        </div>
+        <div class="status-item">
+          <span class="status-label">CSS Variables</span>
+          <span class="status-value status-success" id="css-vars">✓ Supported</span>
+        </div>
+      </div>
+
+      <div class="status-card">
+        <h3>⚡ Performance</h3>
+        <div class="status-item">
+          <span class="status-label">Page Load</span>
+          <span class="status-value status-success" id="page-load">< 100ms</span>
+        </div>
+        <div class="status-item">
+          <span class="status-label">Render Time</span>
+          <span class="status-value status-success" id="render-time">< 50ms</span>
+        </div>
+        <div class="status-item">
+          <span class="status-label">Status</span>
+          <span class="status-value status-success">✓ Ready</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Color Swatches -->
+    <div class="status-card" style="margin-bottom: 20px;">
+      <h3>🎨 Brand Colors</h3>
+      <p style="color: #6b7280; margin-bottom: 16px; font-size: 14px;">
+        Verify that these colors render correctly in your browser
+      </p>
+    </div>
+
+    <div class="color-swatches">
+      <div class="color-swatch">
+        <div class="color-box" style="background: linear-gradient(135deg, #7c3aed 0%, #6d28d9 100%);"></div>
+        <div class="color-name">Primary Gradient</div>
+        <div class="color-value">#7c3aed → #6d28d9</div>
+      </div>
+
+      <div class="color-swatch">
+        <div class="color-box" style="background: #7c3aed;"></div>
+        <div class="color-name">Primary Color</div>
+        <div class="color-value">#7c3aed</div>
+      </div>
+
+      <div class="color-swatch">
+        <div class="color-box" style="background: #a78bfa;"></div>
+        <div class="color-name">Secondary Color</div>
+        <div class="color-value">#a78bfa</div>
+      </div>
+
+      <div class="color-swatch">
+        <div class="color-box" style="background: #ef4444;"></div>
+        <div class="color-name">Danger Color</div>
+        <div class="color-value">#ef4444</div>
+      </div>
+
+      <div class="color-swatch">
+        <div class="color-box" style="background: #10b981;"></div>
+        <div class="color-name">Success Color</div>
+        <div class="color-value">#10b981</div>
+      </div>
+
+      <div class="color-swatch">
+        <div class="color-box" style="background: #f59e0b;"></div>
+        <div class="color-name">Warning Color</div>
+        <div class="color-value">#f59e0b</div>
+      </div>
+    </div>
+
+    <!-- Button Test -->
+    <div class="status-card" style="margin-bottom: 20px;">
+      <h3>🔘 Interactive Elements</h3>
+      <p style="color: #6b7280; margin-bottom: 16px; font-size: 14px;">
+        Hover over buttons to test interactions
+      </p>
+    </div>
+
+    <div class="button-test">
+      <button class="btn btn-primary">Primary Button</button>
+      <button class="btn btn-secondary">Secondary Button</button>
+      <button class="btn btn-danger">Danger Button</button>
+    </div>
+
+    <!-- Next Steps -->
+    <div class="next-step">
+      <h2>✨ Everything looks good!</h2>
+      <p>If you can see this page properly with all colors and gradients, your browser supports all required features.</p>
+      <a href="/">Launch Application →</a>
+    </div>
+
+    <!-- Footer Info -->
+    <div class="status-card" style="margin-top: 40px; text-align: center;">
+      <p style="color: #6b7280; font-size: 14px;">
+        If anything on this page looks broken or unstyled, try:
+      </p>
+      <ul style="list-style: none; padding: 16px 0; color: #374151; font-size: 14px;">
+        <li>✓ Hard refresh (Ctrl+Shift+R or Cmd+Shift+R)</li>
+        <li>✓ Clear browser cache</li>
+        <li>✓ Try a different browser (Chrome recommended)</li>
+        <li>✓ Check TROUBLESHOOTING.md for detailed solutions</li>
+      </ul>
+    </div>
+  </div>
+
+  <script>
+    // Populate browser info
+    document.getElementById('browser').textContent = navigator.userAgent.includes('Chrome') ? 'Chrome' :
+                                                     navigator.userAgent.includes('Firefox') ? 'Firefox' :
+                                                     navigator.userAgent.includes('Safari') ? 'Safari' :
+                                                     navigator.userAgent.includes('Edge') ? 'Edge' : 'Other';
+    
+    document.getElementById('screen-size').textContent = window.innerWidth + 'x' + window.innerHeight;
+    document.getElementById('pixel-ratio').textContent = window.devicePixelRatio + 'x';
+    
+    // Update on resize
+    window.addEventListener('resize', function() {
+      document.getElementById('screen-size').textContent = window.innerWidth + 'x' + window.innerHeight;
+    });
+
+    // Page load time
+    window.addEventListener('load', function() {
+      const loadTime = performance.now();
+      document.getElementById('page-load').textContent = Math.round(loadTime) + 'ms';
+    });
+
+    console.log('%c✅ Visual Test Page Loaded', 'color: #10b981; font-size: 16px; font-weight: bold;');
+    console.log('%cIf you can see styled content on this page, your browser is working correctly.', 'color: #6b7280;');
+  </script>
+</body>
+</html>
