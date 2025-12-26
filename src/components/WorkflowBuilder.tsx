@@ -9,7 +9,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from './ui/alert-dialog';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs';
 import { Plus, Settings, Trash2, GripVertical, Zap, User, Clock, ChevronRight, Edit, AlertTriangle, GitBranch, CheckSquare, Play, Users, Download, ChevronDown, ChevronUp, Workflow as WorkflowIcon, Copy, FolderKanban, Eye } from 'lucide-react';
-// import { AutomationBuilder } from './AutomationBuilder';
+import { AutomationBuilder, AutomationList } from '../components/AutomationBuilder';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
 import { Textarea } from './ui/textarea';
 import { toast } from 'sonner@2.0.3';
@@ -23,6 +23,12 @@ interface Automation {
   triggerTaskId?: string; // Optional: if trigger is task-specific
   enabled: boolean;
   actions: string[];
+  conditions?: Array<{
+    id: string;
+    field: string;
+    operator: string;
+    value: string | number | boolean | string[];
+  }>;
   details?: string; // e.g., "3 days after completion"
 }
 
@@ -480,9 +486,11 @@ export function WorkflowBuilder({ onStartWizard, newWorkflow, onPreview }: Workf
   const [editingTask, setEditingTask] = useState<Task | null>(null);
   const [showStageDialog, setShowStageDialog] = useState(false);
   const [showTaskDialog, setShowTaskDialog] = useState(false);
-  const [showAutomations, setShowAutomations] = useState(false);
+  const [showAutomationList, setShowAutomationList] = useState(false);
+  const [showAutomationBuilder, setShowAutomationBuilder] = useState(false);
   const [automationLevel, setAutomationLevel] = useState<'stage' | 'task'>('stage');
   const [focusedAutomationId, setFocusedAutomationId] = useState<string | null>(null);
+  const [editingAutomation, setEditingAutomation] = useState<Automation | null>(null);
   const [deleteTaskConfirm, setDeleteTaskConfirm] = useState<{ stageId: string; taskId: string } | null>(null);
   const [deleteAutomationConfirm, setDeleteAutomationConfirm] = useState<{ stageId: string; automationId: string } | null>(null);
   const [showTrackerDialog, setShowTrackerDialog] = useState(false);
@@ -1061,7 +1069,9 @@ export function WorkflowBuilder({ onStartWizard, newWorkflow, onPreview }: Workf
                                 setSelectedStage(stage);
                                 setSelectedTask(null);
                                 setAutomationLevel('stage');
-                                setShowAutomations(true);
+                                setFocusedAutomationId(automation.id);
+                                setEditingAutomation(automation);
+                                setShowAutomationList(true);
                               }}
                               onDeleteClick={() => {
                                 setDeleteAutomationConfirm({ stageId: stage.id, automationId: automation.id });
@@ -1127,7 +1137,8 @@ export function WorkflowBuilder({ onStartWizard, newWorkflow, onPreview }: Workf
                                       setSelectedTask(null);
                                       setAutomationLevel('stage');
                                       setFocusedAutomationId(automation.id);
-                                      setShowAutomations(true);
+                                      setEditingAutomation(automation);
+                                      setShowAutomationList(true);
                                     }}
                                     onDeleteClick={() => {
                                       setDeleteAutomationConfirm({ stageId: stage.id, automationId: automation.id });
@@ -1158,7 +1169,8 @@ export function WorkflowBuilder({ onStartWizard, newWorkflow, onPreview }: Workf
                                 setSelectedTask(null);
                                 setAutomationLevel('stage');
                                 setFocusedAutomationId(automation.id);
-                                setShowAutomations(true);
+                                setEditingAutomation(automation);
+                                setShowAutomationList(true);
                               }}
                               onDeleteClick={() => {
                                 setDeleteAutomationConfirm({ stageId: stage.id, automationId: automation.id });
@@ -1194,7 +1206,8 @@ export function WorkflowBuilder({ onStartWizard, newWorkflow, onPreview }: Workf
                             setSelectedTask(null);
                             setAutomationLevel('stage');
                             setFocusedAutomationId(null);
-                            setShowAutomations(true);
+                            setEditingAutomation(null);
+                            setShowAutomationList(true);
                           }}
                         >
                           <Zap className="w-3.5 h-3.5" />
@@ -1737,53 +1750,235 @@ export function WorkflowBuilder({ onStartWizard, newWorkflow, onPreview }: Workf
         </DialogContent>
       </Dialog>
 
-      {/* Automation Builder Dialog */}
-      <Dialog open={showAutomations} onOpenChange={(open) => {
-        setShowAutomations(open);
+      {/* Automation List Dialog */}
+      <Dialog open={showAutomationList} onOpenChange={(open) => {
+        setShowAutomationList(open);
         if (!open) {
+          setEditingAutomation(null);
           setFocusedAutomationId(null);
+          setShowAutomationBuilder(false);
         }
       }}>
-        <DialogContent className="!max-w-[1540px] w-[95vw] max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>
-              {focusedAutomationId 
-                ? `Edit Automation - ${selectedStage?.name}`
-                : `Stage Automations - ${selectedStage?.name}`}
-              {selectedTask && ` (Focused on: ${selectedTask.name})`}
-            </DialogTitle>
-            <DialogDescription>
-              {focusedAutomationId 
-                ? 'Edit this automation or add additional automations to this stage.'
-                : 'All automations for this stage. You can create automations that trigger on stage entry, specific tasks, or time-based events.'}
-              {selectedTask && ' Currently showing automations related to the selected task.'}
-            </DialogDescription>
+        <DialogContent className="!max-w-[98vw] !w-[98vw] !max-h-[98vh] !h-[98vh] overflow-hidden flex flex-col" style={{ width: '60vw', height: '60vh', maxWidth: '60vw', maxHeight: '60vh' }}>
+          <DialogHeader className="flex-shrink-0">
+            <DialogTitle>Automations for {selectedStage?.name}</DialogTitle>
+            <DialogDescription>Manage automations for this stage</DialogDescription>
           </DialogHeader>
-          <div className="p-6 text-center text-gray-500 dark:text-gray-400">
-            <p>AutomationBuilder component coming soon</p>
+          <div className="flex-1 overflow-y-auto py-4 min-h-0">
+            <AutomationList
+              automations={selectedStage?.automations?.map(auto => {
+                // Convert WorkflowBuilder Automation format to AutomationBuilder format
+                const triggerMap: Record<string, { id: string; category: string; name: string }> = {
+                  'stage_entered': { id: 't1', category: 'Stage', name: 'When Stage is Entered' },
+                  'stage_completed': { id: 't2', category: 'Stage', name: 'When Stage is Completed' },
+                  'specific_task_completed': { id: 't5', category: 'Task', name: 'When Specific Task Completed' },
+                  'time_after_task': { id: 't9', category: 'Time', name: 'Time After Task Completed' },
+                  'time_based': { id: 't8', category: 'Time', name: 'X Days Before Deadline' },
+                };
+                
+                const trigger = triggerMap[auto.trigger] || { id: 't1', category: 'Stage', name: auto.trigger };
+                
+                return {
+                  id: auto.id,
+                  name: auto.name,
+                  trigger: {
+                    ...trigger,
+                    config: auto.triggerTaskId ? { taskId: auto.triggerTaskId } : {},
+                  },
+                  enabled: auto.enabled,
+                  conditions: auto.conditions || [],
+                  actions: auto.actions.map((actionName, idx) => ({
+                    id: `action-${idx}`,
+                    category: 'Communication',
+                    name: actionName,
+                    config: {},
+                  })),
+                };
+              }) || []}
+              onEdit={(automation) => {
+                // Find the original automation from WorkflowBuilder format
+                const originalAuto = selectedStage?.automations?.find(a => a.id === automation.id);
+                if (originalAuto) {
+                  setEditingAutomation(originalAuto);
+                  setShowAutomationList(false);
+                  setShowAutomationBuilder(true);
+                }
+              }}
+              onDelete={(automationId) => {
+                if (!selectedStage) return;
+                const updatedWorkflow = {
+                  ...selectedWorkflow,
+                  stages: selectedWorkflow.stages.map(s =>
+                    s.id === selectedStage.id
+                      ? { ...s, automations: (s.automations || []).filter(a => a.id !== automationId) }
+                      : s
+                  ),
+                };
+                setSelectedWorkflow(updatedWorkflow);
+                setWorkflows(workflows.map(w => w.id === selectedWorkflow.id ? updatedWorkflow : w));
+                
+                // Update selectedStage to point to the updated stage from the new workflow
+                const updatedStage = updatedWorkflow.stages.find(s => s.id === selectedStage.id);
+                if (updatedStage) {
+                  setSelectedStage(updatedStage);
+                }
+                
+                toast.success('Automation deleted successfully');
+              }}
+              onStatusChange={(automationId, enabled) => {
+                if (!selectedStage) return;
+                const updatedWorkflow = {
+                  ...selectedWorkflow,
+                  stages: selectedWorkflow.stages.map(s =>
+                    s.id === selectedStage.id
+                      ? {
+                          ...s,
+                          automations: (s.automations || []).map(a =>
+                            a.id === automationId ? { ...a, enabled } : a
+                          ),
+                        }
+                      : s
+                  ),
+                };
+                setSelectedWorkflow(updatedWorkflow);
+                setWorkflows(workflows.map(w => w.id === selectedWorkflow.id ? updatedWorkflow : w));
+                
+                // Update selectedStage to point to the updated stage from the new workflow
+                const updatedStage = updatedWorkflow.stages.find(s => s.id === selectedStage.id);
+                if (updatedStage) {
+                  setSelectedStage(updatedStage);
+                }
+              }}
+              onAddNew={() => {
+                setEditingAutomation(null);
+                setShowAutomationList(false);
+                setShowAutomationBuilder(true);
+              }}
+            />
           </div>
-          {/* <AutomationBuilder 
-            stageName={selectedStage?.name}
-            tasks={selectedStage?.tasks.map(t => ({ id: t.id, name: t.name }))}
-            automations={selectedStage?.automations || []}
-            focusedTaskId={selectedTask?.id}
-            focusedAutomationId={focusedAutomationId}
-            onAutomationsChange={(updatedAutomations) => {
-              if (!selectedStage) return;
-              const updatedWorkflow = {
-                ...selectedWorkflow,
-                stages: selectedWorkflow.stages.map(s =>
-                  s.id === selectedStage.id
-                    ? { ...s, automations: updatedAutomations }
-                    : s
-                ),
-              };
-              setSelectedWorkflow(updatedWorkflow);
-              setWorkflows(workflows.map(w => w.id === selectedWorkflow.id ? updatedWorkflow : w));
-            }}
-          /> */}
         </DialogContent>
       </Dialog>
+
+      {/* Automation Builder Dialog */}
+      <AutomationBuilder 
+        open={showAutomationBuilder}
+        onOpenChange={(open) => {
+          setShowAutomationBuilder(open);
+          if (!open) {
+            setEditingAutomation(null);
+            // Return to list if it was open
+            if (showAutomationList) {
+              setShowAutomationList(true);
+            }
+          }
+        }}
+        stageName={selectedStage?.name}
+        editingAutomation={editingAutomation ? (() => {
+          // Convert WorkflowBuilder Automation format to AutomationBuilder format
+          const triggerMap: Record<string, { id: string; category: string; name: string }> = {
+            'stage_entered': { id: 't1', category: 'Stage', name: 'When Stage is Entered' },
+            'stage_completed': { id: 't2', category: 'Stage', name: 'When Stage is Completed' },
+            'specific_task_completed': { id: 't5', category: 'Task', name: 'When Specific Task Completed' },
+            'time_after_task': { id: 't9', category: 'Time', name: 'Time After Task Completed' },
+            'time_based': { id: 't8', category: 'Time', name: 'X Days Before Deadline' },
+          };
+          
+          const trigger = triggerMap[editingAutomation.trigger] || { id: 't1', category: 'Stage', name: editingAutomation.trigger };
+          
+          return {
+            id: editingAutomation.id,
+            name: editingAutomation.name,
+            trigger: {
+              ...trigger,
+              config: editingAutomation.triggerTaskId ? { taskId: editingAutomation.triggerTaskId } : {},
+            },
+            enabled: editingAutomation.enabled,
+            conditions: editingAutomation.conditions || [],
+            actions: editingAutomation.actions.map((actionName, idx) => ({
+              id: `action-${idx}`,
+              category: 'Communication',
+              name: actionName,
+              config: {},
+            })),
+          };
+        })() : null}
+        automations={selectedStage?.automations?.map(auto => {
+          // Convert WorkflowBuilder Automation format to AutomationBuilder format
+          const triggerMap: Record<string, { id: string; category: string; name: string }> = {
+            'stage_entered': { id: 't1', category: 'Stage', name: 'When Stage is Entered' },
+            'stage_completed': { id: 't2', category: 'Stage', name: 'When Stage is Completed' },
+            'specific_task_completed': { id: 't5', category: 'Task', name: 'When Specific Task Completed' },
+            'time_after_task': { id: 't9', category: 'Time', name: 'Time After Task Completed' },
+            'time_based': { id: 't8', category: 'Time', name: 'X Days Before Deadline' },
+          };
+          
+          const trigger = triggerMap[auto.trigger] || { id: 't1', category: 'Stage', name: auto.trigger };
+          
+            return {
+              id: auto.id,
+              name: auto.name,
+              trigger: {
+                ...trigger,
+                config: auto.triggerTaskId ? { taskId: auto.triggerTaskId } : {},
+              },
+              enabled: auto.enabled,
+              conditions: auto.conditions || [],
+              actions: auto.actions.map((actionName, idx) => ({
+                id: `action-${idx}`,
+                category: 'Communication',
+                name: actionName,
+                config: {},
+              })),
+            };
+        }) || []}
+        onAutomationsChange={(updatedAutomations) => {
+          if (!selectedStage) return;
+          // Convert back to WorkflowBuilder format
+          const convertedAutomations = updatedAutomations.map(auto => {
+            const triggerMap: Record<string, string> = {
+              't1': 'stage_entered',
+              't2': 'stage_completed',
+              't5': 'specific_task_completed',
+              't9': 'time_after_task',
+              't8': 'time_based',
+            };
+            
+            return {
+              id: auto.id,
+              name: auto.name,
+              trigger: triggerMap[auto.trigger?.id || 't1'] || 'stage_entered',
+              triggerTaskId: auto.trigger?.config?.taskId,
+              enabled: auto.enabled,
+              actions: auto.actions.map(a => a.name),
+              conditions: auto.conditions || [],
+              details: auto.trigger?.config?.days ? `${auto.trigger.config.days} days` : undefined,
+            };
+          });
+          
+          const updatedWorkflow = {
+            ...selectedWorkflow,
+            stages: selectedWorkflow.stages.map(s =>
+              s.id === selectedStage.id
+                ? { ...s, automations: convertedAutomations }
+                : s
+            ),
+          };
+          setSelectedWorkflow(updatedWorkflow);
+          setWorkflows(workflows.map(w => w.id === selectedWorkflow.id ? updatedWorkflow : w));
+          
+          // Update selectedStage to point to the updated stage from the new workflow
+          // This ensures AutomationList receives the latest data immediately
+          const updatedStage = updatedWorkflow.stages.find(s => s.id === selectedStage.id);
+          if (updatedStage) {
+            setSelectedStage(updatedStage);
+          }
+          
+          // Close builder and return to list
+          setShowAutomationBuilder(false);
+          setShowAutomationList(true);
+          setEditingAutomation(null);
+        }}
+      />
 
       {/* Edit Tracker Step Dialog */}
       <Dialog open={showTrackerDialog} onOpenChange={setShowTrackerDialog}>

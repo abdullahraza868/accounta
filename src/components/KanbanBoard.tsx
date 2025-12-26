@@ -290,12 +290,12 @@ export function KanbanBoard({ viewMode = 'kanban', onViewModeChange, onProjectCl
       <div className="flex items-center justify-between">
         <div>
           <div className="flex items-center gap-3">
-            <h2 className="text-slate-900 dark:text-gray-100">Projects</h2>
+            <h2 className="text-slate-900">Projects</h2>
             <Badge variant="secondary" className="rounded-full">
               {filteredProjects.length} {filteredProjects.length !== 1 ? 'projects' : 'project'}
             </Badge>
           </div>
-          <p className="text-slate-500 dark:text-gray-400">Track and manage your projects visually</p>
+          <p className="text-slate-500">Track and manage your projects visually</p>
         </div>
         <div className="flex gap-3">
           <Dialog open={newProjectDialogOpen} onOpenChange={setNewProjectDialogOpen}>
@@ -359,9 +359,9 @@ export function KanbanBoard({ viewMode = 'kanban', onViewModeChange, onProjectCl
                 </div>
                 <div className="space-y-2">
                   <Label>Workflow</Label>
-                  <div className="p-3 bg-slate-50 dark:bg-gray-800 rounded border border-slate-200 dark:border-gray-700">
-                    <p className="text-sm dark:text-gray-200">{currentWorkflow?.name}</p>
-                    <p className="text-xs text-slate-500 dark:text-gray-400 mt-1">{currentWorkflow?.description}</p>
+                  <div className="p-3 bg-slate-50 rounded border border-slate-200">
+                    <p className="text-sm">{currentWorkflow?.name}</p>
+                    <p className="text-xs text-slate-500 mt-1">{currentWorkflow?.description}</p>
                   </div>
                 </div>
                 <div className="space-y-2">
@@ -415,14 +415,14 @@ export function KanbanBoard({ viewMode = 'kanban', onViewModeChange, onProjectCl
           const hasDropdown = dropdownWorkflows.length > 0;
 
           return (
-            <div className="bg-white dark:bg-gray-800 rounded-lg border border-slate-200 dark:border-gray-700 shadow-sm">
-              <div className="px-4 py-2.5 border-b border-slate-200 dark:border-gray-700">
+            <div className="bg-white rounded-lg border border-slate-200 shadow-sm">
+              <div className="px-4 py-2.5 border-b border-slate-200">
                 <div className="flex items-center justify-between gap-3">
                   <div className="flex items-center gap-3 flex-1 min-w-0">
                     {/* Label */}
                     <div className="flex items-center gap-2 flex-shrink-0">
-                      <FolderKanban className="w-4 h-4 text-slate-500 dark:text-gray-400" />
-                      <span className="text-sm text-slate-600 dark:text-gray-300">Workflow:</span>
+                      <FolderKanban className="w-4 h-4 text-slate-500" />
+                      <span className="text-sm text-slate-600">Workflow:</span>
                     </div>
                     
                     {/* Visible Workflow Tabs */}
@@ -444,7 +444,7 @@ export function KanbanBoard({ viewMode = 'kanban', onViewModeChange, onProjectCl
                                     ${taskCounts.total > 0 ? 'rounded-r-none border-r-0' : ''}
                                     ${isActive 
                                       ? 'bg-gradient-to-r from-violet-500 to-indigo-500 border-violet-600 text-white shadow-md' 
-                                      : 'bg-white dark:bg-gray-700 border-slate-200 dark:border-gray-600 text-slate-700 dark:text-gray-200 hover:border-violet-300 hover:bg-violet-50 dark:hover:bg-violet-900/30'
+                                      : 'bg-white border-slate-200 text-slate-700 hover:border-violet-300 hover:bg-violet-50'
                                     }
                                   `}
                                 >
@@ -516,7 +516,7 @@ export function KanbanBoard({ viewMode = 'kanban', onViewModeChange, onProjectCl
                     
                       {/* Add New Button */}
                       <button
-                        className="flex items-center gap-2 px-3 py-1.5 rounded-lg border-2 border-dashed border-slate-300 dark:border-gray-600 bg-slate-50 dark:bg-gray-800 hover:border-violet-400 hover:bg-violet-50 dark:hover:bg-violet-900/30 transition-all whitespace-nowrap flex-shrink-0 text-slate-600 dark:text-gray-300 hover:text-violet-700"
+                        className="flex items-center gap-2 px-3 py-1.5 rounded-lg border-2 border-dashed border-slate-300 bg-slate-50 hover:border-violet-400 hover:bg-violet-50 transition-all whitespace-nowrap flex-shrink-0 text-slate-600 hover:text-violet-700"
                         onClick={() => {
                           if (onStartWizard) {
                             onStartWizard();
@@ -561,7 +561,7 @@ export function KanbanBoard({ viewMode = 'kanban', onViewModeChange, onProjectCl
               </div>
 
               {/* Search & Filter Bar */}
-              <div className="px-4 py-2 bg-gradient-to-r from-slate-50 to-white dark:from-gray-800 dark:to-gray-800 border-b border-slate-200 dark:border-gray-700">
+              <div className="px-4 py-2 bg-gradient-to-r from-slate-50 to-white border-b border-slate-200">
                 <div className="flex items-center gap-3">
                   {/* Search */}
                   <div className="flex-1 max-w-md">
@@ -569,7 +569,7 @@ export function KanbanBoard({ viewMode = 'kanban', onViewModeChange, onProjectCl
                       placeholder="🔍 Search projects or clients..."
                       value={searchQuery}
                       onChange={(e) => setSearchQuery(e.target.value)}
-                      className="h-8 text-sm bg-white dark:bg-gray-700 dark:text-gray-100 border-slate-300 dark:border-gray-600 focus:border-violet-400 focus:ring-violet-400"
+                      className="h-8 text-sm bg-white border-slate-300 focus:border-violet-400 focus:ring-violet-400"
                     />
                   </div>
 
@@ -721,12 +721,12 @@ export function KanbanBoard({ viewMode = 'kanban', onViewModeChange, onProjectCl
                   {/* View Mode Toggle */}
                   {onViewModeChange && (
                     <Tabs value={viewMode} onValueChange={(v) => onViewModeChange(v as 'kanban' | 'list')} className="h-auto">
-                      <TabsList className="bg-slate-100 dark:bg-gray-700 p-0.5 h-8">
-                        <TabsTrigger value="kanban" className="gap-1.5 h-7 px-2.5 data-[state=active]:bg-white dark:data-[state=active]:bg-gray-600 text-xs">
+                      <TabsList className="bg-slate-100 p-0.5 h-8">
+                        <TabsTrigger value="kanban" className="gap-1.5 h-7 px-2.5 data-[state=active]:bg-white text-xs">
                           <FolderKanban className="w-3 h-3" />
                           Kanban
                         </TabsTrigger>
-                        <TabsTrigger value="list" className="gap-1.5 h-7 px-2.5 data-[state=active]:bg-white dark:data-[state=active]:bg-gray-600 text-xs">
+                        <TabsTrigger value="list" className="gap-1.5 h-7 px-2.5 data-[state=active]:bg-white text-xs">
                           <LayoutList className="w-3 h-3" />
                           List
                         </TabsTrigger>
@@ -786,14 +786,14 @@ export function KanbanBoard({ viewMode = 'kanban', onViewModeChange, onProjectCl
 
         {/* No Workflows State */}
         {workflows.length === 0 && (
-          <Card className="p-8 text-center border-2 border-dashed border-slate-300 dark:border-gray-700 dark:bg-gray-800">
+          <Card className="p-8 text-center border-2 border-dashed border-slate-300">
             <div className="max-w-md mx-auto space-y-4">
-              <div className="w-16 h-16 rounded-full bg-slate-100 dark:bg-gray-700 flex items-center justify-center mx-auto">
-                <FolderKanban className="w-8 h-8 text-slate-400 dark:text-gray-400" />
+              <div className="w-16 h-16 rounded-full bg-slate-100 flex items-center justify-center mx-auto">
+                <FolderKanban className="w-8 h-8 text-slate-400" />
               </div>
               <div>
-                <h3 className="text-slate-900 dark:text-gray-100 mb-2">No Workflows Yet</h3>
-                <p className="text-sm text-slate-500 dark:text-gray-400">
+                <h3 className="text-slate-900 mb-2">No Workflows Yet</h3>
+                <p className="text-sm text-slate-500">
                   Create a workflow to start managing projects with kanban boards
                 </p>
               </div>
@@ -820,7 +820,7 @@ export function KanbanBoard({ viewMode = 'kanban', onViewModeChange, onProjectCl
             {/* Left Filter Sidebar */}
             {showFilterPanel && (
               <div className="w-72 flex-shrink-0">
-                <Card className="p-4 sticky top-4 bg-gradient-to-br from-white to-slate-50 dark:from-gray-800 dark:to-gray-900 shadow-lg border-slate-200 dark:border-gray-700">
+                <Card className="p-4 sticky top-4 bg-gradient-to-br from-white to-slate-50 shadow-lg border-slate-200">
                   <div className="space-y-4">
                     {/* Header */}
                     <div className="space-y-2">
@@ -829,7 +829,7 @@ export function KanbanBoard({ viewMode = 'kanban', onViewModeChange, onProjectCl
                           <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-violet-500 to-indigo-500 flex items-center justify-center">
                             <Filter className="w-4 h-4 text-white" />
                           </div>
-                          <h3 className="text-slate-900 dark:text-gray-100">Filter Projects</h3>
+                          <h3 className="text-slate-900">Filter Projects</h3>
                         </div>
                         <Button
                           variant="ghost"
@@ -915,7 +915,7 @@ export function KanbanBoard({ viewMode = 'kanban', onViewModeChange, onProjectCl
 
                         {/* Project Lead Filter */}
                         <div className="space-y-3">
-                          <Label className="flex items-center gap-2 text-slate-700 dark:text-gray-300">
+                          <Label className="flex items-center gap-2 text-slate-700">
                             <Users className="w-4 h-4 text-violet-500" />
                             Project Lead
                           </Label>
@@ -1238,12 +1238,12 @@ export function KanbanBoard({ viewMode = 'kanban', onViewModeChange, onProjectCl
                 <div className="flex gap-4 overflow-x-auto pb-4">
                   {stages.map((stage) => (
                   <div key={stage.id} className="min-w-[320px] flex-shrink-0">
-                    <Card className={`p-4 border-t-4 ${stage.color} border-slate-200 dark:border-gray-700 dark:bg-gray-800`}>
+                    <Card className={`p-4 border-t-4 ${stage.color} border-slate-200`}>
                 <div className="space-y-4">
                   {/* Stage Header */}
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
-                      <h3 className="text-slate-900 dark:text-gray-100">{stage.name}</h3>
+                      <h3 className="text-slate-900">{stage.name}</h3>
                       <Badge variant="secondary" className="rounded-full">
                         {projectsByStage[stage.id]?.length || 0}
                       </Badge>
@@ -1264,25 +1264,21 @@ export function KanbanBoard({ viewMode = 'kanban', onViewModeChange, onProjectCl
                   {/* Project Cards */}
                   <div className="space-y-3">
                     {projectsByStage[stage.id]?.map((project) => {
-                      const projectCard = {
-                        ...convertToProjectCard(project),
-                        stageName: stage.name,
-                        stageColor: stage.color
-                      };
+                      const projectCard = convertToProjectCard(project);
                       return (
-                        <Card key={project.id} className="p-4 border-slate-200 dark:border-gray-700 dark:bg-gray-900 hover:border-violet-300 transition-colors group">
+                        <Card key={project.id} className="p-4 border-slate-200 hover:border-violet-300 transition-colors group">
                           <div className="space-y-3">
                             <div className="flex items-start justify-between">
                               <div 
                                 className="flex-1 cursor-pointer" 
                                 onClick={() => onProjectClick?.(projectCard)}
                               >
-                                <h4 className="text-sm text-slate-900 dark:text-gray-100 hover:text-violet-600 transition-colors">
+                                <h4 className="text-sm text-slate-900 hover:text-violet-600 transition-colors">
                                   {project.clientName && project.name !== project.clientName 
                                     ? `${project.clientName} - ${project.name}`
                                     : project.name}
                                 </h4>
-                                <div className="flex items-center gap-2 mt-0.5 text-xs text-slate-500 dark:text-gray-400">
+                                <div className="flex items-center gap-2 mt-0.5 text-xs text-slate-500">
                                   <span>{currentWorkflow?.name}</span>
                                   {project.year && (
                                     <>
@@ -1316,12 +1312,12 @@ export function KanbanBoard({ viewMode = 'kanban', onViewModeChange, onProjectCl
 
                             {/* Project Info Grid */}
                             <div className="grid grid-cols-2 gap-x-3 gap-y-1.5 text-xs">
-                              <div className="flex items-center gap-1 text-slate-500 dark:text-gray-400">
-                                <span className="text-slate-400 dark:text-gray-500">Created:</span>
+                              <div className="flex items-center gap-1 text-slate-500">
+                                <span className="text-slate-400">Created:</span>
                                 <span>{new Date(project.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</span>
                               </div>
-                              <div className="flex items-center gap-1 text-slate-500 dark:text-gray-400">
-                                <Calendar className="w-3 h-3 text-slate-400 dark:text-gray-500" />
+                              <div className="flex items-center gap-1 text-slate-500">
+                                <Calendar className="w-3 h-3 text-slate-400" />
                                 <span>Due {project.dueDate}</span>
                               </div>
                               {project.personInCharge && (
@@ -1341,34 +1337,34 @@ export function KanbanBoard({ viewMode = 'kanban', onViewModeChange, onProjectCl
                             {/* Progress */}
                             <div className="space-y-1">
                               <div className="flex items-center justify-between text-xs">
-                                <span className="text-slate-500 dark:text-gray-400">Progress</span>
-                                <span className="text-slate-900 dark:text-gray-100">{project.progress}%</span>
+                                <span className="text-slate-500">Progress</span>
+                                <span className="text-slate-900">{project.progress}%</span>
                               </div>
                               <Progress value={project.progress} className="h-1.5" />
                             </div>
 
                             {/* Tasks */}
-                            <div className="flex items-center gap-4 text-xs text-slate-500 dark:text-gray-400">
+                            <div className="flex items-center gap-4 text-xs text-slate-500">
                               <div className="flex items-center gap-1">
                                 <CheckSquare className="w-3 h-3" />
                                 <span>{project.tasks.completed}/{project.tasks.total} tasks</span>
                               </div>
-                              <span className="text-slate-300 dark:text-gray-600">|</span>
+                              <span className="text-slate-300">|</span>
                               <span>Assigned: {project.assignees.join(', ')}</span>
                             </div>
 
                             {/* Footer */}
-                            <div className="flex items-center justify-between pt-2 border-t border-slate-100 dark:border-gray-700">
+                            <div className="flex items-center justify-between pt-2 border-t border-slate-100">
                               <div className="flex -space-x-2">
                                 {project.assignees.map((assignee, i) => (
-                                  <Avatar key={i} className="w-6 h-6 border-2 border-white dark:border-gray-800">
+                                  <Avatar key={i} className="w-6 h-6 border-2 border-white">
                                     <AvatarFallback className="text-xs bg-violet-100 text-violet-700">
                                       {assignee}
                                     </AvatarFallback>
                                   </Avatar>
                                 ))}
                               </div>
-                              <div className="flex items-center gap-3 text-xs text-slate-400 dark:text-gray-500">
+                              <div className="flex items-center gap-3 text-xs text-slate-400">
                                 <div className="flex items-center gap-1">
                                   <MessageSquare className="w-3 h-3" />
                                   {project.comments}
@@ -1393,7 +1389,7 @@ export function KanbanBoard({ viewMode = 'kanban', onViewModeChange, onProjectCl
 
                 {/* List View */}
                 {viewMode === 'list' && (
-                  <Card className="border-slate-200 dark:border-gray-700 dark:bg-gray-800">
+                  <Card className="border-slate-200">
             <Table>
               <TableHeader>
                 <TableRow>
@@ -1410,7 +1406,7 @@ export function KanbanBoard({ viewMode = 'kanban', onViewModeChange, onProjectCl
                 {allProjects.map((project) => (
                   <TableRow 
                   key={project.id} 
-                  className="cursor-pointer hover:bg-slate-50 dark:hover:bg-gray-700"
+                  className="cursor-pointer hover:bg-slate-50"
                   onClick={() => onProjectClick?.(project)}
                 >
                   <TableCell>
@@ -1420,7 +1416,7 @@ export function KanbanBoard({ viewMode = 'kanban', onViewModeChange, onProjectCl
                           ? `${project.clientName} - ${project.name}`
                           : project.name}
                       </p>
-                      <p className="text-xs text-slate-500 dark:text-gray-400">{project.template}</p>
+                      <p className="text-xs text-slate-500">{project.template}</p>
                     </div>
                   </TableCell>
                   <TableCell>
@@ -1431,21 +1427,21 @@ export function KanbanBoard({ viewMode = 'kanban', onViewModeChange, onProjectCl
                   <TableCell>
                     <div className="flex items-center gap-2 min-w-[120px]">
                       <Progress value={project.progress} className="h-2" />
-                      <span className="text-xs text-slate-600 dark:text-gray-300">{project.progress}%</span>
+                      <span className="text-xs text-slate-600">{project.progress}%</span>
                     </div>
                   </TableCell>
                   <TableCell>
-                    <span className="text-xs text-slate-600 dark:text-gray-300">
+                    <span className="text-xs text-slate-600">
                       {project.tasks.completed}/{project.tasks.total}
                     </span>
                   </TableCell>
                   <TableCell>
-                    <span className="text-xs text-slate-600 dark:text-gray-300">{project.dueDate}</span>
+                    <span className="text-xs text-slate-600">{project.dueDate}</span>
                   </TableCell>
                   <TableCell>
                     <div className="flex -space-x-2">
                       {project.assignees.map((assignee, i) => (
-                        <Avatar key={i} className="w-6 h-6 border-2 border-white dark:border-gray-800">
+                        <Avatar key={i} className="w-6 h-6 border-2 border-white">
                           <AvatarFallback className="text-xs bg-violet-100 text-violet-700">
                             {assignee}
                           </AvatarFallback>
@@ -1483,14 +1479,14 @@ export function KanbanBoard({ viewMode = 'kanban', onViewModeChange, onProjectCl
 
             {/* Empty State */}
             {workflowProjects.length === 0 && viewMode !== 'tasks' && (
-              <Card className="p-12 border-slate-200 dark:border-gray-700 dark:bg-gray-800 border-dashed">
+              <Card className="p-12 border-slate-200 border-dashed">
                 <div className="text-center space-y-4">
-                  <div className="w-16 h-16 bg-violet-100 dark:bg-violet-900/30 rounded-full flex items-center justify-center mx-auto">
-                    <FolderKanban className="w-8 h-8 text-violet-600 dark:text-violet-400" />
+                  <div className="w-16 h-16 bg-violet-100 rounded-full flex items-center justify-center mx-auto">
+                    <FolderKanban className="w-8 h-8 text-violet-600" />
                   </div>
                   <div>
-                    <h3 className="text-slate-900 dark:text-gray-100">No projects yet</h3>
-                    <p className="text-sm text-slate-500 dark:text-gray-400 mt-1">
+                    <h3 className="text-slate-900">No projects yet</h3>
+                    <p className="text-sm text-slate-500 mt-1">
                       Create your first project to get started with {currentWorkflow?.name}
                     </p>
                   </div>
