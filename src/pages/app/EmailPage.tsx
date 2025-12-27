@@ -27,6 +27,8 @@ import {
   Sparkles,
   X,
   Check,
+  CheckCircle,
+  XCircle,
   AlertCircle,
   Users,
   Building2,
@@ -1256,7 +1258,6 @@ Mary Smith`,
       emailId: "1",
       status: "opened",
       isFirmEmail: false,
-      metadata: "Opened 3 times",
     },
     {
       id: "act4",
@@ -1584,6 +1585,55 @@ Mary Smith`,
           textColor: "text-gray-600 dark:text-gray-400",
         };
     }
+  };
+
+  const getStatusBadge = (status: string) => {
+    switch (status) {
+      case 'sent':
+        return (
+          <Badge className="bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-300 border-blue-300 dark:border-blue-700 text-[10px] px-2 py-0.5 h-5 font-semibold shadow-sm">
+            <Send className="w-3 h-3 mr-1" />
+            Sent
+          </Badge>
+        );
+      case 'delivered':
+        return (
+          <Badge className="bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-300 border-green-300 dark:border-green-700 text-[10px] px-2 py-0.5 h-5 font-semibold shadow-sm">
+            <CheckCircle className="w-3 h-3 mr-1" />
+            Delivered
+          </Badge>
+        );
+      case 'opened':
+        return (
+          <Badge className="bg-purple-100 dark:bg-purple-900/30 text-purple-800 dark:text-purple-300 border-purple-300 dark:border-purple-700 text-[10px] px-2 py-0.5 h-5 font-semibold shadow-sm">
+            <Eye className="w-3 h-3 mr-1" />
+            Opened
+          </Badge>
+        );
+      case 'failed':
+        return (
+          <Badge className="bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-300 border-red-300 dark:border-red-700 text-[10px] px-2 py-0.5 h-5 font-semibold shadow-sm animate-pulse">
+            <XCircle className="w-3 h-3 mr-1" />
+            Failed
+          </Badge>
+        );
+      case 'success':
+        return (
+          <Badge className="bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-300 border-green-300 dark:border-green-700 text-[10px] px-2 py-0.5 h-5 font-semibold shadow-sm">
+            <CheckCircle className="w-3 h-3 mr-1" />
+            Success
+          </Badge>
+        );
+      default:
+        return null;
+    }
+  };
+
+  const formatEventType = (type: string) => {
+    return type
+      .split("_")
+      .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+      .join(" ");
   };
 
   const hasExtendedDetails = (
@@ -2916,13 +2966,15 @@ Mary Smith`,
                               ? "bg-white dark:bg-gray-900"
                               : !email.read
                                 ? "bg-white dark:bg-gray-900"
-                                : "bg-gray-50 dark:bg-gray-800",
+                                : "bg-gray-50 dark:bg-gray-800 opacity-70",
                             // Hover states
                             selectedEmail?.id !== email.id &&
                               "hover:bg-gray-100 dark:hover:bg-gray-800",
                             // Selected state - purple ring and white background with forced full opacity
                             selectedEmail?.id === email.id &&
                               "ring-2 ring-inset ring-purple-500 bg-white dark:bg-gray-900 opacity-100",
+                            // Reduce opacity more for read emails that are not selected
+                            selectedEmail?.id !== email.id && email.read && "opacity-70",
                           )}
                         >
                           <div className="flex items-start gap-3">
@@ -3494,7 +3546,7 @@ Mary Smith`,
                       className={cn(
                         "flex-1 px-3 py-1.5 rounded-md text-xs font-medium transition-colors flex items-center justify-center gap-1",
                         selectedActivityEmailType === "firm"
-                          ? "bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300"
+                          ? "bg-teal-200 text-teal-800 dark:bg-teal-800/50 dark:text-teal-200"
                           : "bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700",
                       )}
                     >
@@ -3508,7 +3560,7 @@ Mary Smith`,
                       className={cn(
                         "flex-1 px-3 py-1.5 rounded-md text-xs font-medium transition-colors flex items-center justify-center gap-1",
                         selectedActivityEmailType === "personal"
-                          ? "bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300"
+                          ? "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300"
                           : "bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700",
                       )}
                     >
@@ -3631,13 +3683,17 @@ Mary Smith`,
                                       {/* Activity Card */}
                                       <Card
                                         className={cn(
-                                          "p-4 border-l-4 transition-all cursor-pointer",
-                                          activity.isFirmEmail &&
-                                            !isSelected &&
-                                            "bg-purple-50/40 dark:bg-purple-950/10",
-                                          isSelected
-                                            ? "border-l-purple-600 dark:border-l-purple-500 bg-purple-50/50 dark:bg-purple-900/20 shadow-md"
-                                            : "border-l-purple-600 dark:border-l-purple-500 hover:shadow-md",
+                                          "p-3 border-l-4 transition-all duration-200 cursor-pointer hover:shadow-md group relative overflow-hidden",
+                                          activity.isFirmEmail
+                                            ? isSelected
+                                              ? "!border-l-purple-400 dark:!border-l-purple-300 bg-teal-50/60 dark:bg-teal-900/30 shadow-md ring-1 ring-teal-200 dark:ring-teal-800"
+                                              : "!border-l-purple-400 dark:!border-l-purple-300 bg-teal-50/40 dark:bg-teal-900/20 hover:bg-teal-50/60 dark:hover:bg-teal-900/30"
+                                            : isSelected
+                                              ? "border-l-blue-600 dark:border-l-blue-400 bg-blue-50/60 dark:bg-blue-900/30 shadow-md ring-1 ring-blue-200 dark:ring-blue-800"
+                                              : "border-l-blue-600 dark:border-l-blue-400 bg-blue-50/40 dark:bg-blue-900/20 hover:bg-blue-50/60 dark:hover:bg-blue-900/30",
+                                          // Status-based border colors (only apply if not firm email)
+                                          !activity.isFirmEmail && activity.status === 'failed' && "border-l-red-600 dark:border-l-red-500 bg-red-50/40 dark:bg-red-900/20 hover:bg-red-50/60 dark:hover:bg-red-900/30",
+                                          !activity.isFirmEmail && activity.status === 'opened' && "border-l-purple-600 dark:border-l-purple-400 bg-purple-50/40 dark:bg-purple-900/20 hover:bg-purple-50/60 dark:hover:bg-purple-900/30",
                                         )}
                                         onClick={() => {
                                           setSelectedActivityLog(
@@ -3657,53 +3713,71 @@ Mary Smith`,
                                           }
                                         }}
                                       >
-                                        <div className="flex items-start gap-4">
-                                          {/* Icon */}
+                                        {/* Vertical "Firm" Label */}
+                                        {activity.isFirmEmail && (
+                                          <div className="absolute left-0 top-0 bottom-0 w-7 flex flex-col items-center justify-center bg-purple-50/50 dark:bg-purple-950/20 shadow-[2px_0_8px_rgba(0,0,0,0.15)] z-20 border-r border-purple-200 dark:border-purple-800 transition-all duration-200">
+                                            <Building2 className="w-5 h-5 text-purple-700 dark:text-purple-300 flex-shrink-0 drop-shadow-sm mb-2" />
+                                            <div className="flex flex-col items-center justify-center gap-1.5">
+                                              <span className="text-purple-700 dark:text-purple-300 font-extrabold text-[14px] leading-none select-none">F</span>
+                                              <span className="text-purple-700 dark:text-purple-300 font-extrabold text-[14px] leading-none select-none">I</span>
+                                              <span className="text-purple-700 dark:text-purple-300 font-extrabold text-[14px] leading-none select-none">R</span>
+                                              <span className="text-purple-700 dark:text-purple-300 font-extrabold text-[14px] leading-none select-none">M</span>
+                                            </div>
+                                          </div>
+                                        )}
+
+                                        <div className={cn("flex items-start gap-3 relative", activity.isFirmEmail && "pl-7")}>
+                                          {/* Icon - Compact */}
                                           <div
                                             className={cn(
-                                              "w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0",
+                                              "w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0 shadow-sm transition-transform group-hover:scale-105 duration-200",
                                               bgColor,
                                               textColor,
                                             )}
                                           >
+                                            <div className="w-5 h-5 flex items-center justify-center [&>svg]:w-full [&>svg]:h-full [&>svg]:flex-shrink-0">
                                             {icon}
+                                            </div>
                                           </div>
 
                                           {/* Content */}
                                           <div className="flex-1 min-w-0">
-                                            <div className="flex items-start justify-between gap-4 mb-2">
-                                              <div className="flex-1">
-                                                <div className="flex items-center gap-2 flex-wrap mb-1">
-                                                  <p className="text-sm">
-                                                    <span className="font-medium text-gray-900 dark:text-gray-100">
-                                                      {
-                                                        activity.user
-                                                      }
+                                            {/* Top Row: Action + Status Badge */}
+                                            <div className="flex items-start justify-between gap-2 mb-1.5">
+                                              <div className="flex-1 min-w-0">
+                                                {/* Action Type */}
+                                                <div className="flex items-center gap-1.5 mb-1">
+                                                  <h4 className="text-sm font-semibold text-gray-900 dark:text-gray-50 leading-tight">
+                                                    {activity.type === 'email_sent' ? 'Email Sent' :
+                                                     activity.type === 'email_received' ? 'Email Received' :
+                                                     activity.type === 'email_replied' ? 'Email Replied' :
+                                                     activity.type === 'email_opened' ? 'Email Opened' :
+                                                     activity.type === 'email_failed' ? 'Delivery Failed' :
+                                                     activity.type === 'email_added_to_task' ? 'Added to Task' :
+                                                     activity.type === 'email_added_to_calendar' ? 'Added to Calendar' :
+                                                     activity.type === 'email_assigned_to_project' ? 'Assigned to Project' :
+                                                     activity.type === 'email_starred' ? 'Starred' :
+                                                     formatEventType(activity.type)}
+                                                  </h4>
+                                                </div>
+                                                
+                                                {/* User action */}
+                                                <p className="text-xs text-gray-600 dark:text-gray-400 mb-0.5">
+                                                  <span className="font-medium text-gray-800 dark:text-gray-300">
+                                                    {activity.user}
                                                     </span>
-                                                    <span className="text-gray-600 dark:text-gray-400">
-                                                      {" "}
-                                                      {
-                                                        activity.action
-                                                      }
+                                                  <span className="text-gray-500 dark:text-gray-500">
+                                                    {" "}{activity.action}
                                                     </span>
                                                   </p>
-                                                  {activity.isFirmEmail && (
-                                                    <Badge
-                                                      variant="outline"
-                                                      className="text-[10px] px-1.5 py-0 h-4 bg-purple-50 dark:bg-purple-950/30 text-purple-700 dark:text-purple-300 border-purple-200 dark:border-purple-800"
-                                                    >
-                                                      <Building2 className="w-2.5 h-2.5 mr-0.5" />
-                                                      Firm
-                                                    </Badge>
-                                                  )}
-                                                </div>
+
+                                                {/* Subject/Details */}
                                                 {activity.details && (
-                                                  <p className="text-sm text-gray-700 dark:text-gray-300 font-medium mt-0.5">
-                                                    {
-                                                      activity.details
-                                                    }
+                                                  <p className="text-xs font-medium text-gray-900 dark:text-gray-100 leading-snug mt-1 bg-white/50 dark:bg-gray-800/30 px-2 py-1 rounded border border-gray-200/50 dark:border-gray-700/50">
+                                                    {activity.details}
                                                   </p>
                                                 )}
+
                                                 {/* From/To Information */}
                                                 {activity.extendedDetails &&
                                                   (activity
@@ -3712,15 +3786,15 @@ Mary Smith`,
                                                     activity
                                                       .extendedDetails
                                                       .to) && (
-                                                    <div className="flex items-center gap-3 mt-1.5 text-xs text-gray-500 dark:text-gray-400">
+                                                    <div className="flex items-center gap-2 mt-1.5 text-[10px]">
                                                       {activity
                                                         .extendedDetails
                                                         .from && (
-                                                        <div className="flex items-center gap-1">
-                                                          <span className="text-gray-400">
+                                                        <div className="flex items-center gap-1 bg-gray-100 dark:bg-gray-800 px-1.5 py-0.5 rounded">
+                                                          <span className="text-gray-500 dark:text-gray-500 font-medium">
                                                             From:
                                                           </span>
-                                                          <span className="font-medium">
+                                                          <span className="font-semibold text-gray-800 dark:text-gray-200">
                                                             {
                                                               activity
                                                                 .extendedDetails
@@ -3737,19 +3811,11 @@ Mary Smith`,
                                                           .to
                                                           .length >
                                                           0 && (
-                                                          <>
-                                                            {activity
-                                                              .extendedDetails
-                                                              .from && (
-                                                              <span>
-                                                                •
-                                                              </span>
-                                                            )}
-                                                            <div className="flex items-center gap-1">
-                                                              <span className="text-gray-400">
+                                                          <div className="flex items-center gap-1 bg-gray-100 dark:bg-gray-800 px-1.5 py-0.5 rounded">
+                                                            <span className="text-gray-500 dark:text-gray-500 font-medium">
                                                                 To:
                                                               </span>
-                                                              <span className="font-medium">
+                                                            <span className="font-semibold text-gray-800 dark:text-gray-200">
                                                                 {
                                                                   activity
                                                                     .extendedDetails
@@ -3761,7 +3827,7 @@ Mary Smith`,
                                                                 .to
                                                                 .length >
                                                                 1 && (
-                                                                <span className="text-gray-400">
+                                                              <span className="text-gray-600 dark:text-gray-400 text-[9px] font-medium">
                                                                   +
                                                                   {activity
                                                                     .extendedDetails
@@ -3771,53 +3837,29 @@ Mary Smith`,
                                                                 </span>
                                                               )}
                                                             </div>
-                                                          </>
                                                         )}
                                                     </div>
                                                   )}
                                                 {activity.metadata &&
                                                   !activity.extendedDetails && (
-                                                    <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
+                                                    <p className="text-[10px] text-gray-600 dark:text-gray-400 mt-1 italic">
                                                       {
                                                         activity.metadata
                                                       }
                                                     </p>
                                                   )}
                                               </div>
+                                              
                                               {/* Status Badge */}
-                                              {activity.status && (
-                                                <Badge
-                                                  variant="outline"
-                                                  className={cn(
-                                                    "text-[10px] px-2 py-0.5 h-5 flex-shrink-0",
-                                                    activity.status ===
-                                                      "sent" &&
-                                                      "bg-blue-50 dark:bg-blue-950/30 text-blue-700 dark:text-blue-300 border-blue-300 dark:border-blue-800",
-                                                    activity.status ===
-                                                      "delivered" &&
-                                                      "bg-green-50 dark:bg-green-950/30 text-green-700 dark:text-green-300 border-green-300 dark:border-green-800",
-                                                    activity.status ===
-                                                      "failed" &&
-                                                      "bg-red-50 dark:bg-red-950/30 text-red-700 dark:text-red-300 border-red-300 dark:border-red-800",
-                                                    activity.status ===
-                                                      "opened" &&
-                                                      "bg-purple-50 dark:bg-purple-950/30 text-purple-700 dark:text-purple-300 border-purple-300 dark:border-purple-800",
-                                                  )}
-                                                >
-                                                  {activity.status
-                                                    .charAt(0)
-                                                    .toUpperCase() +
-                                                    activity.status.slice(
-                                                      1,
-                                                    )}
-                                                </Badge>
-                                              )}
+                                              <div className="flex-shrink-0">
+                                                {getStatusBadge(activity.status)}
+                                              </div>
                                             </div>
                                           </div>
 
                                           {/* User Avatar */}
-                                          <Avatar className="w-8 h-8 flex-shrink-0">
-                                            <AvatarFallback className="bg-purple-100 dark:bg-purple-900/40 text-purple-700 dark:text-purple-300 text-xs">
+                                          <Avatar className="w-8 h-8 flex-shrink-0 ring-1 ring-white dark:ring-gray-800 shadow-sm">
+                                            <AvatarFallback className="bg-gradient-to-br from-purple-100 to-purple-50 dark:from-purple-900/60 dark:to-purple-900/40 text-purple-800 dark:text-purple-200 text-xs font-semibold">
                                               {
                                                 activity.userInitials
                                               }
@@ -3825,11 +3867,13 @@ Mary Smith`,
                                           </Avatar>
                                         </div>
 
-                                        {/* Full Timestamp at bottom */}
-                                        <div className="flex items-center justify-between text-xs text-gray-400 dark:text-gray-500 mt-2">
-                                          <div className="flex items-center gap-1.5">
+                                        {/* Bottom Row: Timestamp and Tracking */}
+                                        <div className="flex items-center gap-1.5 text-[10px] text-gray-500 dark:text-gray-500 flex-wrap mt-2 pt-2 border-t border-gray-200/50 dark:border-gray-700/50">
+                                          {/* TRACKING INFO - Positioned on the right using flex spacer */}
+                                          <div className="flex-1" />
+                                          <div className="flex items-center gap-1 text-gray-600 dark:text-gray-400 bg-gray-100/50 dark:bg-gray-800/50 px-1.5 py-0.5 rounded">
                                             <Clock className="w-3 h-3" />
-                                            <span>
+                                            <span className="font-medium">
                                               {format(
                                                 new Date(
                                                   activity.timestamp,
@@ -3838,15 +3882,6 @@ Mary Smith`,
                                               )}
                                             </span>
                                           </div>
-                                          {activity.status ===
-                                            "opened" &&
-                                            activity.metadata && (
-                                              <span className="text-gray-600 dark:text-gray-300 font-medium">
-                                                {
-                                                  activity.metadata
-                                                }
-                                              </span>
-                                            )}
                                         </div>
                                       </Card>
                                     </div>

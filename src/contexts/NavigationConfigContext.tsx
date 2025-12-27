@@ -120,6 +120,7 @@ const defaultConfig: NavigationConfig = {
         { id: 'invoices', icon: FileText, label: 'Invoices', visible: true, order: 1 },
         { id: 'subscriptions', icon: Repeat, label: 'Subscriptions', visible: true, order: 2 },
         { id: 'payments', icon: Wallet, label: 'Payments', visible: true, order: 3 },
+        { id: 'subscription-settings', icon: Settings, label: 'Settings', visible: true, order: 4 },
       ]
     },
     { id: 'signatures', icon: FileSignature, label: 'Signatures', visible: true, isSystem: true, order: 7 },

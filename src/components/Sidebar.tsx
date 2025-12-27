@@ -39,6 +39,7 @@ export function Sidebar({ onCollapse }: SidebarProps) {
   const isBillingPage = currentPage === 'billing' || 
                         location.pathname === '/manage-invoice-templates' ||
                         location.pathname === '/invoices/add' ||
+                        location.pathname === '/subscription-settings' ||
                         location.pathname.startsWith('/billing/recurring') ||
                         location.pathname.startsWith('/billing/templates') ||
                         location.pathname.startsWith('/projects/') && location.pathname.includes('/add-invoice');
@@ -157,12 +158,14 @@ export function Sidebar({ onCollapse }: SidebarProps) {
                             'invoices': '/billing/invoices',
                             'subscriptions': '/billing/subscriptions',
                             'payments': '/payments',
+                            'subscription-settings': '/subscription-settings',
                           };
                           
                           const subRoute = subRouteMap[subItem.id] || `/${subItem.id}`;
                           const isSubActive = location.pathname === subRoute || 
                                              (subItem.id === 'invoices' && (location.pathname === '/billing/cards' || location.pathname === '/billing/table' || location.pathname === '/billing/split')) ||
-                                             (subItem.id === 'subscriptions' && location.pathname === '/subscriptions');
+                                             (subItem.id === 'subscriptions' && location.pathname === '/subscriptions') ||
+                                             (subItem.id === 'subscription-settings' && location.pathname === '/subscription-settings');
                           
                           return (
                             <button

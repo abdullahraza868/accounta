@@ -85,14 +85,8 @@ export function EmailSettingsDialog({ open, onOpenChange }: EmailSettingsDialogP
 
   // Notification settings
   const [notifyNewEmail, setNotifyNewEmail] = useState(true);
-  const [notifyEmailOpened, setNotifyEmailOpened] = useState(true);
-  const [notifySoundEnabled, setNotifySoundEnabled] = useState(true);
+  const [notifyEmailFailed, setNotifyEmailFailed] = useState(true);
 
-  // Sending preferences
-  const [ccMyself, setCcMyself] = useState(false);
-  const [requestReadReceipt, setRequestReadReceipt] = useState(false);
-  const [autoSaveDrafts, setAutoSaveDrafts] = useState(true);
-  const [autoSaveInterval, setAutoSaveInterval] = useState('30');
 
   const handleSaveSettings = () => {
     toast.success('Email settings saved successfully');
@@ -205,11 +199,10 @@ export function EmailSettingsDialog({ open, onOpenChange }: EmailSettingsDialogP
         </DialogHeader>
 
         <Tabs defaultValue="signatures" className="w-full">
-          <TabsList className="grid w-full grid-cols-4">
+          <TabsList className="grid w-full grid-cols-3">
             <TabsTrigger value="signatures">Signatures</TabsTrigger>
             <TabsTrigger value="auto-reply">Auto-Reply</TabsTrigger>
             <TabsTrigger value="notifications">Notifications</TabsTrigger>
-            <TabsTrigger value="preferences">Preferences</TabsTrigger>
           </TabsList>
 
           {/* Signatures Tab */}
@@ -535,108 +528,20 @@ export function EmailSettingsDialog({ open, onOpenChange }: EmailSettingsDialogP
 
               <div className="flex items-center justify-between">
                 <div>
-                  <Label htmlFor="notify-opened" className="text-sm font-medium">Email Opened</Label>
+                  <Label htmlFor="notify-failed" className="text-sm font-medium">Email Failed to Deliver</Label>
                   <p className="text-xs text-gray-500 dark:text-gray-400">
-                    Notify me when recipients open my emails
+                    Notify me when an email fails to deliver
                   </p>
                 </div>
                 <Switch
-                  id="notify-opened"
-                  checked={notifyEmailOpened}
-                  onCheckedChange={setNotifyEmailOpened}
-                />
-              </div>
-
-              <Separator />
-
-              <div className="flex items-center justify-between">
-                <div>
-                  <Label htmlFor="notify-sound" className="text-sm font-medium">Sound Notifications</Label>
-                  <p className="text-xs text-gray-500 dark:text-gray-400">
-                    Play sound for email notifications
-                  </p>
-                </div>
-                <Switch
-                  id="notify-sound"
-                  checked={notifySoundEnabled}
-                  onCheckedChange={setNotifySoundEnabled}
+                  id="notify-failed"
+                  checked={notifyEmailFailed}
+                  onCheckedChange={setNotifyEmailFailed}
                 />
               </div>
             </Card>
           </TabsContent>
 
-          {/* Preferences Tab */}
-          <TabsContent value="preferences" className="space-y-4 mt-4">
-            <div>
-              <h3 className="text-sm font-medium mb-1">Sending Preferences</h3>
-              <p className="text-xs text-gray-500 dark:text-gray-400">
-                Configure default sending behavior
-              </p>
-            </div>
-
-            <Card className="p-4 space-y-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <Label htmlFor="cc-myself" className="text-sm font-medium">CC Myself</Label>
-                  <p className="text-xs text-gray-500 dark:text-gray-400">
-                    Automatically add myself to CC on all emails
-                  </p>
-                </div>
-                <Switch
-                  id="cc-myself"
-                  checked={ccMyself}
-                  onCheckedChange={setCcMyself}
-                />
-              </div>
-
-              <Separator />
-
-              <div className="flex items-center justify-between">
-                <div>
-                  <Label htmlFor="read-receipt" className="text-sm font-medium">Request Read Receipt</Label>
-                  <p className="text-xs text-gray-500 dark:text-gray-400">
-                    Request read receipts by default
-                  </p>
-                </div>
-                <Switch
-                  id="read-receipt"
-                  checked={requestReadReceipt}
-                  onCheckedChange={setRequestReadReceipt}
-                />
-              </div>
-
-              <Separator />
-
-              <div className="flex items-center justify-between">
-                <div>
-                  <Label htmlFor="auto-save" className="text-sm font-medium">Auto-Save Drafts</Label>
-                  <p className="text-xs text-gray-500 dark:text-gray-400">
-                    Automatically save email drafts while composing
-                  </p>
-                </div>
-                <Switch
-                  id="auto-save"
-                  checked={autoSaveDrafts}
-                  onCheckedChange={setAutoSaveDrafts}
-                />
-              </div>
-
-              {autoSaveDrafts && (
-                <div className="pl-4 border-l-2 border-gray-200 dark:border-gray-700">
-                  <Label htmlFor="save-interval" className="text-sm">Auto-Save Interval (seconds)</Label>
-                  <Input
-                    id="save-interval"
-                    type="number"
-                    min="10"
-                    max="300"
-                    value={autoSaveInterval}
-                    onChange={(e) => setAutoSaveInterval(e.target.value)}
-                    className="w-32 mt-1"
-                  />
-                </div>
-              )}
-            </Card>
-          </TabsContent>
         </Tabs>
 
         {/* Actions */}
