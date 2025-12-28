@@ -8,8 +8,8 @@ import { Badge } from './ui/badge';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from './ui/dialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from './ui/alert-dialog';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs';
-import { Plus, Settings, Trash2, GripVertical, Zap, User, Clock, ChevronRight, Edit, AlertTriangle, GitBranch, CheckSquare, Play, Users, Download, ChevronDown, ChevronUp, Workflow as WorkflowIcon, Copy, FolderKanban, Eye } from 'lucide-react';
-import { AutomationBuilder, AutomationList } from '../components/AutomationBuilder';
+import { Plus, Settings, Trash2, GripVertical, Zap, User, Clock, ChevronRight, Edit, AlertTriangle, GitBranch, CheckSquare, Play, Users, Copy, FolderKanban, Eye, CheckCircle, ChevronUp, ChevronDown } from 'lucide-react';
+import { AutomationBuilder } from '../components/AutomationBuilderFigmaVersion';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
 import { Textarea } from './ui/textarea';
 import { toast } from 'sonner@2.0.3';
@@ -380,6 +380,111 @@ const DraggableAutomation = ({ automation, automationIndex, stageId, onMove, onE
   );
 };
 
+// ==================== CUSTOMER STAGE INDICATOR COMPONENT ====================
+interface CustomerStageIndicatorProps {
+  stage: Stage;
+  stageIndex: number;
+  stages: Stage[];
+  currentActiveStageIndex: number;
+  onEdit?: () => void;
+}
+
+function CustomerStageIndicator({
+  stage,
+  stageIndex,
+  stages,
+  currentActiveStageIndex,
+  onEdit,
+}: CustomerStageIndicatorProps) {
+  // Group stages by tracker label to find position in overall progress
+  const trackerGroups = stages.reduce((acc: any[], s, idx) => {
+    const lastGroup = acc[acc.length - 1];
+    if (!lastGroup || lastGroup.label !== s.trackerLabel) {
+      acc.push({
+        label: s.trackerLabel,
+        icon: s.trackerIcon,
+        stageCount: 1,
+        stageIds: [s.id],
+        stageIndex: idx,
+      });
+    } else {
+      lastGroup.stageCount += 1;
+      lastGroup.stageIds.push(s.id);
+    }
+    return acc;
+  }, []);
+
+  // Find which group this stage belongs to
+  const thisStageGroupIndex = trackerGroups.findIndex(group => 
+    group.stageIds.includes(stage.id)
+  );
+
+  // Find which group the active stage belongs to (based on currentActiveStageIndex)
+  const activeStage = stages[currentActiveStageIndex];
+  const currentGroupIndex = activeStage 
+    ? trackerGroups.findIndex(group => group.stageIds.includes(activeStage.id))
+    : 0;
+
+  // Determine status of this stage's group
+  const isCompleted = thisStageGroupIndex < currentGroupIndex;
+  const isCurrent = thisStageGroupIndex === currentGroupIndex;
+  const isPending = thisStageGroupIndex > currentGroupIndex;
+
+  return (
+    <div className="px-3 py-3 bg-gradient-to-br from-violet-50 to-blue-50 border-b border-violet-200">
+      <div className="relative">
+        {/* Single Tracker Step - Only this stage's indicator */}
+        <div className="flex relative z-20 justify-center">
+          <div className="flex flex-col items-center justify-start">
+            {/* Tracker Circle */}
+            <div className={`
+              w-8 h-8 rounded-full flex items-center justify-center mb-2 transition-all duration-300 shadow relative z-30
+              ${isCompleted ? 'bg-green-500 text-white' : ''}
+              ${isCurrent ? 'bg-violet-500 text-white ring-4 ring-violet-200' : ''}
+              ${isPending ? 'bg-slate-200 text-slate-400' : ''}
+            `}>
+              {isCompleted ? (
+                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                </svg>
+              ) : (
+                <span className="text-sm">{stage.trackerIcon || '📝'}</span>
+              )}
+            </div>
+
+            {/* Tracker Label */}
+            <div className="text-center group/tracker relative">
+              <p className={`text-xs ${
+                isCurrent ? 'text-violet-700' : 
+                isCompleted ? 'text-green-700' : 
+                'text-slate-500'
+              }`}>
+                {stage.trackerLabel || 'Not set'}
+              </p>
+              {isCurrent && (
+                <Badge className="mt-1 bg-violet-600 hover:bg-violet-600 text-white text-xs px-2 py-0">
+                  In Progress
+                </Badge>
+              )}
+              {onEdit && (
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-5 w-5 opacity-0 group-hover/tracker:opacity-100 transition-opacity absolute -top-1 -right-1"
+                  onClick={onEdit}
+                >
+                  <Edit className="w-3 h-3 text-slate-400" />
+                </Button>
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+
 interface WorkflowBuilderProps {
   onStartWizard?: () => void;
   newWorkflow?: Workflow | null;
@@ -483,6 +588,7 @@ export function WorkflowBuilder({ onStartWizard, newWorkflow, onPreview }: Workf
   const [selectedWorkflow, setSelectedWorkflow] = useState<Workflow>(workflows[0]);
   const [selectedStage, setSelectedStage] = useState<Stage | null>(null);
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
+  const [currentActiveStageIndex, setCurrentActiveStageIndex] = useState<number>(0);
   const [editingTask, setEditingTask] = useState<Task | null>(null);
   const [showStageDialog, setShowStageDialog] = useState(false);
   const [showTaskDialog, setShowTaskDialog] = useState(false);
@@ -520,7 +626,6 @@ export function WorkflowBuilder({ onStartWizard, newWorkflow, onPreview }: Workf
   const [draggedTask, setDraggedTask] = useState<{ task: Task; sourceStageId: string } | null>(null);
   
   // Collapsible sections state
-  const [showCustomerTracker, setShowCustomerTracker] = useState(false);
   const [collapsedStages, setCollapsedStages] = useState<Set<string>>(new Set());
 
   // Sync workflows to context whenever they change
@@ -748,15 +853,6 @@ export function WorkflowBuilder({ onStartWizard, newWorkflow, onPreview }: Workf
             {/* Right: Actions */}
             <div className="flex items-center gap-2 flex-shrink-0">
               <Button 
-                variant="ghost"
-                size="sm"
-                className="gap-1.5 h-8 text-xs"
-                onClick={() => setShowCustomerTracker(!showCustomerTracker)}
-              >
-                {showCustomerTracker ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
-                Customer View
-              </Button>
-              <Button 
                 variant="outline"
                 size="sm"
                 className="gap-1.5 h-8"
@@ -783,131 +879,6 @@ export function WorkflowBuilder({ onStartWizard, newWorkflow, onPreview }: Workf
       {/* Visual Workflow Builder */}
       <div className="space-y-3">
 
-        {/* Customer View Section */}
-        {showCustomerTracker && (
-          <div className="space-y-2">
-            <div className="flex items-center justify-between px-1">
-              <div className="flex items-center gap-2">
-                <span className="text-sm text-slate-600">Customer View</span>
-                <Badge variant="outline" className="text-xs">How clients see progress</Badge>
-              </div>
-            </div>
-            <div className="relative -mx-4 px-4">
-              <div className="bg-gradient-to-br from-violet-50 to-blue-50 rounded-lg p-3 border border-violet-200">
-              
-              <div className="relative">
-              {(() => {
-                // Group stages by tracker label
-                const trackerGroups = selectedWorkflow.stages.reduce((acc: any[], stage, index) => {
-                  const lastGroup = acc[acc.length - 1];
-                  if (!lastGroup || lastGroup.label !== stage.trackerLabel) {
-                    acc.push({
-                      label: stage.trackerLabel,
-                      icon: stage.trackerIcon,
-                      stageCount: 1,
-                      stageIds: [stage.id],
-                    });
-                  } else {
-                    lastGroup.stageCount += 1;
-                    lastGroup.stageIds.push(stage.id);
-                  }
-                  return acc;
-                }, []);
-
-                const currentGroupIndex = 1; // Simulate "Making Your Pizza" as current
-                const totalStages = selectedWorkflow.stages.length;
-
-                return (
-                  <>
-                    {/* Progress Line */}
-                    <div className="absolute top-4 left-0 right-0 h-0.5 bg-slate-200 z-0">
-                      <div 
-                        className="h-full bg-gradient-to-r from-green-500 to-violet-500 transition-all duration-500" 
-                        style={{ width: `${((currentGroupIndex + 0.5) / trackerGroups.length) * 100}%` }}
-                      />
-                    </div>
-
-                    {/* Tracker Steps - aligned with stages */}
-                    <div className="flex relative z-10">
-                      {trackerGroups.map((group, groupIndex) => {
-                        const isCompleted = groupIndex < currentGroupIndex;
-                        const isCurrent = groupIndex === currentGroupIndex;
-                        const isPending = groupIndex > currentGroupIndex;
-                        
-                        // Calculate width to match the stages this tracker represents
-                        // Each stage is 360px + 24px gap (gap-6)
-                        const widthPx = (group.stageCount * 360) + ((group.stageCount - 1) * 24);
-
-                        return (
-                          <div 
-                            key={groupIndex} 
-                            className="flex flex-col items-center justify-start"
-                            style={{ 
-                              width: `${widthPx}px`,
-                              marginRight: groupIndex < trackerGroups.length - 1 ? '16px' : '0'
-                            }}
-                          >
-                            {/* Tracker Circle */}
-                            <div className={`
-                              w-8 h-8 rounded-full flex items-center justify-center mb-2 transition-all duration-300 shadow
-                              ${isCompleted ? 'bg-green-500 text-white' : ''}
-                              ${isCurrent ? 'bg-violet-500 text-white ring-4 ring-violet-200' : ''}
-                              ${isPending ? 'bg-slate-200 text-slate-400' : ''}
-                            `}>
-                              {isCompleted ? (
-                                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
-                                </svg>
-                              ) : (
-                                <span className="text-sm">{group.icon}</span>
-                              )}
-                            </div>
-
-                            {/* Tracker Label */}
-                            <div className="text-center group/tracker relative">
-                              <p className={`text-xs ${
-                                isCurrent ? 'text-violet-700' : 
-                                isCompleted ? 'text-green-700' : 
-                                'text-slate-500'
-                              }`}>
-                                {group.label}
-                              </p>
-                              {isCurrent && (
-                                <Badge className="mt-1 bg-violet-600 hover:bg-violet-600 text-white text-xs px-2 py-0">
-                                  In Progress
-                                </Badge>
-                              )}
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                className="h-5 w-5 opacity-0 group-hover/tracker:opacity-100 transition-opacity absolute -top-1 -right-1"
-                                onClick={() => {
-                                  // Find the first stage in this group
-                                  const firstStageId = group.stageIds[0];
-                                  const stageIndex = selectedWorkflow.stages.findIndex(s => s.id === firstStageId);
-                                  const stage = selectedWorkflow.stages[stageIndex];
-                                  setEditingTrackerIndex(stageIndex);
-                                  setTrackerLabelInput(stage.trackerLabel);
-                                  setTrackerIconInput(stage.trackerIcon || '');
-                                  setAssignedStages(group.stageIds);
-                                  setShowTrackerDialog(true);
-                                }}
-                              >
-                                <Edit className="w-3 h-3 text-slate-400" />
-                              </Button>
-                            </div>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  </>
-                );
-              })()}
-              </div>
-            </div>
-          </div>
-          </div>
-        )}
 
         {/* Tasks & Automations Header with Stats */}
         <div className="flex items-center justify-between px-1">
@@ -952,14 +923,70 @@ export function WorkflowBuilder({ onStartWizard, newWorkflow, onPreview }: Workf
 
         {/* Kanban Flow Visualization */}
         <div className="relative -mx-4">
-          <div className="flex gap-6 overflow-x-auto pb-4 relative px-4">
+          <div className="flex gap-6 overflow-x-auto pb-4 relative px-4" style={{ minWidth: 'max-content' }}>
+            {/* Single Continuous Progress Line - Connects all Customer View indicators across all stages */}
+            {(() => {
+              const trackerGroups = selectedWorkflow.stages.reduce((acc: any[], s, idx) => {
+                const lastGroup = acc[acc.length - 1];
+                if (!lastGroup || lastGroup.label !== s.trackerLabel) {
+                  acc.push({
+                    label: s.trackerLabel,
+                    icon: s.trackerIcon,
+                    stageCount: 1,
+                    stageIds: [s.id],
+                    stageIndex: idx,
+                  });
+                } else {
+                  lastGroup.stageCount += 1;
+                  lastGroup.stageIds.push(s.id);
+                }
+                return acc;
+              }, []);
+
+              const activeStage = selectedWorkflow.stages[currentActiveStageIndex];
+              const currentGroupIndex = activeStage 
+                ? trackerGroups.findIndex(group => group.stageIds.includes(activeStage.id))
+                : 0;
+
+              const progressWidth = currentGroupIndex >= 0 
+                ? ((currentGroupIndex + 0.5) / trackerGroups.length) * 100 
+                : 0;
+
+              // Calculate total width: each card is 360px + gap of 24px (gap-6)
+              const totalWidth = selectedWorkflow.stages.length * 360 + (selectedWorkflow.stages.length - 1) * 24;
+
+              return (
+                <>
+                  {/* Background line - spans full width across all cards (always visible) */}
+                  <div 
+                    className="absolute h-[2px] bg-slate-200"
+                    style={{ 
+                      top: '115px',
+                      left: '16px', // Match px-4 padding
+                      width: `${totalWidth}px`,
+                      pointerEvents: 'none',
+                      zIndex: 0
+                    }}
+                  />
+                  {/* Progress fill - animated gradient (shows progress up to active stage) */}
+                  {progressWidth > 0 && (
+                    <div 
+                      className="absolute h-[2px] bg-gradient-to-r from-green-500 to-violet-500 transition-all duration-500"
+                      style={{ 
+                        top: '115px',
+                        left: '16px', // Match px-4 padding
+                        width: `${(progressWidth / 100) * totalWidth}px`,
+                        pointerEvents: 'none',
+                        zIndex: 1
+                      }}
+                    />
+                  )}
+                </>
+              );
+            })()}
             {selectedWorkflow.stages.map((stage, stageIndex) => (
               <React.Fragment key={stage.id}>
                 <div className="min-w-[360px] max-w-[360px] flex-shrink-0 relative">
-                  {/* Connection line to next card */}
-                  {stageIndex < selectedWorkflow.stages.length - 1 && (
-                    <div className="absolute top-[94px] -right-6 w-6 h-[2px] bg-violet-400 z-20" />
-                  )}
                   <DroppableStage 
                     stage={stage}
                     stageIndex={stageIndex}
@@ -1012,38 +1039,20 @@ export function WorkflowBuilder({ onStartWizard, newWorkflow, onPreview }: Workf
 
                       {!collapsedStages.has(stage.id) && (
                         <>
-                      {/* Customer View Settings */}
-                      <div className="px-3 py-2 bg-gradient-to-br from-violet-50/50 to-blue-50/50 border-b border-slate-200">
-                        <div className="space-y-1.5">
-                          <div className="flex items-center gap-1.5">
-                            <span className="text-xs text-slate-600">Customer sees:</span>
-                          </div>
-                          <div className="flex items-center gap-2">
-                            <Input
-                              placeholder="e.g., Documents Received"
-                              value={stage.trackerLabel}
-                              onChange={(e) => {
-                                const updatedStages = selectedWorkflow.stages.map(s =>
-                                  s.id === stage.id ? { ...s, trackerLabel: e.target.value } : s
-                                );
-                                setSelectedWorkflow({ ...selectedWorkflow, stages: updatedStages });
-                              }}
-                              className="h-7 text-xs flex-1"
-                            />
-                            <Input
-                              placeholder="📝"
-                              value={stage.trackerIcon || ''}
-                              onChange={(e) => {
-                                const updatedStages = selectedWorkflow.stages.map(s =>
-                                  s.id === stage.id ? { ...s, trackerIcon: e.target.value } : s
-                                );
-                                setSelectedWorkflow({ ...selectedWorkflow, stages: updatedStages });
-                              }}
-                              className="h-7 w-12 text-center text-base flex-shrink-0"
-                            />
-                          </div>
-                        </div>
-                      </div>
+                      {/* Customer View Indicator */}
+                      <CustomerStageIndicator
+                        stage={stage}
+                        stageIndex={stageIndex}
+                        stages={selectedWorkflow.stages}
+                        currentActiveStageIndex={currentActiveStageIndex}
+                        onEdit={() => {
+                          setEditingTrackerIndex(stageIndex);
+                          setTrackerLabelInput(stage.trackerLabel);
+                          setTrackerIconInput(stage.trackerIcon || '');
+                          setAssignedStages([stage.id]);
+                          setShowTrackerDialog(true);
+                        }}
+                      />
 
                     {/* Tasks and Automations List - In Chronological Order */}
                     <div className="p-3 space-y-2">
@@ -1207,7 +1216,7 @@ export function WorkflowBuilder({ onStartWizard, newWorkflow, onPreview }: Workf
                             setAutomationLevel('stage');
                             setFocusedAutomationId(null);
                             setEditingAutomation(null);
-                            setShowAutomationList(true);
+                            setShowAutomationBuilder(true);
                           }}
                         >
                           <Zap className="w-3.5 h-3.5" />
@@ -1218,14 +1227,21 @@ export function WorkflowBuilder({ onStartWizard, newWorkflow, onPreview }: Workf
                     </>
                       )}
                       
-                      {/* Collapsed View - Show customer label when collapsed */}
-                      {collapsedStages.has(stage.id) && stage.trackerLabel && (
-                        <div className="px-3 py-2 border-t border-slate-100">
-                          <div className="flex items-center gap-2 text-sm text-slate-600">
-                            <span className="text-base">{stage.trackerIcon || '📝'}</span>
-                            <span className="text-xs">Customer sees: <span className="text-slate-900">{stage.trackerLabel}</span></span>
-                          </div>
-                        </div>
+                      {/* Collapsed View - Show customer indicator when collapsed */}
+                      {collapsedStages.has(stage.id) && (
+                        <CustomerStageIndicator
+                          stage={stage}
+                          stageIndex={stageIndex}
+                          stages={selectedWorkflow.stages}
+                          currentActiveStageIndex={currentActiveStageIndex}
+                          onEdit={() => {
+                            setEditingTrackerIndex(stageIndex);
+                            setTrackerLabelInput(stage.trackerLabel);
+                            setTrackerIconInput(stage.trackerIcon || '');
+                            setAssignedStages([stage.id]);
+                            setShowTrackerDialog(true);
+                          }}
+                        />
                       )}
                   </Card>
                   </DroppableStage>
@@ -1750,235 +1766,52 @@ export function WorkflowBuilder({ onStartWizard, newWorkflow, onPreview }: Workf
         </DialogContent>
       </Dialog>
 
-      {/* Automation List Dialog */}
-      <Dialog open={showAutomationList} onOpenChange={(open) => {
-        setShowAutomationList(open);
+      {/* Automation Builder Dialog */}
+      <Dialog open={showAutomationBuilder} onOpenChange={(open) => {
+        setShowAutomationBuilder(open);
         if (!open) {
-          setEditingAutomation(null);
           setFocusedAutomationId(null);
-          setShowAutomationBuilder(false);
         }
       }}>
-        <DialogContent className="!max-w-[98vw] !w-[98vw] !max-h-[98vh] !h-[98vh] overflow-hidden flex flex-col" style={{ width: '60vw', height: '60vh', maxWidth: '60vw', maxHeight: '60vh' }}>
-          <DialogHeader className="flex-shrink-0">
-            <DialogTitle>Automations for {selectedStage?.name}</DialogTitle>
-            <DialogDescription>Manage automations for this stage</DialogDescription>
+        <DialogContent className="!max-w-[1540px] w-[95vw] max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>
+              {focusedAutomationId 
+                ? `Edit Automation - ${selectedStage?.name}`
+                : `Stage Automations - ${selectedStage?.name}`}
+              {selectedTask && ` (Focused on: ${selectedTask.name})`}
+            </DialogTitle>
+            <DialogDescription>
+              {focusedAutomationId 
+                ? 'Edit this automation or add additional automations to this stage.'
+                : 'All automations for this stage. You can create automations that trigger on stage entry, specific tasks, or time-based events.'}
+              {selectedTask && ' Currently showing automations related to the selected task.'}
+            </DialogDescription>
           </DialogHeader>
-          <div className="flex-1 overflow-y-auto py-4 min-h-0">
-            <AutomationList
-              automations={selectedStage?.automations?.map(auto => {
-                // Convert WorkflowBuilder Automation format to AutomationBuilder format
-                const triggerMap: Record<string, { id: string; category: string; name: string }> = {
-                  'stage_entered': { id: 't1', category: 'Stage', name: 'When Stage is Entered' },
-                  'stage_completed': { id: 't2', category: 'Stage', name: 'When Stage is Completed' },
-                  'specific_task_completed': { id: 't5', category: 'Task', name: 'When Specific Task Completed' },
-                  'time_after_task': { id: 't9', category: 'Time', name: 'Time After Task Completed' },
-                  'time_based': { id: 't8', category: 'Time', name: 'X Days Before Deadline' },
-                };
-                
-                const trigger = triggerMap[auto.trigger] || { id: 't1', category: 'Stage', name: auto.trigger };
-                
-                return {
-                  id: auto.id,
-                  name: auto.name,
-                  trigger: {
-                    ...trigger,
-                    config: auto.triggerTaskId ? { taskId: auto.triggerTaskId } : {},
-                  },
-                  enabled: auto.enabled,
-                  conditions: auto.conditions || [],
-                  actions: auto.actions.map((actionName, idx) => ({
-                    id: `action-${idx}`,
-                    category: 'Communication',
-                    name: actionName,
-                    config: {},
-                  })),
-                };
-              }) || []}
-              onEdit={(automation) => {
-                // Find the original automation from WorkflowBuilder format
-                const originalAuto = selectedStage?.automations?.find(a => a.id === automation.id);
-                if (originalAuto) {
-                  setEditingAutomation(originalAuto);
-                  setShowAutomationList(false);
-                  setShowAutomationBuilder(true);
-                }
-              }}
-              onDelete={(automationId) => {
-                if (!selectedStage) return;
-                const updatedWorkflow = {
-                  ...selectedWorkflow,
-                  stages: selectedWorkflow.stages.map(s =>
-                    s.id === selectedStage.id
-                      ? { ...s, automations: (s.automations || []).filter(a => a.id !== automationId) }
-                      : s
-                  ),
-                };
-                setSelectedWorkflow(updatedWorkflow);
-                setWorkflows(workflows.map(w => w.id === selectedWorkflow.id ? updatedWorkflow : w));
-                
-                // Update selectedStage to point to the updated stage from the new workflow
-                const updatedStage = updatedWorkflow.stages.find(s => s.id === selectedStage.id);
-                if (updatedStage) {
-                  setSelectedStage(updatedStage);
-                }
-                
-                toast.success('Automation deleted successfully');
-              }}
-              onStatusChange={(automationId, enabled) => {
-                if (!selectedStage) return;
-                const updatedWorkflow = {
-                  ...selectedWorkflow,
-                  stages: selectedWorkflow.stages.map(s =>
-                    s.id === selectedStage.id
-                      ? {
-                          ...s,
-                          automations: (s.automations || []).map(a =>
-                            a.id === automationId ? { ...a, enabled } : a
-                          ),
-                        }
-                      : s
-                  ),
-                };
-                setSelectedWorkflow(updatedWorkflow);
-                setWorkflows(workflows.map(w => w.id === selectedWorkflow.id ? updatedWorkflow : w));
-                
-                // Update selectedStage to point to the updated stage from the new workflow
-                const updatedStage = updatedWorkflow.stages.find(s => s.id === selectedStage.id);
-                if (updatedStage) {
-                  setSelectedStage(updatedStage);
-                }
-              }}
-              onAddNew={() => {
-                setEditingAutomation(null);
-                setShowAutomationList(false);
-                setShowAutomationBuilder(true);
-              }}
-            />
-          </div>
+          <AutomationBuilder 
+            stageName={selectedStage?.name}
+            tasks={selectedStage?.tasks.map(t => ({ id: t.id, name: t.name }))}
+            automations={selectedStage?.automations || []}
+            focusedTaskId={selectedTask?.id}
+            focusedAutomationId={focusedAutomationId}
+            workflow={selectedWorkflow}
+            currentStageId={selectedStage?.id}
+            onAutomationsChange={(updatedAutomations) => {
+              if (!selectedStage) return;
+              const updatedWorkflow = {
+                ...selectedWorkflow,
+                stages: selectedWorkflow.stages.map(s =>
+                  s.id === selectedStage.id
+                    ? { ...s, automations: updatedAutomations }
+                    : s
+                ),
+              };
+              setSelectedWorkflow(updatedWorkflow);
+              setWorkflows(workflows.map(w => w.id === selectedWorkflow.id ? updatedWorkflow : w));
+            }}
+          />
         </DialogContent>
       </Dialog>
-
-      {/* Automation Builder Dialog */}
-      <AutomationBuilder 
-        open={showAutomationBuilder}
-        onOpenChange={(open) => {
-          setShowAutomationBuilder(open);
-          if (!open) {
-            setEditingAutomation(null);
-            // Return to list if it was open
-            if (showAutomationList) {
-              setShowAutomationList(true);
-            }
-          }
-        }}
-        stageName={selectedStage?.name}
-        editingAutomation={editingAutomation ? (() => {
-          // Convert WorkflowBuilder Automation format to AutomationBuilder format
-          const triggerMap: Record<string, { id: string; category: string; name: string }> = {
-            'stage_entered': { id: 't1', category: 'Stage', name: 'When Stage is Entered' },
-            'stage_completed': { id: 't2', category: 'Stage', name: 'When Stage is Completed' },
-            'specific_task_completed': { id: 't5', category: 'Task', name: 'When Specific Task Completed' },
-            'time_after_task': { id: 't9', category: 'Time', name: 'Time After Task Completed' },
-            'time_based': { id: 't8', category: 'Time', name: 'X Days Before Deadline' },
-          };
-          
-          const trigger = triggerMap[editingAutomation.trigger] || { id: 't1', category: 'Stage', name: editingAutomation.trigger };
-          
-          return {
-            id: editingAutomation.id,
-            name: editingAutomation.name,
-            trigger: {
-              ...trigger,
-              config: editingAutomation.triggerTaskId ? { taskId: editingAutomation.triggerTaskId } : {},
-            },
-            enabled: editingAutomation.enabled,
-            conditions: editingAutomation.conditions || [],
-            actions: editingAutomation.actions.map((actionName, idx) => ({
-              id: `action-${idx}`,
-              category: 'Communication',
-              name: actionName,
-              config: {},
-            })),
-          };
-        })() : null}
-        automations={selectedStage?.automations?.map(auto => {
-          // Convert WorkflowBuilder Automation format to AutomationBuilder format
-          const triggerMap: Record<string, { id: string; category: string; name: string }> = {
-            'stage_entered': { id: 't1', category: 'Stage', name: 'When Stage is Entered' },
-            'stage_completed': { id: 't2', category: 'Stage', name: 'When Stage is Completed' },
-            'specific_task_completed': { id: 't5', category: 'Task', name: 'When Specific Task Completed' },
-            'time_after_task': { id: 't9', category: 'Time', name: 'Time After Task Completed' },
-            'time_based': { id: 't8', category: 'Time', name: 'X Days Before Deadline' },
-          };
-          
-          const trigger = triggerMap[auto.trigger] || { id: 't1', category: 'Stage', name: auto.trigger };
-          
-            return {
-              id: auto.id,
-              name: auto.name,
-              trigger: {
-                ...trigger,
-                config: auto.triggerTaskId ? { taskId: auto.triggerTaskId } : {},
-              },
-              enabled: auto.enabled,
-              conditions: auto.conditions || [],
-              actions: auto.actions.map((actionName, idx) => ({
-                id: `action-${idx}`,
-                category: 'Communication',
-                name: actionName,
-                config: {},
-              })),
-            };
-        }) || []}
-        onAutomationsChange={(updatedAutomations) => {
-          if (!selectedStage) return;
-          // Convert back to WorkflowBuilder format
-          const convertedAutomations = updatedAutomations.map(auto => {
-            const triggerMap: Record<string, string> = {
-              't1': 'stage_entered',
-              't2': 'stage_completed',
-              't5': 'specific_task_completed',
-              't9': 'time_after_task',
-              't8': 'time_based',
-            };
-            
-            return {
-              id: auto.id,
-              name: auto.name,
-              trigger: triggerMap[auto.trigger?.id || 't1'] || 'stage_entered',
-              triggerTaskId: auto.trigger?.config?.taskId,
-              enabled: auto.enabled,
-              actions: auto.actions.map(a => a.name),
-              conditions: auto.conditions || [],
-              details: auto.trigger?.config?.days ? `${auto.trigger.config.days} days` : undefined,
-            };
-          });
-          
-          const updatedWorkflow = {
-            ...selectedWorkflow,
-            stages: selectedWorkflow.stages.map(s =>
-              s.id === selectedStage.id
-                ? { ...s, automations: convertedAutomations }
-                : s
-            ),
-          };
-          setSelectedWorkflow(updatedWorkflow);
-          setWorkflows(workflows.map(w => w.id === selectedWorkflow.id ? updatedWorkflow : w));
-          
-          // Update selectedStage to point to the updated stage from the new workflow
-          // This ensures AutomationList receives the latest data immediately
-          const updatedStage = updatedWorkflow.stages.find(s => s.id === selectedStage.id);
-          if (updatedStage) {
-            setSelectedStage(updatedStage);
-          }
-          
-          // Close builder and return to list
-          setShowAutomationBuilder(false);
-          setShowAutomationList(true);
-          setEditingAutomation(null);
-        }}
-      />
 
       {/* Edit Tracker Step Dialog */}
       <Dialog open={showTrackerDialog} onOpenChange={setShowTrackerDialog}>

@@ -11,6 +11,7 @@ import { ScrollArea } from './ui/scroll-area';
 import { Plus, Calendar, Paperclip, MessageSquare, Zap, Activity, LayoutGrid, List, LayoutList, CheckSquare, FolderKanban, Settings2, Keyboard, ChevronDown, ChevronUp, Clock, AlertCircle, CheckCircle2, Filter, X, Users, Building2, User } from 'lucide-react';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from './ui/table';
 import { useWorkflowContext, Project, ProjectTask } from './WorkflowContext';
+import { WorkflowTasksView } from './views/WorkflowTasksView';
 import { Input } from './ui/input';
 import { Label } from './ui/label';
 import { toast } from 'sonner@2.0.3';
@@ -66,6 +67,7 @@ const mockClients = [
 export function KanbanBoard({ viewMode = 'kanban', onViewModeChange, onProjectClick, onActivityLogClick, onStartWizard, onEditWorkflow, onViewTasks }: KanbanBoardProps) {
   const { workflows, projects, tasks, addProject, moveProject, getWorkflow, getTasksByWorkflow, getTaskCounts, updateTask } = useWorkflowContext();
   const [selectedWorkflowId, setSelectedWorkflowId] = useState(workflows[0]?.id || '');
+  const [showTasksView, setShowTasksView] = useState(false);
   const [newProjectDialogOpen, setNewProjectDialogOpen] = useState(false);
   const [selectedStageForNewProject, setSelectedStageForNewProject] = useState<string | null>(null);
   const [newProjectName, setNewProjectName] = useState('');
@@ -464,7 +466,11 @@ export function KanbanBoard({ viewMode = 'kanban', onViewModeChange, onProjectCl
                                     className="h-[34px] min-w-8 px-2 text-xs flex items-center justify-center gap-0.5 cursor-pointer hover:scale-105 transition-all rounded-lg rounded-l-none border font-medium bg-red-500 text-white border-red-600 hover:bg-red-600"
                                     onClick={(e) => {
                                       e.stopPropagation();
-                                      // Navigate to workflow tasks full page view
+                                      // Set view mode to tasks and select this workflow
+                                      setSelectedWorkflowId(workflow.id);
+                                      // Show tasks view internally
+                                      setShowTasksView(true);
+                                      // Also call onViewTasks if provided (for external navigation)
                                       if (onViewTasks) {
                                         onViewTasks(workflow.id);
                                       }
@@ -1234,7 +1240,7 @@ export function KanbanBoard({ viewMode = 'kanban', onViewModeChange, onProjectCl
             {/* Main Content Area */}
             <div className="flex-1 min-w-0">
               {/* Kanban Board View */}
-              {viewMode === 'kanban' && (
+              {!showTasksView && viewMode === 'kanban' && (
                 <div className="flex gap-4 overflow-x-auto pb-4">
                   {stages.map((stage) => (
                   <div key={stage.id} className="min-w-[320px] flex-shrink-0">
@@ -1388,7 +1394,7 @@ export function KanbanBoard({ viewMode = 'kanban', onViewModeChange, onProjectCl
                 )}
 
                 {/* List View */}
-                {viewMode === 'list' && (
+                {!showTasksView && viewMode === 'list' && (
                   <Card className="border-slate-200">
             <Table>
               <TableHeader>
@@ -1469,12 +1475,15 @@ export function KanbanBoard({ viewMode = 'kanban', onViewModeChange, onProjectCl
             )}
 
             {/* Tasks View */}
-            {viewMode === 'tasks' && (
-              <WorkflowTasksView
-                workflowTasks={getTasksByWorkflow(selectedWorkflowId)}
-                projects={workflowProjects.map(p => ({ id: p.id, name: p.name }))}
-                onTaskUpdate={updateTask}
-              />
+            {showTasksView && (
+              <div className="space-y-4">
+                <WorkflowTasksView
+                  workflowTasks={getTasksByWorkflow(selectedWorkflowId)}
+                  projects={workflowProjects.map(p => ({ id: p.id, name: p.name, clientName: p.clientName }))}
+                  onTaskUpdate={updateTask}
+                  workflow={getWorkflow(selectedWorkflowId)}
+                />
+              </div>
             )}
 
             {/* Empty State */}

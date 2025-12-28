@@ -206,11 +206,11 @@ export function EmailSettingsDialog({ open, onOpenChange }: EmailSettingsDialogP
           </TabsList>
 
           {/* Signatures Tab */}
-          <TabsContent value="signatures" className="space-y-4 mt-4">
-            <div className="flex items-center justify-between">
+          <TabsContent value="signatures" className="space-y-6 mt-4">
+            <div className="flex items-center justify-between pb-2 border-b border-gray-200 dark:border-gray-700">
               <div>
-                <h3 className="text-sm font-medium">Email Signatures</h3>
-                <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
+                <h3 className="text-base font-semibold text-gray-900 dark:text-gray-100">Email Signatures</h3>
+                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
                   Create and manage your email signatures
                 </p>
               </div>
@@ -227,7 +227,7 @@ export function EmailSettingsDialog({ open, onOpenChange }: EmailSettingsDialogP
                   setSignatureFacebook('');
                   setShowSignatureEditor(true);
                 }}
-                className="gap-2"
+                className="gap-2 shadow-sm"
                 style={{ backgroundColor: 'var(--primaryColor)' }}
               >
                 <Plus className="w-4 h-4" />
@@ -236,46 +236,51 @@ export function EmailSettingsDialog({ open, onOpenChange }: EmailSettingsDialogP
             </div>
 
             {showSignatureEditor && (
-              <Card className="p-4 border-2 border-dashed">
-                <h4 className="text-sm font-medium mb-3">
-                  {editingSignature ? 'Edit Signature' : 'New Signature'}
-                </h4>
-                <div className="space-y-3">
+              <Card className="p-5 border-2 border-purple-200 dark:border-purple-800 bg-gradient-to-br from-purple-50/30 to-transparent dark:from-purple-950/20 dark:to-transparent shadow-sm">
+                <div className="flex items-center gap-2 mb-4">
+                  <FileSignature className="w-5 h-5 text-purple-600 dark:text-purple-400" />
+                  <h4 className="text-sm font-semibold text-gray-900 dark:text-gray-100">
+                    {editingSignature ? 'Edit Signature' : 'Create New Signature'}
+                  </h4>
+                </div>
+                <div className="space-y-4">
                   <div>
-                    <Label htmlFor="sig-name" className="text-sm">Signature Name</Label>
+                    <Label htmlFor="sig-name" className="text-sm font-medium mb-1.5 block">Signature Name</Label>
                     <Input
                       id="sig-name"
-                      placeholder="e.g., Professional, Casual"
+                      placeholder="e.g., Professional, Casual, Personal"
                       value={newSignatureName}
                       onChange={(e) => setNewSignatureName(e.target.value)}
+                      className="bg-white dark:bg-gray-900"
                     />
                   </div>
 
                   <div>
-                    <Label htmlFor="sig-content" className="text-sm">Signature Content</Label>
+                    <Label htmlFor="sig-content" className="text-sm font-medium mb-1.5 block">Signature Content</Label>
                     <Textarea
                       id="sig-content"
-                      placeholder="Your signature text..."
+                      placeholder="Your signature text...\n\nName\nTitle\nCompany\nEmail | Phone | Website"
                       value={newSignatureContent}
                       onChange={(e) => setNewSignatureContent(e.target.value)}
                       rows={6}
+                      className="bg-white dark:bg-gray-900 font-mono text-sm"
                     />
                   </div>
 
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-3 p-3 bg-white dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-700">
                     <Switch
                       id="sig-image"
                       checked={signatureIncludeImage}
                       onCheckedChange={setSignatureIncludeImage}
                     />
-                    <Label htmlFor="sig-image" className="text-sm cursor-pointer">
+                    <Label htmlFor="sig-image" className="text-sm cursor-pointer font-medium">
                       Include logo/image
                     </Label>
                   </div>
 
                   {signatureIncludeImage && (
-                    <div>
-                      <Label htmlFor="sig-image-url" className="text-sm">Image URL</Label>
+                    <div className="p-3 bg-white dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-700">
+                      <Label htmlFor="sig-image-url" className="text-sm font-medium mb-1.5 block">Image URL</Label>
                       <Input
                         id="sig-image-url"
                         placeholder="https://example.com/logo.png"
@@ -285,38 +290,50 @@ export function EmailSettingsDialog({ open, onOpenChange }: EmailSettingsDialogP
                     </div>
                   )}
 
-                  <Separator />
+                  <Separator className="my-4" />
 
-                  <div>
-                    <Label className="text-sm mb-2 block">Social Media Links (Optional)</Label>
-                    <div className="space-y-2">
-                      <Input
-                        placeholder="LinkedIn URL"
-                        value={signatureLinkedIn}
-                        onChange={(e) => setSignatureLinkedIn(e.target.value)}
-                      />
-                      <Input
-                        placeholder="Twitter URL"
-                        value={signatureTwitter}
-                        onChange={(e) => setSignatureTwitter(e.target.value)}
-                      />
-                      <Input
-                        placeholder="Facebook URL"
-                        value={signatureFacebook}
-                        onChange={(e) => setSignatureFacebook(e.target.value)}
-                      />
+                  <div className="p-3 bg-white dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-700">
+                    <Label className="text-sm font-medium mb-3 block">Social Media Links (Optional)</Label>
+                    <div className="space-y-2.5">
+                      <div>
+                        <Label htmlFor="sig-linkedin" className="text-xs text-gray-500 dark:text-gray-400 mb-1 block">LinkedIn</Label>
+                        <Input
+                          id="sig-linkedin"
+                          placeholder="https://linkedin.com/in/yourprofile"
+                          value={signatureLinkedIn}
+                          onChange={(e) => setSignatureLinkedIn(e.target.value)}
+                        />
+                      </div>
+                      <div>
+                        <Label htmlFor="sig-twitter" className="text-xs text-gray-500 dark:text-gray-400 mb-1 block">Twitter</Label>
+                        <Input
+                          id="sig-twitter"
+                          placeholder="https://twitter.com/yourhandle"
+                          value={signatureTwitter}
+                          onChange={(e) => setSignatureTwitter(e.target.value)}
+                        />
+                      </div>
+                      <div>
+                        <Label htmlFor="sig-facebook" className="text-xs text-gray-500 dark:text-gray-400 mb-1 block">Facebook</Label>
+                        <Input
+                          id="sig-facebook"
+                          placeholder="https://facebook.com/yourpage"
+                          value={signatureFacebook}
+                          onChange={(e) => setSignatureFacebook(e.target.value)}
+                        />
+                      </div>
                     </div>
                   </div>
 
-                  <div className="flex items-center gap-2 pt-2">
+                  <div className="flex items-center gap-2 pt-3 border-t border-gray-200 dark:border-gray-700">
                     <Button
                       size="sm"
                       onClick={editingSignature ? handleUpdateSignature : handleAddSignature}
-                      className="gap-2"
+                      className="gap-2 shadow-sm"
                       style={{ backgroundColor: 'var(--primaryColor)' }}
                     >
                       <Save className="w-4 h-4" />
-                      {editingSignature ? 'Update' : 'Add'} Signature
+                      {editingSignature ? 'Update Signature' : 'Create Signature'}
                     </Button>
                     <Button
                       size="sm"
@@ -333,102 +350,165 @@ export function EmailSettingsDialog({ open, onOpenChange }: EmailSettingsDialogP
               </Card>
             )}
 
-            <div className="space-y-3">
-              {signatures.map(signature => (
-                <Card key={signature.id} className="p-4">
-                  <div className="flex items-start justify-between mb-3">
-                    <div className="flex items-center gap-2">
-                      <FileSignature className="w-4 h-4 text-gray-400" />
-                      <h4 className="text-sm font-medium">{signature.name}</h4>
-                      {signature.isDefault && (
-                        <Badge variant="secondary" className="text-xs">Default</Badge>
-                      )}
-                    </div>
-                    <div className="flex items-center gap-1">
-                      {!signature.isDefault && (
+            {signatures.length === 0 && !showSignatureEditor && (
+              <Card className="p-8 text-center border-2 border-dashed border-gray-200 dark:border-gray-700">
+                <FileSignature className="w-12 h-12 mx-auto mb-3 text-gray-400 dark:text-gray-500" />
+                <h4 className="text-sm font-medium text-gray-900 dark:text-gray-100 mb-1">No signatures yet</h4>
+                <p className="text-xs text-gray-500 dark:text-gray-400 mb-4">
+                  Create your first email signature to get started
+                </p>
+                <Button
+                  size="sm"
+                  onClick={() => {
+                    setEditingSignature(null);
+                    setNewSignatureName('');
+                    setNewSignatureContent('');
+                    setSignatureIncludeImage(false);
+                    setSignatureImageUrl('');
+                    setSignatureLinkedIn('');
+                    setSignatureTwitter('');
+                    setSignatureFacebook('');
+                    setShowSignatureEditor(true);
+                  }}
+                  className="gap-2"
+                  style={{ backgroundColor: 'var(--primaryColor)' }}
+                >
+                  <Plus className="w-4 h-4" />
+                  Create Signature
+                </Button>
+              </Card>
+            )}
+
+            {signatures.length > 0 && (
+              <div className="space-y-3">
+                <h4 className="text-sm font-semibold text-gray-900 dark:text-gray-100 mb-2">
+                  Your Signatures ({signatures.length})
+                </h4>
+                {signatures.map(signature => (
+                  <Card 
+                    key={signature.id} 
+                    className={`p-4 transition-all hover:shadow-md ${
+                      signature.isDefault ? 'ring-2 ring-purple-200 dark:ring-purple-800 bg-purple-50/30 dark:bg-purple-950/10' : ''
+                    }`}
+                  >
+                    <div className="flex items-start justify-between mb-4">
+                      <div className="flex items-center gap-2.5">
+                        <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${
+                          signature.isDefault 
+                            ? 'bg-purple-100 dark:bg-purple-900/30' 
+                            : 'bg-gray-100 dark:bg-gray-800'
+                        }`}>
+                          <FileSignature className={`w-4 h-4 ${
+                            signature.isDefault 
+                              ? 'text-purple-600 dark:text-purple-400' 
+                              : 'text-gray-500 dark:text-gray-400'
+                          }`} />
+                        </div>
+                        <div>
+                          <h4 className="text-sm font-semibold text-gray-900 dark:text-gray-100">
+                            {signature.name}
+                          </h4>
+                          {signature.isDefault && (
+                            <Badge 
+                              variant="secondary" 
+                              className="text-[10px] px-1.5 py-0 h-4 mt-1 bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 border-purple-300 dark:border-purple-700"
+                            >
+                              Default
+                            </Badge>
+                          )}
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-1">
+                        {!signature.isDefault && (
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            onClick={() => handleSetDefaultSignature(signature.id)}
+                            className="text-xs h-8 px-2"
+                          >
+                            Set Default
+                          </Button>
+                        )}
                         <Button
                           size="sm"
                           variant="ghost"
-                          onClick={() => handleSetDefaultSignature(signature.id)}
+                          onClick={() => handleEditSignature(signature)}
+                          className="h-8 w-8 p-0"
                         >
-                          Set Default
+                          <Edit className="w-4 h-4" />
                         </Button>
-                      )}
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        onClick={() => handleEditSignature(signature)}
-                      >
-                        <Edit className="w-4 h-4" />
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        onClick={() => handleDeleteSignature(signature.id)}
-                        className="text-red-600 dark:text-red-400"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </Button>
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={() => handleDeleteSignature(signature.id)}
+                          className="h-8 w-8 p-0 text-red-600 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </Button>
+                      </div>
                     </div>
-                  </div>
 
-                  <div className="bg-gray-50 dark:bg-gray-800 rounded-lg p-3">
-                    {signature.includeImage && signature.imageUrl && (
-                      <div className="mb-3">
-                        <img 
-                          src={signature.imageUrl} 
-                          alt="Signature" 
-                          className="h-12 object-contain"
-                        />
-                      </div>
-                    )}
-                    <pre className="text-xs text-gray-700 dark:text-gray-300 whitespace-pre-wrap font-sans">
-                      {signature.content}
-                    </pre>
-                    {signature.socialLinks && (Object.values(signature.socialLinks).some(link => link)) && (
-                      <div className="flex items-center gap-2 mt-3 pt-3 border-t border-gray-200 dark:border-gray-700">
-                        {signature.socialLinks.linkedin && (
-                          <a 
-                            href={signature.socialLinks.linkedin}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="text-blue-600 hover:text-blue-700 dark:text-blue-400"
-                          >
-                            <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
-                              <path d="M19 0h-14c-2.761 0-5 2.239-5 5v14c0 2.761 2.239 5 5 5h14c2.762 0 5-2.239 5-5v-14c0-2.761-2.238-5-5-5zm-11 19h-3v-11h3v11zm-1.5-12.268c-.966 0-1.75-.79-1.75-1.764s.784-1.764 1.75-1.764 1.75.79 1.75 1.764-.783 1.764-1.75 1.764zm13.5 12.268h-3v-5.604c0-3.368-4-3.113-4 0v5.604h-3v-11h3v1.765c1.396-2.586 7-2.777 7 2.476v6.759z"/>
-                            </svg>
-                          </a>
-                        )}
-                        {signature.socialLinks.twitter && (
-                          <a 
-                            href={signature.socialLinks.twitter}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="text-blue-400 hover:text-blue-500"
-                          >
-                            <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
-                              <path d="M23 3a10.9 10.9 0 01-3.14 1.53 4.48 4.48 0 00-7.86 3v1A10.66 10.66 0 013 4s-4 9 5 13a11.64 11.64 0 01-7 2c9 5 20 0 20-11.5a4.5 4.5 0 00-.08-.83A7.72 7.72 0 0023 3z"/>
-                            </svg>
-                          </a>
-                        )}
-                        {signature.socialLinks.facebook && (
-                          <a 
-                            href={signature.socialLinks.facebook}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="text-blue-600 hover:text-blue-700 dark:text-blue-400"
-                          >
-                            <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
-                              <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/>
-                            </svg>
-                          </a>
-                        )}
-                      </div>
-                    )}
-                  </div>
-                </Card>
-              ))}
-            </div>
+                    <div className="bg-white dark:bg-gray-900 rounded-lg p-4 border border-gray-200 dark:border-gray-700 shadow-sm">
+                      {signature.includeImage && signature.imageUrl && (
+                        <div className="mb-3 pb-3 border-b border-gray-200 dark:border-gray-700">
+                          <img 
+                            src={signature.imageUrl} 
+                            alt="Signature logo" 
+                            className="h-10 object-contain"
+                          />
+                        </div>
+                      )}
+                      <pre className="text-xs text-gray-700 dark:text-gray-300 whitespace-pre-wrap font-sans leading-relaxed">
+                        {signature.content}
+                      </pre>
+                      {signature.socialLinks && (Object.values(signature.socialLinks).some(link => link)) && (
+                        <div className="flex items-center gap-3 mt-4 pt-4 border-t border-gray-200 dark:border-gray-700">
+                          {signature.socialLinks.linkedin && (
+                            <a 
+                              href={signature.socialLinks.linkedin}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-blue-600 hover:text-blue-700 dark:text-blue-400 transition-colors"
+                              title="LinkedIn"
+                            >
+                              <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+                                <path d="M19 0h-14c-2.761 0-5 2.239-5 5v14c0 2.761 2.239 5 5 5h14c2.762 0 5-2.239 5-5v-14c0-2.761-2.238-5-5-5zm-11 19h-3v-11h3v11zm-1.5-12.268c-.966 0-1.75-.79-1.75-1.764s.784-1.764 1.75-1.764 1.75.79 1.75 1.764-.783 1.764-1.75 1.764zm13.5 12.268h-3v-5.604c0-3.368-4-3.113-4 0v5.604h-3v-11h3v1.765c1.396-2.586 7-2.777 7 2.476v6.759z"/>
+                              </svg>
+                            </a>
+                          )}
+                          {signature.socialLinks.twitter && (
+                            <a 
+                              href={signature.socialLinks.twitter}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-blue-400 hover:text-blue-500 transition-colors"
+                              title="Twitter"
+                            >
+                              <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+                                <path d="M23 3a10.9 10.9 0 01-3.14 1.53 4.48 4.48 0 00-7.86 3v1A10.66 10.66 0 013 4s-4 9 5 13a11.64 11.64 0 01-7 2c9 5 20 0 20-11.5a4.5 4.5 0 00-.08-.83A7.72 7.72 0 0023 3z"/>
+                              </svg>
+                            </a>
+                          )}
+                          {signature.socialLinks.facebook && (
+                            <a 
+                              href={signature.socialLinks.facebook}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-blue-600 hover:text-blue-700 dark:text-blue-400 transition-colors"
+                              title="Facebook"
+                            >
+                              <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+                                <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/>
+                              </svg>
+                            </a>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  </Card>
+                ))}
+              </div>
+            )}
           </TabsContent>
 
           {/* Auto-Reply Tab */}
