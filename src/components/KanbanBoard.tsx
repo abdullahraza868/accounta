@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Card } from './ui/card';
 import { Button } from './ui/button';
 import { Badge } from './ui/badge';
@@ -8,16 +9,18 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { Progress } from './ui/progress';
 import { Tabs, TabsList, TabsTrigger } from './ui/tabs';
 import { ScrollArea } from './ui/scroll-area';
-import { Plus, Calendar, Paperclip, MessageSquare, Zap, Activity, LayoutGrid, List, LayoutList, CheckSquare, FolderKanban, Settings2, Keyboard, ChevronDown, ChevronUp, Clock, AlertCircle, CheckCircle2, Filter, X, Users, Building2, User } from 'lucide-react';
+import { Plus, Calendar, Paperclip, MessageSquare, Zap, Activity, LayoutGrid, List, LayoutList, CheckSquare, FolderKanban, Settings2, Keyboard, ChevronDown, ChevronUp, Clock, AlertCircle, CheckCircle2, Filter, X, Users, Building2, User, Search, Calendar as CalendarIcon, Tag, Minus, Settings, Download, Flag, ArrowLeft, FileText } from 'lucide-react';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from './ui/table';
 import { useWorkflowContext, Project, ProjectTask } from './WorkflowContext';
 import { WorkflowTasksView } from './views/WorkflowTasksView';
+import { TaskFilterPanel } from './TaskFilterPanel';
 import { Input } from './ui/input';
 import { Label } from './ui/label';
 import { toast } from 'sonner@2.0.3';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from './ui/tooltip';
 import { Separator } from './ui/separator';
 import { RadioGroup, RadioGroupItem } from './ui/radio-group';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from './ui/dropdown-menu';
 
 interface ProjectCard {
   id: string;
@@ -65,9 +68,11 @@ const mockClients = [
 ];
 
 export function KanbanBoard({ viewMode = 'kanban', onViewModeChange, onProjectClick, onActivityLogClick, onStartWizard, onEditWorkflow, onViewTasks }: KanbanBoardProps) {
+  const navigate = useNavigate();
   const { workflows, projects, tasks, addProject, moveProject, getWorkflow, getTasksByWorkflow, getTaskCounts, updateTask } = useWorkflowContext();
   const [selectedWorkflowId, setSelectedWorkflowId] = useState(workflows[0]?.id || '');
   const [showTasksView, setShowTasksView] = useState(false);
+  const [taskViewMode, setTaskViewMode] = useState<'list' | 'kanban'>('list');
   const [newProjectDialogOpen, setNewProjectDialogOpen] = useState(false);
   const [selectedStageForNewProject, setSelectedStageForNewProject] = useState<string | null>(null);
   const [newProjectName, setNewProjectName] = useState('');
@@ -85,6 +90,29 @@ export function KanbanBoard({ viewMode = 'kanban', onViewModeChange, onProjectCl
   const [excludeStages, setExcludeStages] = useState(false);
   const [showFilterPanel, setShowFilterPanel] = useState(false);
   const [filterPanelCollapsed, setFilterPanelCollapsed] = useState(false);
+  
+  // Task view state (from AllTasksView)
+  const [timeFilter, setTimeFilter] = useState<'all' | 'today' | 'week' | 'month' | 'overdue'>('all');
+  const [completedDisplayMode, setCompletedDisplayMode] = useState<'hide' | 'inline' | 'only'>('hide');
+  const [showShortcutsLearningMode, setShowShortcutsLearningMode] = useState(false);
+  const [showShortcutsDialog, setShowShortcutsDialog] = useState(false);
+  
+  // Task filter state
+  const [includedAssignees, setIncludedAssignees] = useState<string[]>([]);
+  const [excludedAssignees, setExcludedAssignees] = useState<string[]>([]);
+  const [includedClients, setIncludedClients] = useState<string[]>([]);
+  const [excludedClients, setExcludedClients] = useState<string[]>([]);
+  const [includedStatuses, setIncludedStatuses] = useState<string[]>([]);
+  const [excludedStatuses, setExcludedStatuses] = useState<string[]>([]);
+  const [includedPriorities, setIncludedPriorities] = useState<string[]>([]);
+  const [excludedPriorities, setExcludedPriorities] = useState<string[]>([]);
+  const [includedTaskLists, setIncludedTaskLists] = useState<string[]>([]);
+  const [excludedTaskLists, setExcludedTaskLists] = useState<string[]>([]);
+  const [assigneeMode, setAssigneeMode] = useState<'include' | 'exclude'>('include');
+  const [clientMode, setClientMode] = useState<'include' | 'exclude'>('include');
+  const [statusMode, setStatusMode] = useState<'include' | 'exclude'>('include');
+  const [priorityMode, setPriorityMode] = useState<'include' | 'exclude'>('include');
+  const [taskListMode, setTaskListMode] = useState<'include' | 'exclude'>('include');
   
   // Keyboard shortcuts
   useEffect(() => {
@@ -140,6 +168,42 @@ export function KanbanBoard({ viewMode = 'kanban', onViewModeChange, onProjectCl
       type: mockClient?.type || 'business' as const
     };
   });
+  
+  // Get task-related data for TaskFilterPanel
+  const workflowTasks = getTasksByWorkflow(selectedWorkflowId);
+  const allTaskAssignees = Array.from(new Set(workflowTasks.map(t => t.assignee).filter(Boolean))) as string[];
+  const allTaskClients = Array.from(new Set(workflowTasks.map(t => t.clientName).filter(Boolean) as string[])).map((name: string) => {
+    const mockClient = mockClients.find(c => c.name === name);
+    return {
+      name: name,
+      type: (mockClient?.type || 'business') as 'business' | 'individual'
+    };
+  });
+  const allTaskStatuses = Array.from(new Set(workflowTasks.map(t => t.status).filter(Boolean))) as string[];
+  const allTaskPriorities = Array.from(new Set(workflowTasks.map(t => t.priority).filter(Boolean))) as string[];
+  const allTaskLists: Array<{ id: string; name: string; color: string; taskCount: number }> = []; // TODO: Get from context if available
+  
+  // Clear all task filters
+  const clearAllTaskFilters = () => {
+    setIncludedAssignees([]);
+    setExcludedAssignees([]);
+    setIncludedClients([]);
+    setExcludedClients([]);
+    setIncludedStatuses([]);
+    setExcludedStatuses([]);
+    setIncludedPriorities([]);
+    setExcludedPriorities([]);
+    setIncludedTaskLists([]);
+    setExcludedTaskLists([]);
+  };
+  
+  // Calculate active filter count for tasks
+  const activeTaskFilterCount = includedAssignees.length + excludedAssignees.length + includedClients.length + excludedClients.length + includedStatuses.length + excludedStatuses.length + includedPriorities.length + excludedPriorities.length + includedTaskLists.length + excludedTaskLists.length;
+  
+  // Helper function to get assignee name
+  const getAssigneeName = (assignee: string) => {
+    return assignee || 'Unassigned';
+  };
   
   // Separate clients by type for grouping
   const individualClients = allClients.filter(c => c.type === 'individual');
@@ -288,31 +352,61 @@ export function KanbanBoard({ viewMode = 'kanban', onViewModeChange, onProjectCl
 
   return (
     <div className="space-y-6">
+      {/* Back to Projects Button - Show when in Tasks View */}
+      {showTasksView && (
+        <div className="mb-2">
+          <Button
+            variant="ghost"
+            onClick={() => setShowTasksView(false)}
+            className="flex items-center gap-2 text-slate-700 hover:text-slate-900 hover:bg-slate-100"
+          >
+            <ArrowLeft className="w-4 h-4" />
+            <span>Back to Projects</span>
+          </Button>
+        </div>
+      )}
+      
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
           <div className="flex items-center gap-3">
-            <h2 className="text-slate-900">Projects</h2>
+            <h2 className="text-slate-900">{showTasksView ? 'Tasks' : 'Projects'}</h2>
             <Badge variant="secondary" className="rounded-full">
-              {filteredProjects.length} {filteredProjects.length !== 1 ? 'projects' : 'project'}
+              {showTasksView 
+                ? `${getTasksByWorkflow(selectedWorkflowId).filter(t => t.status !== 'completed').length} ${getTasksByWorkflow(selectedWorkflowId).filter(t => t.status !== 'completed').length !== 1 ? 'tasks' : 'task'}`
+                : `${filteredProjects.length} ${filteredProjects.length !== 1 ? 'projects' : 'project'}`
+              }
             </Badge>
           </div>
-          <p className="text-slate-500">Track and manage your projects visually</p>
+          <p className="text-slate-500">
+            {showTasksView 
+              ? `All tasks in ${currentWorkflow?.name || 'Workflow'}`
+              : 'Track and manage your projects visually'
+            }
+          </p>
         </div>
-        <div className="flex gap-3">
-          <Dialog open={newProjectDialogOpen} onOpenChange={setNewProjectDialogOpen}>
-            <DialogTrigger asChild>
-              <Button 
-                className="gap-2 bg-violet-600 hover:bg-violet-700"
-                onClick={() => {
-                  setSelectedStageForNewProject(null);
-                  setNewProjectDialogOpen(true);
-                }}
-              >
-                <Plus className="w-4 h-4" />
-                New Project
-              </Button>
-            </DialogTrigger>
+        {!showTasksView && (
+          <div className="flex gap-3">
+            <Button 
+              className="gap-2 bg-violet-600 hover:bg-violet-700"
+              onClick={() => navigate('/start-my-tax-list')}
+            >
+              <FileText className="w-4 h-4" />
+              Start My Tax List
+            </Button>
+            <Dialog open={newProjectDialogOpen} onOpenChange={setNewProjectDialogOpen}>
+              <DialogTrigger asChild>
+                <Button 
+                  className="gap-2 bg-violet-600 hover:bg-violet-700"
+                  onClick={() => {
+                    setSelectedStageForNewProject(null);
+                    setNewProjectDialogOpen(true);
+                  }}
+                >
+                  <Plus className="w-4 h-4" />
+                  New Project
+                </Button>
+              </DialogTrigger>
             <DialogContent className="max-w-md">
               <DialogHeader>
                 <DialogTitle>Create New Project</DialogTitle>
@@ -394,6 +488,7 @@ export function KanbanBoard({ viewMode = 'kanban', onViewModeChange, onProjectCl
             </DialogContent>
           </Dialog>
         </div>
+        )}
       </div>
 
       {/* Main Content Area */}
@@ -521,245 +616,678 @@ export function KanbanBoard({ viewMode = 'kanban', onViewModeChange, onProjectCl
                       )}
                     
                       {/* Add New Button */}
-                      <button
-                        className="flex items-center gap-2 px-3 py-1.5 rounded-lg border-2 border-dashed border-slate-300 bg-slate-50 hover:border-violet-400 hover:bg-violet-50 transition-all whitespace-nowrap flex-shrink-0 text-slate-600 hover:text-violet-700"
-                        onClick={() => {
-                          if (onStartWizard) {
-                            onStartWizard();
-                          } else {
-                            toast.info('Creating new workflow...');
-                          }
-                        }}
-                      >
-                        <Plus className="w-4 h-4" />
-                        <span className="text-sm">New Workflow</span>
-                      </button>
+                      {!showTasksView && (
+                        <button
+                          className="flex items-center gap-2 px-3 py-1.5 rounded-lg border-2 border-dashed border-slate-300 bg-slate-50 hover:border-violet-400 hover:bg-violet-50 transition-all whitespace-nowrap flex-shrink-0 text-slate-600 hover:text-violet-700"
+                          onClick={() => {
+                            if (onStartWizard) {
+                              onStartWizard();
+                            } else {
+                              toast.info('Creating new workflow...');
+                            }
+                          }}
+                        >
+                          <Plus className="w-4 h-4" />
+                          <span className="text-sm">New Workflow</span>
+                        </button>
+                      )}
                     </div>
                   </div>
                   
                   {/* Actions - Only Edit Workflow */}
-                  <div className="flex items-center gap-2 flex-shrink-0">
-                    {/* Workflow Settings Button */}
+                  {!showTasksView && (
+                    <div className="flex items-center gap-2 flex-shrink-0">
+                      {/* Workflow Settings Button */}
+                      <TooltipProvider>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Button 
+                              variant="outline" 
+                              size="sm" 
+                              className="h-7 gap-1.5 border-violet-300 bg-violet-50 hover:bg-violet-100 hover:border-violet-400 text-violet-700"
+                              onClick={() => {
+                                if (onEditWorkflow) {
+                                  onEditWorkflow();
+                                }
+                              }}
+                            >
+                              <Settings2 className="w-3.5 h-3.5" />
+                              <span className="text-xs">Edit Workflow</span>
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            <p>Edit workflow (⌘K)</p>
+                          </TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Search & Filter Bar */}
+              {showTasksView ? (
+                <Card className="border-slate-200 shadow-sm">
+                  <div className="p-3">
+                    <div className="flex items-center gap-3 overflow-x-auto min-w-0">
+                      {/* Search */}
+                      <div className="flex-1 max-w-xs relative flex-shrink-0">
+                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                        <Input
+                          placeholder={showShortcutsLearningMode ? "Search tasks... (S)" : "Search tasks..."}
+                          value={searchQuery}
+                          onChange={(e) => setSearchQuery(e.target.value)}
+                          className="pl-9 bg-white dark:bg-gray-700 dark:text-gray-100 border-slate-300 dark:border-gray-600 focus:border-violet-400 focus:ring-violet-400"
+                        />
+                        {showShortcutsLearningMode && !searchQuery && (
+                          <kbd className="absolute right-3 top-1/2 -translate-y-1/2 px-1.5 py-0.5 text-xs bg-slate-100 border border-slate-300 rounded">S</kbd>
+                        )}
+                      </div>
+
+                      {/* Time Filters */}
+                      <div className="flex items-center gap-2 flex-shrink-0">
+                        <CalendarIcon className="w-4 h-4 text-slate-500 dark:text-gray-400" />
+                        <div className="flex items-center gap-1 p-1 bg-slate-100 dark:bg-gray-700 rounded-lg">
+                          {['all', 'today', 'week', 'month', 'overdue'].map((filter) => {
+                            const shortcuts: Record<string, string> = {
+                              'all': '⇧ A',
+                              'today': '⇧ T',
+                              'week': '⇧ W',
+                              'month': '⇧ M',
+                              'overdue': '⇧ O'
+                            };
+                            return (
+                              <button
+                                key={filter}
+                                onClick={() => setTimeFilter(filter as any)}
+                                className={`
+                                  px-3 py-1.5 rounded text-xs transition-all capitalize flex items-center gap-1.5
+                                  ${timeFilter === filter
+                                    ? 'bg-white dark:bg-gray-600 text-violet-600 dark:text-violet-400 shadow-sm font-medium'
+                                    : 'text-slate-600 dark:text-gray-300 hover:text-slate-900 dark:hover:text-gray-100'
+                                  }
+                                `}
+                              >
+                                {filter}
+                                {showShortcutsLearningMode && (
+                                  <kbd className="px-1 py-0.5 text-[11px] bg-slate-200 border border-slate-300 rounded">{shortcuts[filter]}</kbd>
+                                )}
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </div>
+
+                      {/* Completed Tasks Display Mode */}
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button
+                            variant={completedDisplayMode === 'hide' ? 'outline' : 'default'}
+                            size="sm"
+                            className={`gap-2 flex-shrink-0 ${completedDisplayMode !== 'hide' ? 'bg-violet-600 hover:bg-violet-700' : ''}`}
+                          >
+                            <CheckCircle2 className="w-4 h-4" />
+                            {completedDisplayMode === 'hide' && 'Hide Completed'}
+                            {completedDisplayMode === 'inline' && 'Show Completed'}
+                            {completedDisplayMode === 'only' && 'Completed Only'}
+                            {showShortcutsLearningMode && (
+                              <kbd className="ml-1 px-1.5 py-0.5 text-xs bg-slate-100 border border-slate-300 rounded">⇧ S</kbd>
+                            )}
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="start">
+                          {completedDisplayMode !== 'hide' && (
+                            <DropdownMenuItem onClick={() => setCompletedDisplayMode('hide')}>
+                              <CheckCircle2 className="w-4 h-4 mr-2" />
+                              Hide Completed
+                            </DropdownMenuItem>
+                          )}
+                          {completedDisplayMode !== 'inline' && (
+                            <DropdownMenuItem onClick={() => setCompletedDisplayMode('inline')}>
+                              <CheckCircle2 className="w-4 h-4 mr-2" />
+                              Show Completed
+                            </DropdownMenuItem>
+                          )}
+                          {completedDisplayMode !== 'only' && (
+                            <DropdownMenuItem onClick={() => setCompletedDisplayMode('only')}>
+                              <CheckCircle2 className="w-4 h-4 mr-2" />
+                              Completed Only
+                            </DropdownMenuItem>
+                          )}
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+
+                      {/* Filter Toggle Button */}
+                      <Button
+                        variant={showFilterPanel ? 'default' : 'outline'}
+                        size="sm"
+                        onClick={() => setShowFilterPanel(!showFilterPanel)}
+                        className={`gap-2 flex-shrink-0 ${showFilterPanel ? 'bg-violet-600 hover:bg-violet-700' : ''}`}
+                      >
+                        <Filter className="w-4 h-4" />
+                        Filters
+                        {activeTaskFilterCount > 0 && (
+                          <Badge className="ml-1 bg-white/20 text-white border-white/30 px-1.5 min-w-[20px] justify-center">
+                            {activeTaskFilterCount}
+                          </Badge>
+                        )}
+                        {showShortcutsLearningMode && (
+                          <kbd className="ml-1 px-1.5 py-0.5 text-xs bg-slate-100 border border-slate-300 rounded">⇧ F</kbd>
+                        )}
+                      </Button>
+
+                      <div className="flex-1 flex-shrink-0 min-w-[20px]" />
+
+                      {/* Action Buttons */}
+                      <div className="flex items-center gap-2 flex-shrink-0">
+                        <TooltipProvider>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => {
+                                  // Export tasks functionality
+                                  const tasksToExport = getTasksByWorkflow(selectedWorkflowId);
+                                  const csvContent = [
+                                    ['Task Name', 'Assignee', 'Status', 'Priority', 'Due Date', 'Client'].join(','),
+                                    ...tasksToExport.map(task => [
+                                      task.name,
+                                      task.assignee || 'Unassigned',
+                                      task.status,
+                                      task.priority,
+                                      task.dueDate || '',
+                                      task.projectId || ''
+                                    ].join(','))
+                                  ].join('\n');
+                                  const blob = new Blob([csvContent], { type: 'text/csv' });
+                                  const url = window.URL.createObjectURL(blob);
+                                  const a = document.createElement('a');
+                                  a.href = url;
+                                  a.download = `tasks-${new Date().toISOString().split('T')[0]}.csv`;
+                                  a.click();
+                                  window.URL.revokeObjectURL(url);
+                                  toast.success('Tasks exported successfully');
+                                }}
+                                className="w-8 h-8 p-0"
+                              >
+                                <Download className="w-4 h-4" />
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              <p>Export Tasks</p>
+                            </TooltipContent>
+                          </Tooltip>
+                        </TooltipProvider>
+
+                        <TooltipProvider>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <div>
+                                <DropdownMenu>
+                                  <DropdownMenuTrigger asChild>
+                                    <Button
+                                      variant={showShortcutsLearningMode ? 'default' : 'outline'}
+                                      size="sm"
+                                      className={`w-8 h-8 p-0 ${showShortcutsLearningMode ? 'bg-emerald-600 hover:bg-emerald-700' : ''}`}
+                                    >
+                                      <Keyboard className="w-4 h-4" />
+                                    </Button>
+                                  </DropdownMenuTrigger>
+                                  <DropdownMenuContent align="end" className="w-56">
+                                    <div className="px-2 py-2">
+                                      <button
+                                        onClick={() => {
+                                          setShowShortcutsLearningMode(!showShortcutsLearningMode);
+                                          toast.success(showShortcutsLearningMode ? 'Learning mode off' : 'Learning mode on');
+                                        }}
+                                        className="w-full flex items-center justify-between hover:bg-slate-50 rounded p-2 transition-colors"
+                                      >
+                                        <div className="flex items-center gap-2">
+                                          <Keyboard className="w-4 h-4 text-slate-600" />
+                                          <span className="text-sm">Learning mode</span>
+                                        </div>
+                                        <div className={`h-7 px-3 text-xs rounded flex items-center ${showShortcutsLearningMode ? 'bg-emerald-600 text-white' : 'bg-violet-50 border border-violet-300 text-violet-700'}`}>
+                                          {showShortcutsLearningMode ? 'On' : 'Off'}
+                                        </div>
+                                      </button>
+                                    </div>
+                                    <DropdownMenuSeparator />
+                                    <DropdownMenuItem onClick={() => setShowShortcutsDialog(true)}>
+                                      <List className="w-4 h-4 mr-2" />
+                                      View all shortcuts
+                                      <kbd className="ml-auto px-1.5 py-0.5 text-xs bg-slate-100 border border-slate-300 rounded">?</kbd>
+                                    </DropdownMenuItem>
+                                  </DropdownMenuContent>
+                                </DropdownMenu>
+                              </div>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              <p>Keyboard Shortcuts</p>
+                            </TooltipContent>
+                          </Tooltip>
+                        </TooltipProvider>
+
+                        {/* View Toggle Button */}
+                        <Tabs value={taskViewMode} onValueChange={(v) => setTaskViewMode(v as 'list' | 'kanban')} className="h-auto">
+                          <TabsList className="bg-slate-100 p-0.5 h-8">
+                            <TabsTrigger value="kanban" className="gap-1.5 h-7 px-2.5 data-[state=active]:bg-white text-xs">
+                              <FolderKanban className="w-3 h-3" />
+                              Kanban
+                            </TabsTrigger>
+                            <TabsTrigger value="list" className="gap-1.5 h-7 px-2.5 data-[state=active]:bg-white text-xs">
+                              <LayoutList className="w-3 h-3" />
+                              List
+                            </TabsTrigger>
+                          </TabsList>
+                        </Tabs>
+                      </div>
+                    </div>
+
+                    {/* Active Filter Badges Row */}
+                    {activeTaskFilterCount > 0 && (
+                      <div className="pt-3 border-t border-slate-200">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span className="text-xs text-slate-500 font-medium">Active filters:</span>
+                          
+                          {/* Included Assignee Filters */}
+                          {includedAssignees.map(assignee => (
+                            <Badge 
+                              key={`assignee-include-${assignee}`} 
+                              variant="secondary" 
+                              className="gap-1 text-xs h-6 bg-green-100 text-green-800 border-green-300"
+                            >
+                              <Users className="w-2.5 h-2.5" />
+                              {getAssigneeName(assignee)}
+                              <button
+                                onClick={() => setIncludedAssignees(includedAssignees.filter(a => a !== assignee))}
+                                className="ml-1 rounded-full p-0.5 hover:bg-green-200"
+                              >
+                                <X className="w-2.5 h-2.5" />
+                              </button>
+                            </Badge>
+                          ))}
+
+                          {/* Excluded Assignee Filters */}
+                          {excludedAssignees.map(assignee => (
+                            <Badge 
+                              key={`assignee-exclude-${assignee}`} 
+                              variant="secondary" 
+                              className="gap-1 text-xs h-6 bg-red-100 text-red-800 border-red-300"
+                            >
+                              <Minus className="w-2.5 h-2.5" />
+                              {getAssigneeName(assignee)}
+                              <button
+                                onClick={() => setExcludedAssignees(excludedAssignees.filter(a => a !== assignee))}
+                                className="ml-1 rounded-full p-0.5 hover:bg-red-200"
+                              >
+                                <X className="w-2.5 h-2.5" />
+                              </button>
+                            </Badge>
+                          ))}
+
+                          {/* Included Client Filters */}
+                          {includedClients.map(client => (
+                            <Badge 
+                              key={`client-include-${client}`} 
+                              variant="secondary" 
+                              className="gap-1 text-xs h-6 bg-green-100 text-green-800 border-green-300"
+                            >
+                              <Building2 className="w-2.5 h-2.5" />
+                              {client}
+                              <button
+                                onClick={() => setIncludedClients(includedClients.filter(c => c !== client))}
+                                className="ml-1 rounded-full p-0.5 hover:bg-green-200"
+                              >
+                                <X className="w-2.5 h-2.5" />
+                              </button>
+                            </Badge>
+                          ))}
+
+                          {/* Excluded Client Filters */}
+                          {excludedClients.map(client => (
+                            <Badge 
+                              key={`client-exclude-${client}`} 
+                              variant="secondary" 
+                              className="gap-1 text-xs h-6 bg-red-100 text-red-800 border-red-300"
+                            >
+                              <Minus className="w-2.5 h-2.5" />
+                              {client}
+                              <button
+                                onClick={() => setExcludedClients(excludedClients.filter(c => c !== client))}
+                                className="ml-1 rounded-full p-0.5 hover:bg-red-200"
+                              >
+                                <X className="w-2.5 h-2.5" />
+                              </button>
+                            </Badge>
+                          ))}
+
+                          {/* Included Status Filters */}
+                          {includedStatuses.map(status => (
+                            <Badge 
+                              key={`status-include-${status}`} 
+                              variant="secondary" 
+                              className="gap-1 text-xs h-6 bg-green-100 text-green-800 border-green-300"
+                            >
+                              <Tag className="w-2.5 h-2.5" />
+                              {status}
+                              <button
+                                onClick={() => setIncludedStatuses(includedStatuses.filter(s => s !== status))}
+                                className="ml-1 rounded-full p-0.5 hover:bg-green-200"
+                              >
+                                <X className="w-2.5 h-2.5" />
+                              </button>
+                            </Badge>
+                          ))}
+
+                          {/* Excluded Status Filters */}
+                          {excludedStatuses.map(status => (
+                            <Badge 
+                              key={`status-exclude-${status}`} 
+                              variant="secondary" 
+                              className="gap-1 text-xs h-6 bg-red-100 text-red-800 border-red-300"
+                            >
+                              <Minus className="w-2.5 h-2.5" />
+                              {status}
+                              <button
+                                onClick={() => setExcludedStatuses(excludedStatuses.filter(s => s !== status))}
+                                className="ml-1 rounded-full p-0.5 hover:bg-red-200"
+                              >
+                                <X className="w-2.5 h-2.5" />
+                              </button>
+                            </Badge>
+                          ))}
+
+                          {/* Included Priority Filters */}
+                          {includedPriorities.map(priority => (
+                            <Badge 
+                              key={`priority-include-${priority}`} 
+                              variant="secondary" 
+                              className="gap-1 text-xs h-6 bg-green-100 text-green-800 border-green-300"
+                            >
+                              <Flag className="w-2.5 h-2.5" />
+                              {priority}
+                              <button
+                                onClick={() => setIncludedPriorities(includedPriorities.filter(p => p !== priority))}
+                                className="ml-1 rounded-full p-0.5 hover:bg-green-200"
+                              >
+                                <X className="w-2.5 h-2.5" />
+                              </button>
+                            </Badge>
+                          ))}
+
+                          {/* Excluded Priority Filters */}
+                          {excludedPriorities.map(priority => (
+                            <Badge 
+                              key={`priority-exclude-${priority}`} 
+                              variant="secondary" 
+                              className="gap-1 text-xs h-6 bg-red-100 text-red-800 border-red-300"
+                            >
+                              <Minus className="w-2.5 h-2.5" />
+                              {priority}
+                              <button
+                                onClick={() => setExcludedPriorities(excludedPriorities.filter(p => p !== priority))}
+                                className="ml-1 rounded-full p-0.5 hover:bg-red-200"
+                              >
+                                <X className="w-2.5 h-2.5" />
+                              </button>
+                            </Badge>
+                          ))}
+
+                          {/* Included Task List Filters */}
+                          {includedTaskLists.map(listId => {
+                            // TODO: Get task list name from context
+                            const listName = `List ${listId}`;
+                            return (
+                              <Badge 
+                                key={`list-include-${listId}`} 
+                                variant="secondary" 
+                                className="gap-1 text-xs h-6 bg-green-100 text-green-800 border-green-300"
+                              >
+                                <List className="w-2.5 h-2.5" />
+                                {listName}
+                                <button
+                                  onClick={() => setIncludedTaskLists(includedTaskLists.filter(id => id !== listId))}
+                                  className="ml-1 rounded-full p-0.5 hover:bg-green-200"
+                                >
+                                  <X className="w-2.5 h-2.5" />
+                                </button>
+                              </Badge>
+                            );
+                          })}
+
+                          {/* Excluded Task List Filters */}
+                          {excludedTaskLists.map(listId => {
+                            // TODO: Get task list name from context
+                            const listName = `List ${listId}`;
+                            return (
+                              <Badge 
+                                key={`list-exclude-${listId}`} 
+                                variant="secondary" 
+                                className="gap-1 text-xs h-6 bg-red-100 text-red-800 border-red-300"
+                              >
+                                <Minus className="w-2.5 h-2.5" />
+                                {listName}
+                                <button
+                                  onClick={() => setExcludedTaskLists(excludedTaskLists.filter(id => id !== listId))}
+                                  className="ml-1 rounded-full p-0.5 hover:bg-red-200"
+                                >
+                                  <X className="w-2.5 h-2.5" />
+                                </button>
+                              </Badge>
+                            );
+                          })}
+
+                          {/* Clear All Filters Button */}
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={clearAllTaskFilters}
+                            className="h-6 px-2 text-xs text-slate-600 hover:text-slate-900 hover:bg-slate-100 ml-auto"
+                          >
+                            <X className="w-3 h-3 mr-1" />
+                            Clear all
+                          </Button>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </Card>
+              ) : (
+                <div className="px-4 py-2 bg-gradient-to-r from-slate-50 to-white border-b border-slate-200">
+                  <div className="flex items-center gap-3">
+                    {/* Search */}
+                    <div className="flex-1 max-w-md">
+                      <Input
+                        placeholder="🔍 Search projects or clients..."
+                        value={searchQuery}
+                        onChange={(e) => setSearchQuery(e.target.value)}
+                        className="h-8 text-sm bg-white border-slate-300 focus:border-violet-400 focus:ring-violet-400"
+                      />
+                    </div>
+
+                    {/* Filter Toggle Button */}
+                    <Button
+                      variant={showFilterPanel ? 'default' : 'outline'}
+                      size="sm"
+                      className={`gap-2 h-8 ${showFilterPanel ? 'bg-violet-600 hover:bg-violet-700' : ''}`}
+                      onClick={() => setShowFilterPanel(!showFilterPanel)}
+                    >
+                      <Filter className="w-3.5 h-3.5" />
+                      <span className="text-xs">Filters</span>
+                      {(activeFilterCount > 0 || filterStatus !== 'all') && (
+                        <Badge variant="secondary" className="ml-1 px-1.5 py-0 h-4 text-xs bg-white text-violet-700">
+                          {activeFilterCount + (filterStatus !== 'all' ? 1 : 0)}
+                        </Badge>
+                      )}
+                    </Button>
+
+                    {/* Active Filter Summary */}
+                    {(selectedLeads.length > 0 || selectedClients.length > 0 || selectedStages.length > 0 || filterStatus !== 'all') && (
+                      <>
+                        <Separator orientation="vertical" className="h-6" />
+                        <div className="flex flex-wrap gap-1.5 items-center">
+                          {filterStatus !== 'all' && (
+                            <Badge variant="secondary" className="gap-1 text-xs h-6 bg-blue-100 text-blue-800 border-blue-300">
+                              <Activity className="w-2.5 h-2.5" />
+                              {filterStatus.charAt(0).toUpperCase() + filterStatus.slice(1)}
+                              <button
+                                onClick={() => setFilterStatus('all')}
+                                className="ml-1 hover:bg-blue-200 rounded-full p-0.5"
+                              >
+                                <X className="w-2.5 h-2.5" />
+                              </button>
+                            </Badge>
+                          )}
+                          
+                          {selectedLeads.slice(0, 2).map(lead => (
+                            <Badge 
+                              key={lead} 
+                              variant="secondary" 
+                              className={`gap-1 text-xs h-6 ${excludeLeads ? 'bg-red-100 text-red-800 border-red-300' : 'bg-violet-100 text-violet-800 border-violet-300'}`}
+                            >
+                              {excludeLeads && <span className="font-semibold">NOT</span>}
+                              <Users className="w-2.5 h-2.5" />
+                              {lead}
+                              <button
+                                onClick={() => setSelectedLeads(selectedLeads.filter(l => l !== lead))}
+                                className={`ml-1 ${excludeLeads ? 'hover:bg-red-200' : 'hover:bg-violet-200'} rounded-full p-0.5`}
+                              >
+                                <X className="w-2.5 h-2.5" />
+                              </button>
+                            </Badge>
+                          ))}
+                          {selectedLeads.length > 2 && (
+                            <Badge variant="secondary" className="text-xs h-6">
+                              +{selectedLeads.length - 2} more
+                            </Badge>
+                          )}
+                          
+                          {selectedClients.slice(0, 2).map(client => {
+                            const clientData = allClients.find(c => c.name === client);
+                            const isIndividual = clientData?.type === 'individual';
+                            return (
+                              <Badge 
+                                key={client} 
+                                variant="secondary" 
+                                className={`gap-1 text-xs h-6 ${
+                                  excludeClients 
+                                    ? 'bg-red-100 text-red-800 border-red-300' 
+                                    : isIndividual
+                                      ? 'bg-blue-100 text-blue-800 border-blue-300'
+                                      : 'bg-emerald-100 text-emerald-800 border-emerald-300'
+                                }`}
+                              >
+                                {excludeClients && <span className="font-semibold">NOT</span>}
+                                {isIndividual ? (
+                                  <User className="w-2.5 h-2.5" />
+                                ) : (
+                                  <Building2 className="w-2.5 h-2.5" />
+                                )}
+                                {client}
+                                <button
+                                  onClick={() => setSelectedClients(selectedClients.filter(c => c !== client))}
+                                  className={`ml-1 ${
+                                    excludeClients 
+                                      ? 'hover:bg-red-200' 
+                                      : isIndividual 
+                                        ? 'hover:bg-blue-200' 
+                                        : 'hover:bg-emerald-200'
+                                  } rounded-full p-0.5`}
+                                >
+                                  <X className="w-2.5 h-2.5" />
+                                </button>
+                              </Badge>
+                            );
+                          })}
+                          {selectedClients.length > 2 && (
+                            <Badge variant="secondary" className="text-xs h-6">
+                              +{selectedClients.length - 2} more
+                            </Badge>
+                          )}
+                          
+                          {selectedStages.slice(0, 2).map(stage => (
+                            <Badge 
+                              key={stage} 
+                              variant="secondary" 
+                              className={`gap-1 text-xs h-6 ${excludeStages ? 'bg-red-100 text-red-800 border-red-300' : 'bg-amber-100 text-amber-800 border-amber-300'}`}
+                            >
+                              {excludeStages && <span className="font-semibold">NOT</span>}
+                              <FolderKanban className="w-2.5 h-2.5" />
+                              {stage}
+                              <button
+                                onClick={() => setSelectedStages(selectedStages.filter(s => s !== stage))}
+                                className={`ml-1 ${excludeStages ? 'hover:bg-red-200' : 'hover:bg-amber-200'} rounded-full p-0.5`}
+                              >
+                                <X className="w-2.5 h-2.5" />
+                              </button>
+                            </Badge>
+                          ))}
+                          {selectedStages.length > 2 && (
+                            <Badge variant="secondary" className="text-xs h-6">
+                              +{selectedStages.length - 2} more
+                            </Badge>
+                          )}
+                          
+                          {/* Clear Filters Button */}
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => {
+                              setSelectedLeads([]);
+                              setSelectedClients([]);
+                              setSelectedStages([]);
+                              setFilterStatus('all');
+                            }}
+                            className="h-6 px-2 text-xs text-slate-600 hover:text-slate-900 hover:bg-slate-100"
+                          >
+                            <X className="w-3 h-3 mr-1" />
+                            Clear Filters
+                          </Button>
+                        </div>
+                      </>
+                    )}
+
+                    {/* Spacer */}
+                    <div className="flex-1" />
+
+                    {/* View Mode Toggle */}
+                    {onViewModeChange && (
+                      <Tabs value={viewMode} onValueChange={(v) => onViewModeChange(v as 'kanban' | 'list')} className="h-auto">
+                        <TabsList className="bg-slate-100 p-0.5 h-8">
+                          <TabsTrigger value="kanban" className="gap-1.5 h-7 px-2.5 data-[state=active]:bg-white text-xs">
+                            <FolderKanban className="w-3 h-3" />
+                            Kanban
+                          </TabsTrigger>
+                          <TabsTrigger value="list" className="gap-1.5 h-7 px-2.5 data-[state=active]:bg-white text-xs">
+                            <LayoutList className="w-3 h-3" />
+                            List
+                          </TabsTrigger>
+                        </TabsList>
+                      </Tabs>
+                    )}
+                    
+                    {/* Shortcuts Button */}
                     <TooltipProvider>
                       <Tooltip>
                         <TooltipTrigger asChild>
                           <Button 
-                            variant="outline" 
+                            variant="ghost" 
                             size="sm" 
-                            className="h-7 gap-1.5 border-violet-300 bg-violet-50 hover:bg-violet-100 hover:border-violet-400 text-violet-700"
-                            onClick={() => {
-                              if (onEditWorkflow) {
-                                onEditWorkflow();
-                              }
-                            }}
+                            className="h-8 w-8 p-0"
+                            onClick={() => setShowShortcuts(true)}
                           >
-                            <Settings2 className="w-3.5 h-3.5" />
-                            <span className="text-xs">Edit Workflow</span>
+                            <Keyboard className="w-3.5 h-3.5" />
                           </Button>
                         </TooltipTrigger>
                         <TooltipContent>
-                          <p>Edit workflow (⌘K)</p>
+                          <p>Keyboard shortcuts (⌘/)</p>
                         </TooltipContent>
                       </Tooltip>
                     </TooltipProvider>
                   </div>
                 </div>
-              </div>
-
-              {/* Search & Filter Bar */}
-              <div className="px-4 py-2 bg-gradient-to-r from-slate-50 to-white border-b border-slate-200">
-                <div className="flex items-center gap-3">
-                  {/* Search */}
-                  <div className="flex-1 max-w-md">
-                    <Input
-                      placeholder="🔍 Search projects or clients..."
-                      value={searchQuery}
-                      onChange={(e) => setSearchQuery(e.target.value)}
-                      className="h-8 text-sm bg-white border-slate-300 focus:border-violet-400 focus:ring-violet-400"
-                    />
-                  </div>
-
-                  {/* Filter Toggle Button */}
-                  <Button
-                    variant={showFilterPanel ? 'default' : 'outline'}
-                    size="sm"
-                    className={`gap-2 h-8 ${showFilterPanel ? 'bg-violet-600 hover:bg-violet-700' : ''}`}
-                    onClick={() => setShowFilterPanel(!showFilterPanel)}
-                  >
-                    <Filter className="w-3.5 h-3.5" />
-                    <span className="text-xs">Filters</span>
-                    {(activeFilterCount > 0 || filterStatus !== 'all') && (
-                      <Badge variant="secondary" className="ml-1 px-1.5 py-0 h-4 text-xs bg-white text-violet-700">
-                        {activeFilterCount + (filterStatus !== 'all' ? 1 : 0)}
-                      </Badge>
-                    )}
-                  </Button>
-
-                  {/* Active Filter Summary */}
-                  {(selectedLeads.length > 0 || selectedClients.length > 0 || selectedStages.length > 0 || filterStatus !== 'all') && (
-                    <>
-                      <Separator orientation="vertical" className="h-6" />
-                      <div className="flex flex-wrap gap-1.5 items-center">
-                        {filterStatus !== 'all' && (
-                          <Badge variant="secondary" className="gap-1 text-xs h-6 bg-blue-100 text-blue-800 border-blue-300">
-                            <Activity className="w-2.5 h-2.5" />
-                            {filterStatus.charAt(0).toUpperCase() + filterStatus.slice(1)}
-                            <button
-                              onClick={() => setFilterStatus('all')}
-                              className="ml-1 hover:bg-blue-200 rounded-full p-0.5"
-                            >
-                              <X className="w-2.5 h-2.5" />
-                            </button>
-                          </Badge>
-                        )}
-                        
-                        {selectedLeads.slice(0, 2).map(lead => (
-                          <Badge 
-                            key={lead} 
-                            variant="secondary" 
-                            className={`gap-1 text-xs h-6 ${excludeLeads ? 'bg-red-100 text-red-800 border-red-300' : 'bg-violet-100 text-violet-800 border-violet-300'}`}
-                          >
-                            {excludeLeads && <span className="font-semibold">NOT</span>}
-                            <Users className="w-2.5 h-2.5" />
-                            {lead}
-                            <button
-                              onClick={() => setSelectedLeads(selectedLeads.filter(l => l !== lead))}
-                              className={`ml-1 ${excludeLeads ? 'hover:bg-red-200' : 'hover:bg-violet-200'} rounded-full p-0.5`}
-                            >
-                              <X className="w-2.5 h-2.5" />
-                            </button>
-                          </Badge>
-                        ))}
-                        {selectedLeads.length > 2 && (
-                          <Badge variant="secondary" className="text-xs h-6">
-                            +{selectedLeads.length - 2} more
-                          </Badge>
-                        )}
-                        
-                        {selectedClients.slice(0, 2).map(client => {
-                          const clientData = allClients.find(c => c.name === client);
-                          const isIndividual = clientData?.type === 'individual';
-                          return (
-                            <Badge 
-                              key={client} 
-                              variant="secondary" 
-                              className={`gap-1 text-xs h-6 ${
-                                excludeClients 
-                                  ? 'bg-red-100 text-red-800 border-red-300' 
-                                  : isIndividual
-                                    ? 'bg-blue-100 text-blue-800 border-blue-300'
-                                    : 'bg-emerald-100 text-emerald-800 border-emerald-300'
-                              }`}
-                            >
-                              {excludeClients && <span className="font-semibold">NOT</span>}
-                              {isIndividual ? (
-                                <User className="w-2.5 h-2.5" />
-                              ) : (
-                                <Building2 className="w-2.5 h-2.5" />
-                              )}
-                              {client}
-                              <button
-                                onClick={() => setSelectedClients(selectedClients.filter(c => c !== client))}
-                                className={`ml-1 ${
-                                  excludeClients 
-                                    ? 'hover:bg-red-200' 
-                                    : isIndividual 
-                                      ? 'hover:bg-blue-200' 
-                                      : 'hover:bg-emerald-200'
-                                } rounded-full p-0.5`}
-                              >
-                                <X className="w-2.5 h-2.5" />
-                              </button>
-                            </Badge>
-                          );
-                        })}
-                        {selectedClients.length > 2 && (
-                          <Badge variant="secondary" className="text-xs h-6">
-                            +{selectedClients.length - 2} more
-                          </Badge>
-                        )}
-                        
-                        {selectedStages.slice(0, 2).map(stage => (
-                          <Badge 
-                            key={stage} 
-                            variant="secondary" 
-                            className={`gap-1 text-xs h-6 ${excludeStages ? 'bg-red-100 text-red-800 border-red-300' : 'bg-amber-100 text-amber-800 border-amber-300'}`}
-                          >
-                            {excludeStages && <span className="font-semibold">NOT</span>}
-                            <FolderKanban className="w-2.5 h-2.5" />
-                            {stage}
-                            <button
-                              onClick={() => setSelectedStages(selectedStages.filter(s => s !== stage))}
-                              className={`ml-1 ${excludeStages ? 'hover:bg-red-200' : 'hover:bg-amber-200'} rounded-full p-0.5`}
-                            >
-                              <X className="w-2.5 h-2.5" />
-                            </button>
-                          </Badge>
-                        ))}
-                        {selectedStages.length > 2 && (
-                          <Badge variant="secondary" className="text-xs h-6">
-                            +{selectedStages.length - 2} more
-                          </Badge>
-                        )}
-                        
-                        {/* Clear Filters Button */}
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => {
-                            setSelectedLeads([]);
-                            setSelectedClients([]);
-                            setSelectedStages([]);
-                            setFilterStatus('all');
-                          }}
-                          className="h-6 px-2 text-xs text-slate-600 hover:text-slate-900 hover:bg-slate-100"
-                        >
-                          <X className="w-3 h-3 mr-1" />
-                          Clear Filters
-                        </Button>
-                      </div>
-                    </>
-                  )}
-
-                  {/* Spacer */}
-                  <div className="flex-1" />
-
-                  {/* View Mode Toggle */}
-                  {onViewModeChange && (
-                    <Tabs value={viewMode} onValueChange={(v) => onViewModeChange(v as 'kanban' | 'list')} className="h-auto">
-                      <TabsList className="bg-slate-100 p-0.5 h-8">
-                        <TabsTrigger value="kanban" className="gap-1.5 h-7 px-2.5 data-[state=active]:bg-white text-xs">
-                          <FolderKanban className="w-3 h-3" />
-                          Kanban
-                        </TabsTrigger>
-                        <TabsTrigger value="list" className="gap-1.5 h-7 px-2.5 data-[state=active]:bg-white text-xs">
-                          <LayoutList className="w-3 h-3" />
-                          List
-                        </TabsTrigger>
-                      </TabsList>
-                    </Tabs>
-                  )}
-                  
-                  {/* Shortcuts Button */}
-                  <TooltipProvider>
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <Button 
-                          variant="ghost" 
-                          size="sm" 
-                          className="h-8 w-8 p-0"
-                          onClick={() => setShowShortcuts(true)}
-                        >
-                          <Keyboard className="w-3.5 h-3.5" />
-                        </Button>
-                      </TooltipTrigger>
-                      <TooltipContent>
-                        <p>Keyboard shortcuts (⌘/)</p>
-                      </TooltipContent>
-                    </Tooltip>
-                  </TooltipProvider>
-                </div>
-              </div>
+              )}
             </div>
           );
         })()}
@@ -826,17 +1354,57 @@ export function KanbanBoard({ viewMode = 'kanban', onViewModeChange, onProjectCl
             {/* Left Filter Sidebar */}
             {showFilterPanel && (
               <div className="w-72 flex-shrink-0">
-                <Card className="p-4 sticky top-4 bg-gradient-to-br from-white to-slate-50 shadow-lg border-slate-200">
-                  <div className="space-y-4">
-                    {/* Header */}
-                    <div className="space-y-2">
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-2">
-                          <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-violet-500 to-indigo-500 flex items-center justify-center">
-                            <Filter className="w-4 h-4 text-white" />
+                {showTasksView ? (
+                  <TaskFilterPanel
+                    includedAssignees={includedAssignees}
+                    excludedAssignees={excludedAssignees}
+                    includedClients={includedClients}
+                    excludedClients={excludedClients}
+                    includedStatuses={includedStatuses}
+                    excludedStatuses={excludedStatuses}
+                    includedPriorities={includedPriorities}
+                    excludedPriorities={excludedPriorities}
+                    includedTaskLists={includedTaskLists}
+                    excludedTaskLists={excludedTaskLists}
+                    assigneeMode={assigneeMode}
+                    clientMode={clientMode}
+                    statusMode={statusMode}
+                    priorityMode={priorityMode}
+                    taskListMode={taskListMode}
+                    allAssignees={allTaskAssignees}
+                    allClients={allTaskClients}
+                    allTaskLists={allTaskLists}
+                    customStatuses={allTaskStatuses}
+                    onIncludedAssigneesChange={setIncludedAssignees}
+                    onExcludedAssigneesChange={setExcludedAssignees}
+                    onIncludedClientsChange={setIncludedClients}
+                    onExcludedClientsChange={setExcludedClients}
+                    onIncludedStatusesChange={setIncludedStatuses}
+                    onExcludedStatusesChange={setExcludedStatuses}
+                    onIncludedPrioritiesChange={setIncludedPriorities}
+                    onExcludedPrioritiesChange={setExcludedPriorities}
+                    onIncludedTaskListsChange={setIncludedTaskLists}
+                    onExcludedTaskListsChange={setExcludedTaskLists}
+                    onAssigneeModeChange={setAssigneeMode}
+                    onClientModeChange={setClientMode}
+                    onStatusModeChange={setStatusMode}
+                    onPriorityModeChange={setPriorityMode}
+                    onTaskListModeChange={setTaskListMode}
+                    onClose={() => setShowFilterPanel(false)}
+                    onClearAll={clearAllTaskFilters}
+                  />
+                ) : (
+                  <Card className="p-4 sticky top-4 bg-gradient-to-br from-white to-slate-50 shadow-lg border-slate-200">
+                    <div className="space-y-4">
+                      {/* Header */}
+                      <div className="space-y-2">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-2">
+                            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-violet-500 to-indigo-500 flex items-center justify-center">
+                              <Filter className="w-4 h-4 text-white" />
+                            </div>
+                            <h3 className="text-slate-900">Filter Projects</h3>
                           </div>
-                          <h3 className="text-slate-900">Filter Projects</h3>
-                        </div>
                         <Button
                           variant="ghost"
                           size="sm"
@@ -1234,6 +1802,7 @@ export function KanbanBoard({ viewMode = 'kanban', onViewModeChange, onProjectCl
                     </ScrollArea>
                   </div>
                 </Card>
+                )}
               </div>
             )}
 
@@ -1254,17 +1823,19 @@ export function KanbanBoard({ viewMode = 'kanban', onViewModeChange, onProjectCl
                         {projectsByStage[stage.id]?.length || 0}
                       </Badge>
                     </div>
-                    <Button 
-                      variant="ghost" 
-                      size="icon"
-                      onClick={() => {
-                        setSelectedStageForNewProject(stage.id);
-                        setNewProjectDialogOpen(true);
-                      }}
-                      title={`Add project to ${stage.name}`}
-                    >
-                      <Plus className="w-4 h-4" />
-                    </Button>
+                    {!showTasksView && (
+                      <Button 
+                        variant="ghost" 
+                        size="icon"
+                        onClick={() => {
+                          setSelectedStageForNewProject(stage.id);
+                          setNewProjectDialogOpen(true);
+                        }}
+                        title={`Add project to ${stage.name}`}
+                      >
+                        <Plus className="w-4 h-4" />
+                      </Button>
+                    )}
                   </div>
 
                   {/* Project Cards */}
@@ -1482,12 +2053,26 @@ export function KanbanBoard({ viewMode = 'kanban', onViewModeChange, onProjectCl
                   projects={workflowProjects.map(p => ({ id: p.id, name: p.name, clientName: p.clientName }))}
                   onTaskUpdate={updateTask}
                   workflow={getWorkflow(selectedWorkflowId)}
+                  viewMode={taskViewMode}
+                  searchQuery={searchQuery}
+                  timeFilter={timeFilter}
+                  completedDisplayMode={completedDisplayMode}
+                  includedAssignees={includedAssignees}
+                  excludedAssignees={excludedAssignees}
+                  includedClients={includedClients}
+                  excludedClients={excludedClients}
+                  includedStatuses={includedStatuses}
+                  excludedStatuses={excludedStatuses}
+                  includedPriorities={includedPriorities}
+                  excludedPriorities={excludedPriorities}
+                  includedTaskLists={includedTaskLists}
+                  excludedTaskLists={excludedTaskLists}
                 />
               </div>
             )}
 
             {/* Empty State */}
-            {workflowProjects.length === 0 && viewMode !== 'tasks' && (
+            {workflowProjects.length === 0 && !showTasksView && (
               <Card className="p-12 border-slate-200 border-dashed">
                 <div className="text-center space-y-4">
                   <div className="w-16 h-16 bg-violet-100 rounded-full flex items-center justify-center mx-auto">

@@ -125,6 +125,7 @@ import { UtilizationAnalyticsView } from '../components/views/UtilizationAnalyti
 import { PayrollReportView } from '../components/views/PayrollReportView';
 import { TeamSettingsView } from '../components/views/TeamSettingsView';
 import { TextMessagesView } from '../components/views/TextMessagesView';
+import { StartMyTaxListView } from '../components/views/StartMyTaxListView';
 
 export function AppRoutes() {
   return (
@@ -914,6 +915,14 @@ export function AppRoutes() {
         element={
           <ProtectedRoute>
             <TextMessagesView />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/start-my-tax-list"
+        element={
+          <ProtectedRoute>
+            <StartMyTaxListView />
           </ProtectedRoute>
         }
       />

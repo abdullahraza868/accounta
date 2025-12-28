@@ -1,5 +1,6 @@
 // Workflow Tasks View with Visual Filters and Include/Exclude functionality
 import { useState, Fragment } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Card } from '../ui/card';
 import { Badge } from '../ui/badge';
 import { Avatar, AvatarFallback } from '../ui/avatar';
@@ -9,12 +10,13 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '.
 import { Popover, PopoverContent, PopoverTrigger } from '../ui/popover';
 import { Calendar } from '../ui/calendar';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '../ui/tooltip';
-import { Clock, AlertCircle, CheckCircle2, Calendar as CalendarIcon, CheckSquare, X, Flag, MessageSquare, Paperclip, ListTodo, Users, Building2, Minus, ChevronDown, ChevronUp, GripVertical, Play, Square, MoreVertical, Edit2, Trash2 } from 'lucide-react';
+import { Clock, AlertCircle, CheckCircle2, Calendar as CalendarIcon, CheckSquare, X, Flag, MessageSquare, Paperclip, ListTodo, Users, Building2, Minus, ChevronDown, ChevronUp, GripVertical, Play, Square, MoreVertical, Edit2, Trash2, ArrowLeft } from 'lucide-react';
 import { ProjectTask, Workflow, Project, useWorkflowContext } from '../WorkflowContext';
 import { toast } from 'sonner@2.0.3';
 import { TaskDetailDialog } from '../TaskDetailDialog';
 import { TaskFilterPanel } from '../TaskFilterPanel';
-import { format, isToday } from 'date-fns';
+import { format, isToday, isThisWeek, isThisMonth } from 'date-fns';
+import { ScrollArea } from '../ui/scroll-area';
 import { useDrag, useDrop } from 'react-dnd';
 import {
   DropdownMenu,
@@ -45,6 +47,19 @@ interface WorkflowTasksViewProps {
   searchQuery?: string;
   showFilterPanel?: boolean;
   onToggleFilterPanel?: (show: boolean) => void;
+  viewMode?: 'list' | 'kanban';
+  timeFilter?: 'all' | 'today' | 'week' | 'month' | 'overdue';
+  completedDisplayMode?: 'hide' | 'inline' | 'only';
+  includedAssignees?: string[];
+  excludedAssignees?: string[];
+  includedClients?: string[];
+  excludedClients?: string[];
+  includedStatuses?: string[];
+  excludedStatuses?: string[];
+  includedPriorities?: string[];
+  excludedPriorities?: string[];
+  includedTaskLists?: string[];
+  excludedTaskLists?: string[];
 }
 
 interface TaskList {
@@ -133,9 +148,10 @@ function DraggableTaskRow({
   );
 }
 
-export function WorkflowTasksView({ workflowTasks, projects, onTaskUpdate, filterStatus = 'all', selectedAssignees = [], selectedProjects = [], workflow, searchQuery = '', showFilterPanel = false, onToggleFilterPanel }: WorkflowTasksViewProps) {
+export function WorkflowTasksView({ workflowTasks, projects, onTaskUpdate, filterStatus = 'all', selectedAssignees = [], selectedProjects = [], workflow, searchQuery = '', showFilterPanel = false, onToggleFilterPanel, viewMode = 'list', timeFilter = 'all', completedDisplayMode = 'hide', includedAssignees: propIncludedAssignees = [], excludedAssignees: propExcludedAssignees = [], includedClients: propIncludedClients = [], excludedClients: propExcludedClients = [], includedStatuses: propIncludedStatuses = [], excludedStatuses: propExcludedStatuses = [], includedPriorities: propIncludedPriorities = [], excludedPriorities: propExcludedPriorities = [], includedTaskLists: propIncludedTaskLists = [], excludedTaskLists: propExcludedTaskLists = [] }: WorkflowTasksViewProps) {
   // Get timer functions from context
   const { activeTimer, startTimer, stopTimer, getTimerElapsed } = useWorkflowContext();
+  const navigate = useNavigate();
   
   const [selectedTaskIds, setSelectedTaskIds] = useState<string[]>([]);
   const [selectedTask, setSelectedTask] = useState<ProjectTask | null>(null);
@@ -143,17 +159,17 @@ export function WorkflowTasksView({ workflowTasks, projects, onTaskUpdate, filte
   const [isMultiSelectMode, setIsMultiSelectMode] = useState(false);
   const [expandedTaskId, setExpandedTaskId] = useState<string | null>(null);
   
-  // Separate included and excluded arrays for each filter type
-  const [includedAssignees, setIncludedAssignees] = useState<string[]>([]);
-  const [excludedAssignees, setExcludedAssignees] = useState<string[]>([]);
-  const [includedClients, setIncludedClients] = useState<string[]>([]);
-  const [excludedClients, setExcludedClients] = useState<string[]>([]);
-  const [includedStatuses, setIncludedStatuses] = useState<string[]>([]);
-  const [excludedStatuses, setExcludedStatuses] = useState<string[]>([]);
-  const [includedPriorities, setIncludedPriorities] = useState<string[]>([]);
-  const [excludedPriorities, setExcludedPriorities] = useState<string[]>([]);
-  const [includedTaskLists, setIncludedTaskLists] = useState<string[]>([]);
-  const [excludedTaskLists, setExcludedTaskLists] = useState<string[]>([]);
+  // Separate included and excluded arrays for each filter type - use props if provided, otherwise use local state
+  const [includedAssignees, setIncludedAssignees] = useState<string[]>(propIncludedAssignees);
+  const [excludedAssignees, setExcludedAssignees] = useState<string[]>(propExcludedAssignees);
+  const [includedClients, setIncludedClients] = useState<string[]>(propIncludedClients);
+  const [excludedClients, setExcludedClients] = useState<string[]>(propExcludedClients);
+  const [includedStatuses, setIncludedStatuses] = useState<string[]>(propIncludedStatuses);
+  const [excludedStatuses, setExcludedStatuses] = useState<string[]>(propExcludedStatuses);
+  const [includedPriorities, setIncludedPriorities] = useState<string[]>(propIncludedPriorities);
+  const [excludedPriorities, setExcludedPriorities] = useState<string[]>(propExcludedPriorities);
+  const [includedTaskLists, setIncludedTaskLists] = useState<string[]>(propIncludedTaskLists);
+  const [excludedTaskLists, setExcludedTaskLists] = useState<string[]>(propExcludedTaskLists);
   
   // Include/Exclude modes
   const [assigneeMode, setAssigneeMode] = useState<'include' | 'exclude'>('include');
@@ -291,11 +307,6 @@ export function WorkflowTasksView({ workflowTasks, projects, onTaskUpdate, filte
 
   // Apply filters
   const filteredTasks = workflowTasks.filter(task => {
-    // Exclude completed tasks
-    if (task.status === 'completed') {
-      return false;
-    }
-    
     // Search query filter
     if (searchQuery) {
       const query = searchQuery.toLowerCase();
@@ -307,6 +318,42 @@ export function WorkflowTasksView({ workflowTasks, projects, onTaskUpdate, filte
       
       if (!matchesSearch) return false;
     }
+    
+    // Time filter
+    let matchesTime = true;
+    if (timeFilter && task.dueDate) {
+      const dueDate = new Date(task.dueDate);
+      switch (timeFilter) {
+        case 'today':
+          matchesTime = isToday(dueDate);
+          break;
+        case 'week':
+          matchesTime = isThisWeek(dueDate, { weekStartsOn: 1 }); // Monday as start of week
+          break;
+        case 'month':
+          matchesTime = isThisMonth(dueDate);
+          break;
+        case 'overdue':
+          matchesTime = isOverdue(task.dueDate, task.status);
+          break;
+        case 'all':
+        default:
+          matchesTime = true;
+          break;
+      }
+    } else if (timeFilter === 'overdue') {
+      // For overdue, we still want to show tasks even without dueDate if they're overdue
+      matchesTime = isOverdue(task.dueDate, task.status);
+    }
+    if (!matchesTime) return false;
+    
+    // Completed filter based on display mode
+    const matchesCompletedFilter = 
+      viewMode === 'kanban' ? true : // Kanban view always shows all tasks (Done column handles completed tasks)
+      completedDisplayMode === 'hide' ? task.status !== 'completed' :
+      completedDisplayMode === 'only' ? task.status === 'completed' :
+      true; // 'inline' shows all tasks
+    if (!matchesCompletedFilter) return false;
     
     // Old prop-based filters (for backwards compatibility)
     if (selectedAssignees.length > 0 && !selectedAssignees.includes(task.assignee)) {
@@ -1000,7 +1047,8 @@ export function WorkflowTasksView({ workflowTasks, projects, onTaskUpdate, filte
         </Card>
       )}
 
-      {/* Tasks List */}
+      {/* Tasks List or Kanban View */}
+      {viewMode === 'list' ? (
       <Card className="border-slate-200 overflow-hidden">
         {/* Table Header */}
         {sortedTasks.length > 0 && (
@@ -1033,7 +1081,7 @@ export function WorkflowTasksView({ workflowTasks, projects, onTaskUpdate, filte
               </div>
               <div className="w-10 flex-shrink-0">
                 {/* Timer column header */}
-              </div>
+            </div>
             <div className="w-20 flex-shrink-0">
                 <button
                   onClick={() => handleSort('assignee')}
@@ -1640,7 +1688,7 @@ export function WorkflowTasksView({ workflowTasks, projects, onTaskUpdate, filte
                           </Badge>
                         </div>
                         {getSubtasks(task.id).map((subtask) => {
-                          const subtaskPriorityStyle = getPriorityStyle(subtask.priority);
+                          const subtaskPriorityStyle = getPriorityStyle((subtask as any).priority || '');
                           const subtaskStatusStyle = getStatusStyle(subtask.status === 'completed' ? 'completed' : subtask.status === 'in-progress' ? 'in-progress' : 'todo');
                         return (
                             <div key={subtask.id} className={`flex items-start gap-4 py-2.5 px-3 rounded-lg border-2 transition-all ${
@@ -1732,6 +1780,199 @@ export function WorkflowTasksView({ workflowTasks, projects, onTaskUpdate, filte
           )}
         </div>
       </Card>
+      ) : (
+        // Kanban View
+        <div className="p-6">
+          <div className="flex gap-4 overflow-x-auto pb-4">
+            {(() => {
+              // Get unique statuses from workflow or use defaults
+              const workflowStatuses = workflow?.customStatuses || ['To Do', 'In Progress', 'Completed'];
+              const statusOrder = ['To Do', 'In Progress'].concat(
+                workflowStatuses.filter((s: string) => s !== 'To Do' && s !== 'In Progress' && s !== 'Completed')
+              ).concat(['Completed']);
+              
+              return statusOrder.map((status) => {
+                const statusTasks = sortedTasks.filter(task => {
+                  if (status === 'To Do') return task.status === 'to-do' || task.status === 'To Do';
+                  if (status === 'In Progress') return task.status === 'in-progress' || task.status === 'In Progress';
+                  if (status === 'Completed') return task.status === 'completed' || task.status === 'Completed';
+                  return task.status === status;
+                });
+                
+                const statusColor = 'bg-violet-500'; // Default color
+                
+                return (
+                  <div 
+                    key={status} 
+                    className="flex-shrink-0 w-80"
+                    onDragOver={(e) => {
+                      e.preventDefault();
+                      e.currentTarget.classList.add('ring-2', 'ring-violet-400');
+                    }}
+                    onDragLeave={(e) => {
+                      e.currentTarget.classList.remove('ring-2', 'ring-violet-400');
+                    }}
+                    onDrop={(e) => {
+                      e.preventDefault();
+                      e.currentTarget.classList.remove('ring-2', 'ring-violet-400');
+                      const taskId = e.dataTransfer.getData('taskId');
+                      const task = workflowTasks.find(t => t.id === taskId);
+                      if (task) {
+                        let newStatus = status;
+                        if (status === 'To Do') newStatus = 'to-do';
+                        else if (status === 'In Progress') newStatus = 'in-progress';
+                        else if (status === 'Completed') newStatus = 'completed';
+                        
+                        onTaskUpdate({ ...task, status: newStatus as any });
+                      }
+                    }}
+                  >
+                    <div className="bg-slate-50 rounded-lg border border-slate-200 flex flex-col h-full max-h-[calc(100vh-400px)]">
+                      <div className="p-4 border-b border-slate-200">
+                        <div className="flex items-center gap-2 mb-2">
+                          <div 
+                            className={`w-3 h-3 rounded-full ${statusColor}`}
+                          />
+                          <h3 className="font-medium">{status}</h3>
+                          <Badge variant="secondary" className="ml-auto text-xs">
+                            {statusTasks.length}
+                          </Badge>
+                        </div>
+                      </div>
+                      
+                      <ScrollArea className="flex-1">
+                        <div className="p-3 space-y-2">
+                          {statusTasks.length === 0 ? (
+                            <div className="text-center py-8 text-slate-400 text-sm">
+                              No tasks
+                            </div>
+                          ) : (
+                            statusTasks.map((task) => {
+                              const priorityStyle = getPriorityStyle((task as any).priority || '');
+                              const indicators = getTaskIndicators(task);
+                              
+                              return (
+                                <Card
+                                  key={task.id}
+                                  className={`hover:shadow-md transition-all border-slate-200 hover:border-violet-300 ${
+                                    task.status === 'completed' 
+                                      ? 'bg-slate-50' 
+                                      : 'bg-white'
+                                  }`}
+                                >
+                                  <div 
+                                    draggable
+                                    onDragStart={(e) => {
+                                      e.dataTransfer.setData('taskId', task.id);
+                                    }}
+                                    onClick={(e) => {
+                                      const target = e.target as HTMLElement;
+                                      if (
+                                        target.closest('button') || 
+                                        target.closest('[role="checkbox"]')
+                                      ) {
+                                        return;
+                                      }
+                                      setSelectedTask(task);
+                                      setTaskDialogOpen(true);
+                                    }}
+                                    className="p-3 cursor-move space-y-2"
+                                  >
+                                    <div className="flex items-start gap-2">
+                                      <div onClick={(e) => e.stopPropagation()}>
+                                        <Checkbox
+                                          checked={task.status === 'completed'}
+                                          onCheckedChange={(checked) => {
+                                            const updatedTask = {
+                                              ...task,
+                                              status: checked ? ('completed' as const) : ('to-do' as const),
+                                              completedAt: checked ? new Date().toISOString() : undefined
+                                            };
+                                            onTaskUpdate(updatedTask);
+                                          }}
+                                          className="mt-0.5"
+                                        />
+                                      </div>
+                                      <div className="flex-1 min-w-0">
+                                        <div className={`text-sm ${task.status === 'completed' ? 'line-through decoration-black/20 decoration-1 text-slate-600' : ''}`}>
+                                          {task.name}
+                                        </div>
+                                        {task.description && (
+                                          <p className={`text-xs mt-1 line-clamp-2 ${task.status === 'completed' ? 'text-slate-500' : 'text-slate-500'}`}>{task.description}</p>
+                                        )}
+                                      </div>
+                                    </div>
+                                    
+                                    <div className="flex items-center gap-2 flex-wrap">
+                                      <TooltipProvider>
+                                        <Tooltip>
+                                          <TooltipTrigger asChild>
+                                            <div>
+                                              <Avatar className="w-6 h-6">
+                                                <AvatarFallback className="bg-violet-100 text-violet-700 text-[10px]">
+                                                  {getAssigneeName(task.assignee)}
+                                                </AvatarFallback>
+                                              </Avatar>
+                                            </div>
+                                          </TooltipTrigger>
+                                          <TooltipContent>
+                                            <p className="text-xs">{getAssigneeName(task.assignee)}</p>
+                                          </TooltipContent>
+                                        </Tooltip>
+                                      </TooltipProvider>
+                                      
+                                      {task.priority && (
+                                        <Badge 
+                                          variant="outline"
+                                          className={`${priorityStyle.bg} ${priorityStyle.color} ${priorityStyle.border} border text-[10px] px-1.5 py-0`}
+                                        >
+                                          <span>{priorityStyle.icon}</span>
+                                        </Badge>
+                                      )}
+                                      
+                                      {task.dueDate && (
+                                        <div className="flex items-center gap-1 text-xs text-slate-600">
+                                          <CalendarIcon className="w-3 h-3" />
+                                          <span>{new Date(task.dueDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</span>
+                                        </div>
+                                      )}
+                                      
+                                      <div className="flex items-center gap-1.5 ml-auto">
+                                        {indicators.comments > 0 && (
+                                          <div className="flex items-center gap-0.5 text-slate-500">
+                                            <MessageSquare className="w-3 h-3" />
+                                            <span className="text-[10px]">{indicators.comments}</span>
+                                          </div>
+                                        )}
+                                        {indicators.attachments > 0 && (
+                                          <div className="flex items-center gap-0.5 text-slate-500">
+                                            <Paperclip className="w-3 h-3" />
+                                            <span className="text-[10px]">{indicators.attachments}</span>
+                                          </div>
+                                        )}
+                                        {indicators.subtasks.total > 0 && (
+                                          <div className="flex items-center gap-0.5 text-slate-500">
+                                            <ListTodo className="w-3 h-3" />
+                                            <span className="text-[10px]">{indicators.subtasks.completed}/{indicators.subtasks.total}</span>
+                                          </div>
+                                        )}
+                                      </div>
+                                    </div>
+                                  </div>
+                                </Card>
+                              );
+                            })
+                          )}
+                        </div>
+                      </ScrollArea>
+                    </div>
+                  </div>
+                );
+              });
+            })()}
+          </div>
+        </div>
+      )}
 
       {/* Timer Confirmation Dialog */}
       <AlertDialog open={showTimerConfirmation} onOpenChange={setShowTimerConfirmation}>
