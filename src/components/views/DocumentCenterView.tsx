@@ -6,7 +6,8 @@ import {
   ChevronDown, ChevronLeft, ChevronRight, StickyNote, Play, Ban, Calendar, Clock,
   ZoomIn, ZoomOut, ArrowUpDown, ArrowUp, ArrowDown, MoreVertical, ExternalLink,
   Maximize2, Minimize2, User, Building2, Filter, Plus, Bell, FolderOpen,
-  TrendingUp, Eye, CheckCircle, FileQuestion, Folder, Users, EyeOff, PanelLeftClose, PanelLeft
+  TrendingUp, Eye, CheckCircle, CheckCircle2, FileQuestion, Folder, Users, EyeOff, PanelLeftClose, PanelLeft,
+  LayoutGrid, List
 } from 'lucide-react';
 import { Resizable } from 're-resizable';
 import { Button } from '../ui/button';
@@ -183,6 +184,17 @@ export function DocumentCenterView() {
   const [showUploadDialog, setShowUploadDialog] = useState(false);
   const [showRequestDocumentsWorkflow, setShowRequestDocumentsWorkflow] = useState(false);
   const [clientListCollapsed, setClientListCollapsed] = useState(false);
+  
+  // View mode state - Table View or Split View
+  const [viewMode, setViewMode] = useState<'table' | 'split'>(() => {
+    const saved = localStorage.getItem('documentCenterViewMode');
+    return (saved === 'split' || saved === 'table') ? saved : 'table';
+  });
+
+  // Persist view mode preference
+  useEffect(() => {
+    localStorage.setItem('documentCenterViewMode', viewMode);
+  }, [viewMode]);
 
   // Reminder history dialog state
   const [showReminderHistoryDialog, setShowReminderHistoryDialog] = useState(false);
@@ -1060,6 +1072,33 @@ export function DocumentCenterView() {
     return filtered;
   }, [selectedClientIds, documents, showLinkedAccounts, searchQuery, clients]);
 
+  // Account grouping for split view
+  type AccountGroup = {
+    accountId: string;
+    accountName: string;
+    documents: Document[];
+    clientType: 'Individual' | 'Business';
+  };
+
+  const accountGroups = useMemo(() => {
+    const accountMap = new Map<string, AccountGroup>();
+    
+    filteredDocuments.forEach(doc => {
+      if (!accountMap.has(doc.clientId)) {
+        const client = clients.find(c => c.id === doc.clientId);
+        accountMap.set(doc.clientId, {
+          accountId: doc.clientId,
+          accountName: doc.clientName,
+          documents: [],
+          clientType: client?.type || doc.clientType || 'Individual'
+        });
+      }
+      accountMap.get(doc.clientId)!.documents.push(doc);
+    });
+    
+    return Array.from(accountMap.values());
+  }, [filteredDocuments, clients]);
+
   // Effect: Switch to File Manager tab when Firm is selected
   useEffect(() => {
     const selectedClient = clients.find(c => selectedClientIds.includes(c.id));
@@ -1214,6 +1253,47 @@ export function DocumentCenterView() {
     const users = new Set(activityLog.map(a => a.performedBy));
     return Array.from(users).sort();
   }, [activityLog]);
+
+  // Get all accounts to show in switcher (current + linked accounts)
+  // This must be before any early returns to follow Rules of Hooks
+  const selectedClient = clients.find(c => selectedClientIds.includes(c.id));
+  const hasLinkedAccounts = selectedClient?.linkedAccounts && selectedClient.linkedAccounts.length > 0;
+  
+  const accountsToShow = useMemo(() => {
+    if (!selectedClient || !hasLinkedAccounts) return [];
+    
+    const allLinkedAccountIds = [
+      selectedClient.id, // Current account
+      ...(selectedClient.linkedAccounts || []) // Linked accounts
+    ];
+    
+    // Get account details and filter out invalid IDs
+    return allLinkedAccountIds
+      .map(id => clients.find(c => c.id === id))
+      .filter(Boolean) as ClientSummary[];
+  }, [selectedClient, hasLinkedAccounts, clients]);
+
+  // Handle account switching
+  const handleAccountSwitch = (accountId: string) => {
+    // Update selectedClientIds to contain only the selected account ID
+    setSelectedClientIds([accountId]);
+    // Reset showLinkedAccounts since we're switching, not showing combined view
+    setShowLinkedAccounts(false);
+    // Optionally reset search query for fresh view
+    setSearchQuery('');
+  };
+
+  // Handle "All Accounts" selection - shows all linked accounts combined
+  const handleAllAccounts = () => {
+    // Keep the current account selected
+    if (selectedClient) {
+      setSelectedClientIds([selectedClient.id]);
+    }
+    // Enable linked accounts view to show combined documents
+    setShowLinkedAccounts(true);
+    // Optionally reset search query for fresh view
+    setSearchQuery('');
+  };
 
   // Check if there are old year documents in filtered list
   const hasOldYearDocuments = filteredDocuments.some(doc => doc.hasOldYear);
@@ -1414,6 +1494,17 @@ export function DocumentCenterView() {
     const docs = selectedDocuments.map(id => documents.find(d => d.id === id)).filter(Boolean);
     toast.success(`Downloading ${docs.length} document${docs.length > 1 ? 's' : ''}...`);
     // Here you would handle the actual download
+  };
+
+  // Handle download all
+  const handleDownloadAll = () => {
+    if (filteredDocuments.length === 0) {
+      toast.error('No documents available to download');
+      return;
+    }
+    
+    toast.success(`Downloading all ${filteredDocuments.length} document${filteredDocuments.length > 1 ? 's' : ''}...`);
+    // Here you would handle the actual download of all documents
   };
 
   // Format activity timestamp for display
@@ -1983,8 +2074,6 @@ export function DocumentCenterView() {
   }
 
   // Main view with client selected
-  const selectedClient = clients.find(c => selectedClientIds.includes(c.id));
-  const hasLinkedAccounts = selectedClient?.linkedAccounts && selectedClient.linkedAccounts.length > 0;
 
   return (
     <div className="flex h-full min-h-0">
@@ -2456,6 +2545,16 @@ export function DocumentCenterView() {
                     </Button>
 
                     <Button 
+                      variant="outline" 
+                      size="sm"
+                      disabled={filteredDocuments.length === 0}
+                      onClick={handleDownloadAll}
+                    >
+                      <Download className="w-4 h-4 mr-2" />
+                      Download all
+                    </Button>
+
+                    <Button 
                       size="sm"
                       className="bg-gradient-to-br from-purple-600 to-purple-700 hover:from-purple-700 hover:to-purple-800"
                       onClick={() => setShowUploadDialog(true)}
@@ -2478,55 +2577,181 @@ export function DocumentCenterView() {
                 </div>
 
                 {/* Quick Status Filter Pills */}
-                <div className="flex items-center gap-2">
-                  <span className="text-sm text-gray-600 dark:text-gray-400 mr-2">Quick Filter:</span>
-                  <button
-                    onClick={() => setStatusFilter('all')}
-                    className={cn(
-                      "px-3 py-1.5 rounded-full text-xs font-medium transition-all",
-                      statusFilter === 'all'
-                        ? "bg-purple-600 text-white shadow-sm"
-                        : "bg-gray-100 text-gray-700 hover:bg-gray-200 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700"
+                <div className="flex items-center justify-between gap-2">
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm text-gray-600 dark:text-gray-400 mr-2">Quick Filter:</span>
+                    <button
+                      onClick={() => setStatusFilter('all')}
+                      className={cn(
+                        "px-3 py-1.5 rounded-full text-xs font-medium transition-all",
+                        statusFilter === 'all'
+                          ? "bg-purple-600 text-white shadow-sm"
+                          : "bg-gray-100 text-gray-700 hover:bg-gray-200 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700"
+                      )}
+                    >
+                      All Documents
+                    </button>
+                    <button
+                      onClick={() => setStatusFilter('reviewing')}
+                      className={cn(
+                        "px-3 py-1.5 rounded-full text-xs font-medium transition-all flex items-center gap-1.5",
+                        statusFilter === 'reviewing'
+                          ? "bg-blue-600 text-white shadow-sm"
+                          : "bg-blue-50 text-blue-700 hover:bg-blue-100 dark:bg-blue-900/30 dark:text-blue-300 dark:hover:bg-blue-900/50"
+                      )}
+                    >
+                      <Eye className="w-3.5 h-3.5" />
+                      Needs Review ({clientStats.needReview})
+                    </button>
+                    <button
+                      onClick={() => setStatusFilter('pending')}
+                      className={cn(
+                        "px-3 py-1.5 rounded-full text-xs font-medium transition-all flex items-center gap-1.5",
+                        statusFilter === 'pending'
+                          ? "bg-orange-600 text-white shadow-sm"
+                          : "bg-orange-50 text-orange-700 hover:bg-orange-100 dark:bg-orange-900/30 dark:text-orange-300 dark:hover:bg-orange-900/50"
+                      )}
+                    >
+                      <Bell className="w-3.5 h-3.5" />
+                      Requested ({clientStats.pending})
+                    </button>
+                    <button
+                      onClick={() => setStatusFilter('received')}
+                      className={cn(
+                        "px-3 py-1.5 rounded-full text-xs font-medium transition-all flex items-center gap-1.5",
+                        statusFilter === 'received'
+                          ? "bg-green-600 text-white shadow-sm"
+                          : "bg-green-50 text-green-700 hover:bg-green-100 dark:bg-green-900/30 dark:text-green-300 dark:hover:bg-green-900/50"
+                      )}
+                    >
+                      <CheckCircle className="w-3.5 h-3.5" />
+                      Approved ({clientStats.received})
+                    </button>
+                  </div>
+
+                  <div className="flex items-center gap-2">
+                    {/* Account Switcher - Only show if linked accounts exist */}
+                    {hasLinkedAccounts && accountsToShow.length > 0 && (
+                      <>
+                        <span className="text-sm text-gray-600 dark:text-gray-400 mr-1">Linked Accounts:</span>
+                        <TooltipProvider>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <DropdownMenu>
+                                <DropdownMenuTrigger asChild>
+                                <Button 
+                                  variant="outline" 
+                                  size="sm" 
+                                  className={cn(
+                                    "gap-2 border-purple-200 text-purple-700 hover:bg-purple-50 dark:border-purple-800 dark:text-purple-400 dark:hover:bg-purple-900/20",
+                                    showLinkedAccounts && "bg-purple-50 dark:bg-purple-900/20"
+                                  )}
+                                >
+                                  <Users className="w-4 h-4" />
+                                  {showLinkedAccounts ? 'All Accounts' : selectedClient?.name}
+                                  <ChevronDown className="w-4 h-4" />
+                                </Button>
+                                </DropdownMenuTrigger>
+                              <DropdownMenuContent align="end" className="w-64">
+                                <div className="px-2 py-1.5 border-b border-gray-200 dark:border-gray-700 mb-1">
+                                  <p className="text-xs font-medium text-gray-700 dark:text-gray-300">Switch Account</p>
+                                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
+                                    Switch between linked accounts to view their documents
+                                  </p>
+                                </div>
+                                {/* All Accounts Option */}
+                                <DropdownMenuItem
+                                  onClick={handleAllAccounts}
+                                  className={cn(
+                                    showLinkedAccounts && "bg-purple-50 dark:bg-purple-900/20"
+                                  )}
+                                >
+                                  <div className="flex items-center gap-3 w-full">
+                                    <Users className="w-4 h-4 text-purple-600 dark:text-purple-400" />
+                                    <div className="flex-1">
+                                      <div className="font-medium">All Accounts</div>
+                                      <div className="text-xs text-gray-500 dark:text-gray-400">View all linked accounts</div>
+                                    </div>
+                                    {showLinkedAccounts && (
+                                      <CheckCircle2 className="w-4 h-4 text-purple-600 dark:text-purple-400" />
+                                    )}
+                                  </div>
+                                </DropdownMenuItem>
+                                <DropdownMenuSeparator />
+                                {accountsToShow.map(account => (
+                            <DropdownMenuItem
+                              key={account.id}
+                              onClick={() => handleAccountSwitch(account.id)}
+                              className={cn(
+                                selectedClientIds.includes(account.id) && "bg-purple-50 dark:bg-purple-900/20"
+                              )}
+                            >
+                              <div className="flex items-center gap-3 w-full">
+                                {account.type === 'Business' ? (
+                                  <Building2 className="w-4 h-4 text-purple-600 dark:text-purple-400" />
+                                ) : (
+                                  <User className="w-4 h-4 text-purple-600 dark:text-purple-400" />
+                                )}
+                                <div className="flex-1">
+                                  <div className="font-medium">{account.name}</div>
+                                  <div className="text-xs text-gray-500 dark:text-gray-400">{account.type}</div>
+                                </div>
+                                {selectedClientIds.includes(account.id) && (
+                                  <CheckCircle2 className="w-4 h-4 text-purple-600 dark:text-purple-400" />
+                                )}
+                              </div>
+                            </DropdownMenuItem>
+                                ))}
+                              </DropdownMenuContent>
+                            </DropdownMenu>
+                          </TooltipTrigger>
+                          <TooltipContent side="bottom" className="max-w-xs">
+                            <p className="text-sm font-medium mb-1">Switch Between Linked Accounts</p>
+                            <p className="text-xs text-gray-400">
+                              Quickly switch to view documents from other linked accounts (e.g., spouse or business accounts) without going back to the client list.
+                            </p>
+                          </TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
+                      </>
                     )}
-                  >
-                    All Documents
-                  </button>
-                  <button
-                    onClick={() => setStatusFilter('reviewing')}
-                    className={cn(
-                      "px-3 py-1.5 rounded-full text-xs font-medium transition-all flex items-center gap-1.5",
-                      statusFilter === 'reviewing'
-                        ? "bg-blue-600 text-white shadow-sm"
-                        : "bg-blue-50 text-blue-700 hover:bg-blue-100 dark:bg-blue-900/30 dark:text-blue-300 dark:hover:bg-blue-900/50"
+
+                    {/* View Toggle - Only show if multiple accounts */}
+                    {accountGroups.length > 1 && (
+                    <div className="flex items-center gap-1 border border-gray-200 dark:border-gray-700 rounded-lg p-1 bg-gray-50 dark:bg-gray-800/50">
+                      <Button
+                        size="sm"
+                        variant={viewMode === 'table' ? 'default' : 'ghost'}
+                        className={cn(
+                          "gap-1.5 h-7 px-3 text-xs",
+                          viewMode === 'table' 
+                            ? "text-white" 
+                            : "text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100"
+                        )}
+                        style={viewMode === 'table' ? { backgroundColor: 'var(--primaryColor)' } : {}}
+                        onClick={() => setViewMode('table')}
+                      >
+                        <List className="w-3.5 h-3.5" />
+                        Table View
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant={viewMode === 'split' ? 'default' : 'ghost'}
+                        className={cn(
+                          "gap-1.5 h-7 px-3 text-xs",
+                          viewMode === 'split'
+                            ? "text-white"
+                            : "text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100"
+                        )}
+                        style={viewMode === 'split' ? { backgroundColor: 'var(--primaryColor)' } : {}}
+                        onClick={() => setViewMode('split')}
+                      >
+                        <LayoutGrid className="w-3.5 h-3.5" />
+                        Split View
+                      </Button>
+                    </div>
                     )}
-                  >
-                    <Eye className="w-3.5 h-3.5" />
-                    Needs Review ({clientStats.needReview})
-                  </button>
-                  <button
-                    onClick={() => setStatusFilter('pending')}
-                    className={cn(
-                      "px-3 py-1.5 rounded-full text-xs font-medium transition-all flex items-center gap-1.5",
-                      statusFilter === 'pending'
-                        ? "bg-orange-600 text-white shadow-sm"
-                        : "bg-orange-50 text-orange-700 hover:bg-orange-100 dark:bg-orange-900/30 dark:text-orange-300 dark:hover:bg-orange-900/50"
-                    )}
-                  >
-                    <Bell className="w-3.5 h-3.5" />
-                    Requested ({clientStats.pending})
-                  </button>
-                  <button
-                    onClick={() => setStatusFilter('received')}
-                    className={cn(
-                      "px-3 py-1.5 rounded-full text-xs font-medium transition-all flex items-center gap-1.5",
-                      statusFilter === 'received'
-                        ? "bg-green-600 text-white shadow-sm"
-                        : "bg-green-50 text-green-700 hover:bg-green-100 dark:bg-green-900/30 dark:text-green-300 dark:hover:bg-green-900/50"
-                    )}
-                  >
-                    <CheckCircle className="w-3.5 h-3.5" />
-                    Approved ({clientStats.received})
-                  </button>
+                  </div>
                 </div>
 
                 {/* Bulk Actions Bar - Shows when documents selected */}
@@ -2617,18 +2842,19 @@ export function DocumentCenterView() {
                   </div>
                 )}
 
-                {/* Documents Table - FIRST INSTANCE MARKER */}
-                <Card className="border-gray-200/60">
-                  <div className="overflow-x-auto">
-                    <table className="w-full min-w-[1400px]">
-                      <thead className="bg-gray-50/50 border-b border-gray-200">
-                        <tr>
-                          <th className="px-4 py-3 text-left w-12">
-                            <Checkbox 
-                              checked={selectedDocuments.length === clientFilteredDocs.length && clientFilteredDocs.length > 0}
-                              onCheckedChange={toggleSelectAll}
-                            />
-                          </th>
+                {/* Documents Table - Table View or Split View */}
+                {viewMode === 'table' ? (
+                  <Card className="border-gray-200/60">
+                    <div className="overflow-x-auto">
+                      <table className="w-full min-w-[1400px]">
+                        <thead className="bg-gray-50/50 border-b border-gray-200">
+                          <tr>
+                            <th className="px-4 py-3 text-left w-12">
+                              <Checkbox 
+                                checked={selectedDocuments.length === clientFilteredDocs.length && clientFilteredDocs.length > 0}
+                                onCheckedChange={toggleSelectAll}
+                              />
+                            </th>
                           <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                             Document
                           </th>
@@ -3335,6 +3561,777 @@ export function DocumentCenterView() {
                     </table>
                   </div>
                 </Card>
+                ) : (
+                  // Split View - Group by Account
+                  <div className="space-y-6">
+                    {accountGroups.length === 0 ? (
+                      <Card className="border-gray-200/60 p-12 text-center">
+                        <FileText className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+                        <p className="text-gray-600 dark:text-gray-400">No documents found</p>
+                      </Card>
+                    ) : (
+                      accountGroups.map((account) => {
+                        // Get account's documents from the already-filtered clientFilteredDocs
+                        const accountDocs = clientFilteredDocs.filter(doc => doc.clientId === account.accountId);
+
+                        // Apply organize view filter if enabled
+                        const displayDocs = showOrganizeView 
+                          ? organizedDocuments.flatMap(g => g.documents).filter(d => accountDocs.some(ad => ad.id === d.id))
+                          : accountDocs;
+
+                        return (
+                          <div key={account.accountId} className="space-y-3">
+                            {/* Account Header */}
+                            <div className="flex items-center justify-between bg-gray-50 dark:bg-gray-800/50 border border-gray-200 dark:border-gray-700 rounded-lg px-4 py-3">
+                              <div className="flex items-center gap-3">
+                                {account.clientType === 'Business' ? (
+                                  <Building2 className="w-5 h-5 text-purple-600 dark:text-purple-400" />
+                                ) : (
+                                  <User className="w-5 h-5 text-purple-600 dark:text-purple-400" />
+                                )}
+                                <div>
+                                  <h3 className="font-semibold text-gray-900 dark:text-gray-100">{account.accountName}</h3>
+                                  <p className="text-xs text-gray-500 dark:text-gray-400">{account.clientType}</p>
+                                </div>
+                                <Badge variant="outline" className="bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-400 border-blue-300 dark:border-blue-700">
+                                  {displayDocs.length} document{displayDocs.length !== 1 ? 's' : ''}
+                                </Badge>
+                              </div>
+                            </div>
+
+                            {/* Empty State for Account */}
+                            {displayDocs.length === 0 ? (
+                              <Card className="border-gray-200/60 p-8 text-center">
+                                <FileText className="w-10 h-10 text-gray-400 mx-auto mb-3" />
+                                <p className="text-sm text-gray-600 dark:text-gray-400">
+                                  No documents found for {account.accountName}
+                                </p>
+                              </Card>
+                            ) : (
+                              <>
+                                {/* Account Documents Table */}
+                                <Card className="border-gray-200/60">
+                              <div className="overflow-x-auto">
+                                <table className="w-full min-w-[1400px]">
+                                  <thead className="bg-gray-50/50 border-b border-gray-200">
+                                    <tr>
+                                      <th className="px-4 py-3 text-left w-12">
+                                        <Checkbox 
+                                          checked={displayDocs.length > 0 && displayDocs.every(doc => selectedDocuments.includes(doc.id))}
+                                          onCheckedChange={(checked) => {
+                                            if (checked) {
+                                              setSelectedDocuments(prev => [...new Set([...prev, ...displayDocs.map(d => d.id)])]);
+                                            } else {
+                                              setSelectedDocuments(prev => prev.filter(id => !displayDocs.some(d => d.id === id)));
+                                            }
+                                          }}
+                                        />
+                                      </th>
+                                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                        Document
+                                      </th>
+                                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                        Document Type
+                                      </th>
+                                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                        Year
+                                      </th>
+                                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                        Received
+                                      </th>
+                                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                        Reviewed
+                                      </th>
+                                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                        Method
+                                      </th>
+                                      <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                        Actions
+                                      </th>
+                                    </tr>
+                                  </thead>
+                                  <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
+                                    {showOrganizeView ? (
+                                      organizedDocuments.flatMap((group) => {
+                                        const groupDocs = group.documents.filter(d => accountDocs.some(ad => ad.id === d.id));
+                                        if (groupDocs.length === 0) return [];
+                                        
+                                        return [
+                                          <tr key={`category-${group.category.id}-${account.accountId}`} className="bg-gray-100 dark:bg-gray-800">
+                                            <td colSpan={8} className="px-4 py-3">
+                                              <div className="flex items-center gap-2">
+                                                <div className="h-1 w-1 rounded-full bg-purple-600"></div>
+                                                <span className="font-semibold text-gray-900 dark:text-white uppercase tracking-wide text-xs">
+                                                  {group.category.name}
+                                                </span>
+                                                <span className="text-xs text-gray-500">
+                                                  ({groupDocs.length} document{groupDocs.length !== 1 ? 's' : ''})
+                                                </span>
+                                              </div>
+                                            </td>
+                                          </tr>,
+                                          ...groupDocs.map((doc) => {
+                                            const isDifferentYear = selectedYear !== 'all' && doc.year !== selectedYear;
+                                            const isUnreviewed = doc.reviewedDate === null;
+                                            const isRequested = doc.status === 'requested';
+                                            const shouldGrayOut = isRequested && statusFilter !== 'pending';
+                                            const latestReminder = getLatestReminder(doc);
+                                            
+                                            return (
+                                              <tr 
+                                                key={doc.id}
+                                                className={cn(
+                                                  "hover:bg-gray-50/50 dark:hover:bg-gray-800/50 transition-colors group",
+                                                  selectedDocuments.includes(doc.id) && "bg-purple-50/30 dark:bg-purple-900/10",
+                                                  isDifferentYear && isUnreviewed && "bg-amber-50/40 dark:bg-amber-900/20 border-l-4 border-amber-500"
+                                                )}
+                                              >
+                                                <td className={cn("px-4 py-4", shouldGrayOut && "opacity-50")}>
+                                                  <Checkbox 
+                                                    checked={selectedDocuments.includes(doc.id)}
+                                                    onCheckedChange={() => toggleDocumentSelection(doc.id)}
+                                                  />
+                                                </td>
+                                                <td className={cn("px-4 py-4 relative", shouldGrayOut && "opacity-50")}>
+                                                  <div className="flex items-center gap-3">
+                                                    <div className="relative group/preview">
+                                                      <div className="w-10 h-10 bg-gradient-to-br from-purple-100 to-purple-50 rounded-lg flex items-center justify-center text-xl cursor-pointer hover:scale-110 transition-transform">
+                                                        {doc.thumbnail}
+                                                      </div>
+                                                      <div className="fixed hidden group-hover/preview:block z-[9999] pointer-events-none" style={{
+                                                        left: '50%',
+                                                        top: '50%',
+                                                        transform: 'translate(-50%, -50%)'
+                                                      }}>
+                                                        <div className="w-64 h-80 bg-white dark:bg-gray-800 rounded-lg shadow-2xl border-2 border-purple-200 dark:border-purple-700 p-4">
+                                                          <div className="w-full h-full bg-gray-100 dark:bg-gray-700 rounded flex items-center justify-center text-6xl">
+                                                            {doc.thumbnail}
+                                                          </div>
+                                                          <p className="text-xs text-center mt-2 text-gray-500 dark:text-gray-400">Document Preview</p>
+                                                        </div>
+                                                      </div>
+                                                    </div>
+                                                    <div className="flex-1">
+                                                      <div className="flex items-center gap-2">
+                                                        {editingDocId === doc.id ? (
+                                                          <Input
+                                                            value={editingDocName}
+                                                            onChange={(e) => setEditingDocName(e.target.value)}
+                                                            onBlur={() => {
+                                                              if (editingDocName.trim()) {
+                                                                setDocuments(docs =>
+                                                                  docs.map(d =>
+                                                                    d.id === doc.id
+                                                                      ? { ...d, name: editingDocName }
+                                                                      : d
+                                                                  )
+                                                                );
+                                                                toast.success('Document renamed');
+                                                              }
+                                                              setEditingDocId(null);
+                                                              setEditingDocName('');
+                                                            }}
+                                                            onKeyDown={(e) => {
+                                                              if (e.key === 'Enter') {
+                                                                e.currentTarget.blur();
+                                                              } else if (e.key === 'Escape') {
+                                                                setEditingDocId(null);
+                                                                setEditingDocName('');
+                                                              }
+                                                            }}
+                                                            className="h-7 text-sm"
+                                                            autoFocus
+                                                          />
+                                                        ) : (
+                                                          <button
+                                                            onClick={() => {
+                                                              setEditingDocId(doc.id);
+                                                              setEditingDocName(doc.name);
+                                                            }}
+                                                            className="text-sm font-medium text-gray-900 dark:text-white hover:text-purple-600 dark:hover:text-purple-400 transition-colors text-left"
+                                                            title="Click to rename"
+                                                          >
+                                                            {doc.name}
+                                                          </button>
+                                                        )}
+                                                        {isDifferentYear && isUnreviewed && (
+                                                          <Badge className="bg-amber-100 text-amber-800 border-amber-300 text-xs">
+                                                            {doc.year}
+                                                          </Badge>
+                                                        )}
+                                                        {documentNotes[doc.id] && (
+                                                          <button
+                                                            onClick={(e) => {
+                                                              e.stopPropagation();
+                                                              setSelectedDoc(doc);
+                                                              setShowNotesDialog(true);
+                                                            }}
+                                                            className="text-purple-600 hover:text-purple-700 transition-colors"
+                                                            title="View notes"
+                                                          >
+                                                            <FileEdit className="w-3.5 h-3.5" />
+                                                          </button>
+                                                        )}
+                                                      </div>
+                                                    </div>
+                                                  </div>
+                                                </td>
+                                                <td className="px-4 py-4">
+                                                  <Select 
+                                                    value={doc.documentType}
+                                                    onValueChange={(value) => {
+                                                      console.log('Change document type to:', value);
+                                                    }}
+                                                  >
+                                                    <SelectTrigger className="h-8 text-sm border-gray-200 hover:border-purple-400 transition-colors">
+                                                      <SelectValue />
+                                                    </SelectTrigger>
+                                                    <SelectContent>
+                                                      <SelectItem value="W2 Form">W2 Form</SelectItem>
+                                                      <SelectItem value="1099-MISC">1099-MISC</SelectItem>
+                                                      <SelectItem value="1099-NEC">1099-NEC</SelectItem>
+                                                      <SelectItem value="Bank Statement">Bank Statement</SelectItem>
+                                                      <SelectItem value="Property Tax Bill">Property Tax Bill</SelectItem>
+                                                      <SelectItem value="Donation Receipt">Donation Receipt</SelectItem>
+                                                      <SelectItem value="Invoice">Invoice</SelectItem>
+                                                      <SelectItem value="Receipt">Receipt</SelectItem>
+                                                      <SelectItem value="Other">Other</SelectItem>
+                                                    </SelectContent>
+                                                  </Select>
+                                                </td>
+                                                <td className="px-4 py-4">
+                                                  <Select 
+                                                    value={doc.year}
+                                                    onValueChange={(value) => {
+                                                      console.log('Change year to:', value);
+                                                    }}
+                                                  >
+                                                    <SelectTrigger className="h-8 text-sm border-gray-200 hover:border-purple-400 transition-colors w-24">
+                                                      <SelectValue />
+                                                    </SelectTrigger>
+                                                    <SelectContent>
+                                                      <SelectItem value="2024">2024</SelectItem>
+                                                      <SelectItem value="2023">2023</SelectItem>
+                                                      <SelectItem value="2022">2022</SelectItem>
+                                                      <SelectItem value="2021">2021</SelectItem>
+                                                      <SelectItem value="2020">2020</SelectItem>
+                                                      <SelectItem value="2019">2019</SelectItem>
+                                                    </SelectContent>
+                                                  </Select>
+                                                </td>
+                                                <td className="px-4 py-4">
+                                                  {doc.receivedDate ? (
+                                                    <div>
+                                                      <div className="text-sm font-medium text-gray-900">
+                                                        {formatDateTime(doc.receivedDate)?.date}
+                                                      </div>
+                                                      <div className="text-xs text-gray-500">
+                                                        {formatDateTime(doc.receivedDate)?.time}
+                                                      </div>
+                                                    </div>
+                                                  ) : (
+                                                    <Badge variant="outline" className="text-xs text-orange-600 border-orange-200">
+                                                      Not received
+                                                    </Badge>
+                                                  )}
+                                                </td>
+                                                <td className="px-4 py-4">
+                                                  {doc.reviewedDate && doc.reviewedBy ? (
+                                                    <div className="flex items-start gap-2">
+                                                      <div className="w-5 h-5 rounded-full bg-green-100 dark:bg-green-900/30 flex items-center justify-center flex-shrink-0 mt-0.5">
+                                                        <CheckCircle className="w-3.5 h-3.5 text-green-600 dark:text-green-400" />
+                                                      </div>
+                                                      <div>
+                                                        <div className="text-sm font-medium text-gray-900 dark:text-white">
+                                                          {formatDateTime(doc.reviewedDate)?.date}
+                                                        </div>
+                                                        <div className="text-xs text-gray-500 dark:text-gray-400">
+                                                          {formatDateTime(doc.reviewedDate)?.time} • {doc.reviewedBy}
+                                                        </div>
+                                                      </div>
+                                                    </div>
+                                                  ) : doc.status === 'pending' ? (
+                                                    <div className="flex items-center gap-2">
+                                                      <Button 
+                                                        size="sm" 
+                                                        className="h-7 bg-green-600 hover:bg-green-700 text-xs"
+                                                        onClick={() => handleApprove(doc.id)}
+                                                      >
+                                                        <CheckCircle className="w-3 h-3 mr-1" />
+                                                        Approve
+                                                      </Button>
+                                                      <Button 
+                                                        size="sm" 
+                                                        variant="outline"
+                                                        className="h-7 text-xs border-red-200 text-red-600 hover:bg-red-50"
+                                                        onClick={() => {
+                                                          setSelectedDoc(doc);
+                                                          setShowRejectDialog(true);
+                                                        }}
+                                                      >
+                                                        Reject
+                                                      </Button>
+                                                    </div>
+                                                  ) : doc.status === 'requested' ? (
+                                                    <div className="space-y-1.5">
+                                                      <Badge className="bg-orange-100 text-orange-700 border-orange-200 dark:bg-orange-900/30 dark:text-orange-400 dark:border-orange-800">
+                                                        <Bell className="w-3 h-3 mr-1" />
+                                                        Requested
+                                                      </Badge>
+                                                      {latestReminder && (
+                                                        <>
+                                                          <div className="flex items-center gap-1.5 text-xs">
+                                                            {latestReminder.viewed ? (
+                                                              <>
+                                                                <Eye className="w-3 h-3 text-green-600 dark:text-green-400" />
+                                                                <span className="text-gray-600 dark:text-gray-400">
+                                                                  Viewed {formatReminderDate(latestReminder.viewedDate || latestReminder.sentDate)}
+                                                                </span>
+                                                              </>
+                                                            ) : (
+                                                              <>
+                                                                <EyeOff className="w-3 h-3 text-gray-400" />
+                                                                <span className="text-gray-500 dark:text-gray-500">
+                                                                  Not viewed
+                                                                </span>
+                                                              </>
+                                                            )}
+                                                          </div>
+                                                          <div className="text-[10px] text-gray-500 dark:text-gray-400">
+                                                            Sent: {formatReminderDate(latestReminder.sentDate)}
+                                                          </div>
+                                                        </>
+                                                      )}
+                                                    </div>
+                                                  ) : (
+                                                    <Badge variant="outline" className="text-xs text-gray-500 border-gray-300">
+                                                      Not reviewed
+                                                    </Badge>
+                                                  )}
+                                                </td>
+                                                <td className="px-4 py-4">
+                                                  {getMethodBadge(doc.method)}
+                                                </td>
+                                                <td className="px-4 py-4">
+                                                  <div className="flex items-center justify-end gap-1">
+                                                    {doc.status === 'requested' && (
+                                                      <Button
+                                                        size="sm"
+                                                        variant="outline"
+                                                        className="h-8 text-xs border-orange-200 text-orange-600 hover:bg-orange-50 dark:border-orange-800 dark:text-orange-400 dark:hover:bg-orange-900/20"
+                                                        onClick={() => handleSendReminderClick(doc)}
+                                                      >
+                                                        <Bell className="w-3.5 h-3.5 mr-1.5" />
+                                                        Send Reminder
+                                                      </Button>
+                                                    )}
+                                                    <DropdownMenu>
+                                                      <DropdownMenuTrigger asChild>
+                                                        <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+                                                          <MoreVertical className="w-4 h-4" />
+                                                        </Button>
+                                                      </DropdownMenuTrigger>
+                                                      <DropdownMenuContent align="end">
+                                                        {doc.status === 'pending' && (
+                                                          <>
+                                                            <DropdownMenuItem onClick={() => handleApprove(doc.id)}>
+                                                              <CheckCircle className="w-4 h-4 mr-2 text-green-600" />
+                                                              Approve Document
+                                                            </DropdownMenuItem>
+                                                            <DropdownMenuItem onClick={() => {
+                                                              setSelectedDoc(doc);
+                                                              setShowRejectDialog(true);
+                                                            }}>
+                                                              <X className="w-4 h-4 mr-2 text-red-600" />
+                                                              Reject Document
+                                                            </DropdownMenuItem>
+                                                            <DropdownMenuSeparator />
+                                                          </>
+                                                        )}
+                                                        {doc.status === 'approved' && (
+                                                          <>
+                                                            <DropdownMenuItem onClick={() => {
+                                                              navigate(`/workflows/download?doc=${doc.id}`);
+                                                            }}>
+                                                              <ExternalLink className="w-4 h-4 mr-2 text-purple-600" />
+                                                              Test Workflow
+                                                            </DropdownMenuItem>
+                                                            <DropdownMenuSeparator />
+                                                          </>
+                                                        )}
+                                                        <DropdownMenuItem onClick={() => {
+                                                          setDocumentToMove(doc);
+                                                          setShowMoveDialog(true);
+                                                        }}>
+                                                          <MoveRight className="w-4 h-4 mr-2" />
+                                                          Move to User
+                                                        </DropdownMenuItem>
+                                                        <DropdownMenuItem onClick={() => {}}>
+                                                          <Edit className="w-4 h-4 mr-2" />
+                                                          Edit Details
+                                                        </DropdownMenuItem>
+                                                        <DropdownMenuItem onClick={() => {
+                                                          setSelectedDoc(doc);
+                                                          setShowNotesDialog(true);
+                                                        }}>
+                                                          <FileEdit className="w-4 h-4 mr-2" />
+                                                          {documentNotes[doc.id] ? 'Edit Notes' : 'Add Notes'}
+                                                        </DropdownMenuItem>
+                                                        <DropdownMenuItem>
+                                                          <Download className="w-4 h-4 mr-2" />
+                                                          Download
+                                                        </DropdownMenuItem>
+                                                        <DropdownMenuSeparator />
+                                                        <DropdownMenuItem className="text-red-600">
+                                                          <Trash2 className="w-4 h-4 mr-2" />
+                                                          Delete
+                                                        </DropdownMenuItem>
+                                                      </DropdownMenuContent>
+                                                    </DropdownMenu>
+                                                  </div>
+                                                </td>
+                                              </tr>
+                                            );
+                                          })
+                                        ];
+                                      })
+                                    ) : (
+                                      displayDocs.map((doc) => {
+                                        const isDifferentYear = selectedYear !== 'all' && doc.year !== selectedYear;
+                                        const isUnreviewed = doc.reviewedDate === null;
+                                        const isRequested = doc.status === 'requested';
+                                        const shouldGrayOut = isRequested && statusFilter !== 'pending';
+                                        const latestReminder = getLatestReminder(doc);
+                                        
+                                        return (
+                                          <tr 
+                                            key={doc.id}
+                                            className={cn(
+                                              "hover:bg-gray-50/50 dark:hover:bg-gray-800/50 transition-colors group",
+                                              selectedDocuments.includes(doc.id) && "bg-purple-50/30 dark:bg-purple-900/10",
+                                              isDifferentYear && isUnreviewed && "bg-amber-50/40 dark:bg-amber-900/20 border-l-4 border-amber-500"
+                                            )}
+                                          >
+                                            <td className={cn("px-4 py-4", shouldGrayOut && "opacity-50")}>
+                                              <Checkbox 
+                                                checked={selectedDocuments.includes(doc.id)}
+                                                onCheckedChange={() => toggleDocumentSelection(doc.id)}
+                                              />
+                                            </td>
+                                            <td className={cn("px-4 py-4 relative", shouldGrayOut && "opacity-50")}>
+                                              <div className="flex items-center gap-3">
+                                                <div className="relative group/preview">
+                                                  <div className="w-10 h-10 bg-gradient-to-br from-purple-100 to-purple-50 rounded-lg flex items-center justify-center text-xl cursor-pointer hover:scale-110 transition-transform">
+                                                    {doc.thumbnail}
+                                                  </div>
+                                                  <div className="fixed hidden group-hover/preview:block z-[9999] pointer-events-none" style={{
+                                                    left: '50%',
+                                                    top: '50%',
+                                                    transform: 'translate(-50%, -50%)'
+                                                  }}>
+                                                    <div className="w-64 h-80 bg-white dark:bg-gray-800 rounded-lg shadow-2xl border-2 border-purple-200 dark:border-purple-700 p-4">
+                                                      <div className="w-full h-full bg-gray-100 dark:bg-gray-700 rounded flex items-center justify-center text-6xl">
+                                                        {doc.thumbnail}
+                                                      </div>
+                                                      <p className="text-xs text-center mt-2 text-gray-500 dark:text-gray-400">Document Preview</p>
+                                                    </div>
+                                                  </div>
+                                                </div>
+                                                <div className="flex-1">
+                                                  <div className="flex items-center gap-2">
+                                                    {editingDocId === doc.id ? (
+                                                      <Input
+                                                        value={editingDocName}
+                                                        onChange={(e) => setEditingDocName(e.target.value)}
+                                                        onBlur={() => {
+                                                          if (editingDocName.trim()) {
+                                                            setDocuments(docs =>
+                                                              docs.map(d =>
+                                                                d.id === doc.id
+                                                                  ? { ...d, name: editingDocName }
+                                                                  : d
+                                                              )
+                                                            );
+                                                            toast.success('Document renamed');
+                                                          }
+                                                          setEditingDocId(null);
+                                                          setEditingDocName('');
+                                                        }}
+                                                        onKeyDown={(e) => {
+                                                          if (e.key === 'Enter') {
+                                                            e.currentTarget.blur();
+                                                          } else if (e.key === 'Escape') {
+                                                            setEditingDocId(null);
+                                                            setEditingDocName('');
+                                                          }
+                                                        }}
+                                                        className="h-7 text-sm"
+                                                        autoFocus
+                                                      />
+                                                    ) : (
+                                                      <button
+                                                        onClick={() => {
+                                                          setEditingDocId(doc.id);
+                                                          setEditingDocName(doc.name);
+                                                        }}
+                                                        className="text-sm font-medium text-gray-900 dark:text-white hover:text-purple-600 dark:hover:text-purple-400 transition-colors text-left"
+                                                        title="Click to rename"
+                                                      >
+                                                        {doc.name}
+                                                      </button>
+                                                    )}
+                                                    {isDifferentYear && isUnreviewed && (
+                                                      <Badge className="bg-amber-100 text-amber-800 border-amber-300 text-xs">
+                                                        {doc.year}
+                                                      </Badge>
+                                                    )}
+                                                    {documentNotes[doc.id] && (
+                                                      <button
+                                                        onClick={(e) => {
+                                                          e.stopPropagation();
+                                                          setSelectedDoc(doc);
+                                                          setShowNotesDialog(true);
+                                                        }}
+                                                        className="text-purple-600 hover:text-purple-700 transition-colors"
+                                                        title="View notes"
+                                                      >
+                                                        <FileEdit className="w-3.5 h-3.5" />
+                                                      </button>
+                                                    )}
+                                                  </div>
+                                                </div>
+                                              </div>
+                                            </td>
+                                            <td className="px-4 py-4">
+                                              <Select 
+                                                value={doc.documentType}
+                                                onValueChange={(value) => {
+                                                  console.log('Change document type to:', value);
+                                                }}
+                                              >
+                                                <SelectTrigger className="h-8 text-sm border-gray-200 hover:border-purple-400 transition-colors">
+                                                  <SelectValue />
+                                                </SelectTrigger>
+                                                <SelectContent>
+                                                  <SelectItem value="W2 Form">W2 Form</SelectItem>
+                                                  <SelectItem value="1099-MISC">1099-MISC</SelectItem>
+                                                  <SelectItem value="1099-NEC">1099-NEC</SelectItem>
+                                                  <SelectItem value="Bank Statement">Bank Statement</SelectItem>
+                                                  <SelectItem value="Property Tax Bill">Property Tax Bill</SelectItem>
+                                                  <SelectItem value="Donation Receipt">Donation Receipt</SelectItem>
+                                                  <SelectItem value="Invoice">Invoice</SelectItem>
+                                                  <SelectItem value="Receipt">Receipt</SelectItem>
+                                                  <SelectItem value="Other">Other</SelectItem>
+                                                </SelectContent>
+                                              </Select>
+                                            </td>
+                                            <td className="px-4 py-4">
+                                              <Select 
+                                                value={doc.year}
+                                                onValueChange={(value) => {
+                                                  console.log('Change year to:', value);
+                                                }}
+                                              >
+                                                <SelectTrigger className="h-8 text-sm border-gray-200 hover:border-purple-400 transition-colors w-24">
+                                                  <SelectValue />
+                                                </SelectTrigger>
+                                                <SelectContent>
+                                                  <SelectItem value="2024">2024</SelectItem>
+                                                  <SelectItem value="2023">2023</SelectItem>
+                                                  <SelectItem value="2022">2022</SelectItem>
+                                                  <SelectItem value="2021">2021</SelectItem>
+                                                  <SelectItem value="2020">2020</SelectItem>
+                                                  <SelectItem value="2019">2019</SelectItem>
+                                                </SelectContent>
+                                              </Select>
+                                            </td>
+                                            <td className="px-4 py-4">
+                                              {doc.receivedDate ? (
+                                                <div>
+                                                  <div className="text-sm font-medium text-gray-900">
+                                                    {formatDateTime(doc.receivedDate)?.date}
+                                                  </div>
+                                                  <div className="text-xs text-gray-500">
+                                                    {formatDateTime(doc.receivedDate)?.time}
+                                                  </div>
+                                                </div>
+                                              ) : (
+                                                <Badge variant="outline" className="text-xs text-orange-600 border-orange-200">
+                                                  Not received
+                                                </Badge>
+                                              )}
+                                            </td>
+                                            <td className="px-4 py-4">
+                                              {doc.reviewedDate && doc.reviewedBy ? (
+                                                <div className="flex items-start gap-2">
+                                                  <div className="w-5 h-5 rounded-full bg-green-100 dark:bg-green-900/30 flex items-center justify-center flex-shrink-0 mt-0.5">
+                                                    <CheckCircle className="w-3.5 h-3.5 text-green-600 dark:text-green-400" />
+                                                  </div>
+                                                  <div>
+                                                    <div className="text-sm font-medium text-gray-900 dark:text-white">
+                                                      {formatDateTime(doc.reviewedDate)?.date}
+                                                    </div>
+                                                    <div className="text-xs text-gray-500 dark:text-gray-400">
+                                                      {formatDateTime(doc.reviewedDate)?.time} • {doc.reviewedBy}
+                                                    </div>
+                                                  </div>
+                                                </div>
+                                              ) : doc.status === 'pending' ? (
+                                                <div className="flex items-center gap-2">
+                                                  <Button 
+                                                    size="sm" 
+                                                    className="h-7 bg-green-600 hover:bg-green-700 text-xs"
+                                                    onClick={() => handleApprove(doc.id)}
+                                                  >
+                                                    <CheckCircle className="w-3 h-3 mr-1" />
+                                                    Approve
+                                                  </Button>
+                                                  <Button 
+                                                    size="sm" 
+                                                    variant="outline"
+                                                    className="h-7 text-xs border-red-200 text-red-600 hover:bg-red-50"
+                                                    onClick={() => {
+                                                      setSelectedDoc(doc);
+                                                      setShowRejectDialog(true);
+                                                    }}
+                                                  >
+                                                    Reject
+                                                  </Button>
+                                                </div>
+                                              ) : doc.status === 'requested' ? (
+                                                <div className="space-y-1.5">
+                                                  <Badge className="bg-orange-100 text-orange-700 border-orange-200 dark:bg-orange-900/30 dark:text-orange-400 dark:border-orange-800">
+                                                    <Bell className="w-3 h-3 mr-1" />
+                                                    Requested
+                                                  </Badge>
+                                                  {latestReminder && (
+                                                    <>
+                                                      <div className="flex items-center gap-1.5 text-xs">
+                                                        {latestReminder.viewed ? (
+                                                          <>
+                                                            <Eye className="w-3 h-3 text-green-600 dark:text-green-400" />
+                                                            <span className="text-gray-600 dark:text-gray-400">
+                                                              Viewed {formatReminderDate(latestReminder.viewedDate || latestReminder.sentDate)}
+                                                            </span>
+                                                          </>
+                                                        ) : (
+                                                          <>
+                                                            <EyeOff className="w-3 h-3 text-gray-400" />
+                                                            <span className="text-gray-500 dark:text-gray-500">
+                                                              Not viewed
+                                                            </span>
+                                                          </>
+                                                        )}
+                                                      </div>
+                                                      <div className="text-[10px] text-gray-500 dark:text-gray-400">
+                                                        Sent: {formatReminderDate(latestReminder.sentDate)}
+                                                      </div>
+                                                    </>
+                                                  )}
+                                                </div>
+                                              ) : (
+                                                <Badge variant="outline" className="text-xs text-gray-500 border-gray-300">
+                                                  Not reviewed
+                                                </Badge>
+                                              )}
+                                            </td>
+                                            <td className="px-4 py-4">
+                                              {getMethodBadge(doc.method)}
+                                            </td>
+                                            <td className="px-4 py-4">
+                                              <div className="flex items-center justify-end gap-1">
+                                                {doc.status === 'requested' && (
+                                                  <Button
+                                                    size="sm"
+                                                    variant="outline"
+                                                    className="h-8 text-xs border-orange-200 text-orange-600 hover:bg-orange-50 dark:border-orange-800 dark:text-orange-400 dark:hover:bg-orange-900/20"
+                                                    onClick={() => handleSendReminderClick(doc)}
+                                                  >
+                                                    <Bell className="w-3.5 h-3.5 mr-1.5" />
+                                                    Send Reminder
+                                                  </Button>
+                                                )}
+                                                <DropdownMenu>
+                                                  <DropdownMenuTrigger asChild>
+                                                    <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+                                                      <MoreVertical className="w-4 h-4" />
+                                                    </Button>
+                                                  </DropdownMenuTrigger>
+                                                  <DropdownMenuContent align="end">
+                                                    {doc.status === 'pending' && (
+                                                      <>
+                                                        <DropdownMenuItem onClick={() => handleApprove(doc.id)}>
+                                                          <CheckCircle className="w-4 h-4 mr-2 text-green-600" />
+                                                          Approve Document
+                                                        </DropdownMenuItem>
+                                                        <DropdownMenuItem onClick={() => {
+                                                          setSelectedDoc(doc);
+                                                          setShowRejectDialog(true);
+                                                        }}>
+                                                          <X className="w-4 h-4 mr-2 text-red-600" />
+                                                          Reject Document
+                                                        </DropdownMenuItem>
+                                                        <DropdownMenuSeparator />
+                                                      </>
+                                                    )}
+                                                    {doc.status === 'approved' && (
+                                                      <>
+                                                        <DropdownMenuItem onClick={() => {
+                                                          navigate(`/workflows/download?doc=${doc.id}`);
+                                                        }}>
+                                                          <ExternalLink className="w-4 h-4 mr-2 text-purple-600" />
+                                                          Test Workflow
+                                                        </DropdownMenuItem>
+                                                        <DropdownMenuSeparator />
+                                                      </>
+                                                    )}
+                                                    <DropdownMenuItem onClick={() => {
+                                                      setDocumentToMove(doc);
+                                                      setShowMoveDialog(true);
+                                                    }}>
+                                                      <MoveRight className="w-4 h-4 mr-2" />
+                                                      Move to User
+                                                    </DropdownMenuItem>
+                                                    <DropdownMenuItem onClick={() => {}}>
+                                                      <Edit className="w-4 h-4 mr-2" />
+                                                      Edit Details
+                                                    </DropdownMenuItem>
+                                                    <DropdownMenuItem onClick={() => {
+                                                      setSelectedDoc(doc);
+                                                      setShowNotesDialog(true);
+                                                    }}>
+                                                      <FileEdit className="w-4 h-4 mr-2" />
+                                                      {documentNotes[doc.id] ? 'Edit Notes' : 'Add Notes'}
+                                                    </DropdownMenuItem>
+                                                    <DropdownMenuItem>
+                                                      <Download className="w-4 h-4 mr-2" />
+                                                      Download
+                                                    </DropdownMenuItem>
+                                                    <DropdownMenuSeparator />
+                                                    <DropdownMenuItem className="text-red-600">
+                                                      <Trash2 className="w-4 h-4 mr-2" />
+                                                      Delete
+                                                    </DropdownMenuItem>
+                                                  </DropdownMenuContent>
+                                                </DropdownMenu>
+                                              </div>
+                                            </td>
+                                          </tr>
+                                        );
+                                      })
+                                    )}
+                                  </tbody>
+                                </table>
+                              </div>
+                                </Card>
+                              </>
+                            )}
+                          </div>
+                        );
+                      })
+                    )}
+                  </div>
+                )}
               </div>
             </div>
           )}

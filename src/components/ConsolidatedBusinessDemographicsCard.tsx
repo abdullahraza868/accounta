@@ -1,6 +1,6 @@
 import { 
   Building2, Mail, Phone, MapPin, Calendar, User, 
-  Briefcase, FileText, Edit2, Save, X, Hash, Flag, Shield 
+  Briefcase, Edit2, Save, X, Hash, Flag, Shield, CheckCircle2 
 } from 'lucide-react';
 import { Avatar, AvatarImage, AvatarFallback } from './ui/avatar';
 import { Button } from './ui/button';
@@ -10,6 +10,10 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '.
 import { PhoneInput } from './ui/phone-input';
 import { Card, CardContent, CardHeader } from './ui/card';
 import { Separator } from './ui/separator';
+import { Badge } from './ui/badge';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from './ui/dialog';
+import { VerificationCodeInput } from './ui/verification-code-input';
+import { useState } from 'react';
 
 const US_STATES = [
   'AL', 'AK', 'AZ', 'AR', 'CA', 'CO', 'CT', 'DE', 'FL', 'GA',
@@ -26,6 +30,7 @@ type BusinessDemographicsData = {
   profileImage: string;
   email: string;
   phone: string;
+  phoneVerified?: boolean;
   alternatePhone: string;
   // Company Information
   legalName: string;
@@ -71,6 +76,37 @@ export function ConsolidatedBusinessDemographicsCard({
   onRequestEINView,
   isEINUnlocked,
 }: ConsolidatedBusinessDemographicsCardProps) {
+  const [isConfirmationDialogOpen, setIsConfirmationDialogOpen] = useState(false);
+  const [isVerificationDialogOpen, setIsVerificationDialogOpen] = useState(false);
+  const [phoneVerified, setPhoneVerified] = useState(data.phoneVerified ?? false);
+  const [verificationCode, setVerificationCode] = useState('');
+  const [isVerifying, setIsVerifying] = useState(false);
+  const [isSendingCode, setIsSendingCode] = useState(false);
+
+  const handleSendVerificationCode = async () => {
+    setIsSendingCode(true);
+    // Mock: Simulate sending verification code
+    await new Promise(resolve => setTimeout(resolve, 1500));
+    setIsSendingCode(false);
+    setIsConfirmationDialogOpen(false);
+    setIsVerificationDialogOpen(true);
+  };
+
+  const handleVerifyCode = async (code: string) => {
+    setIsVerifying(true);
+    // Mock: Simulate API call delay
+    await new Promise(resolve => setTimeout(resolve, 1000));
+    // Mock: Accept any 6-digit code
+    if (code.length === 6) {
+      setPhoneVerified(true);
+      setIsVerificationDialogOpen(false);
+      setVerificationCode('');
+      // Update parent data
+      onChange({ ...data, phoneVerified: true });
+    }
+    setIsVerifying(false);
+  };
+
   return (
     <Card className="overflow-hidden border-gray-200 dark:border-gray-700 shadow-sm">
       <CardHeader className="pb-3 border-b border-gray-200 dark:border-gray-700">
@@ -148,13 +184,31 @@ export function ConsolidatedBusinessDemographicsCard({
                     </div>
                     <div className="flex items-center gap-1.5 text-gray-600 dark:text-gray-400">
                       <Phone className="w-3.5 h-3.5" />
-                      {(() => {
-                        const phone = data.phone.replace(/^\+1\s*/, '').replace(/\D/g, '');
-                        if (phone.length === 10) {
-                          return `(${phone.slice(0, 3)}) ${phone.slice(3, 6)}-${phone.slice(6)}`;
-                        }
-                        return data.phone;
-                      })()}
+                      <span>
+                        {(() => {
+                          const phone = data.phone.replace(/^\+1\s*/, '').replace(/\D/g, '');
+                          if (phone.length === 10) {
+                            return `(${phone.slice(0, 3)}) ${phone.slice(3, 6)}-${phone.slice(6)}`;
+                          }
+                          return data.phone;
+                        })()}
+                      </span>
+                      {phoneVerified ? (
+                        <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200 dark:bg-green-900/30 dark:text-green-300 dark:border-green-700 text-[10px] px-1.5 py-0 h-4">
+                          <CheckCircle2 className="w-3 h-3 mr-1" />
+                          Verified
+                        </Badge>
+                      ) : (
+                        <Button 
+                          size="sm" 
+                          variant="outline" 
+                          onClick={() => setIsConfirmationDialogOpen(true)}
+                          className="h-5 px-2 text-[10px] border-purple-200 dark:border-purple-800 text-purple-600 dark:text-purple-400 hover:bg-purple-50 dark:hover:bg-purple-900/20 gap-1 cursor-pointer"
+                        >
+                          <Shield className="w-3 h-3" />
+                          Verify your phone
+                        </Button>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -497,6 +551,131 @@ export function ConsolidatedBusinessDemographicsCard({
           </div>
         )}
       </CardContent>
+
+      {/* Confirmation Dialog - Send Verification Code */}
+      <Dialog open={isConfirmationDialogOpen} onOpenChange={setIsConfirmationDialogOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="text-center">Send Verification Code</DialogTitle>
+            <DialogDescription className="text-center">
+              We'll send a 6-digit verification code to this phone number
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="space-y-6">
+            {/* Phone Display */}
+            <div className="p-4 rounded-lg text-center bg-purple-50 dark:bg-purple-900/20 border border-purple-200 dark:border-purple-800">
+              <Phone className="w-8 h-8 mx-auto mb-2 text-purple-600 dark:text-purple-400" />
+              <p className="font-medium text-gray-900 dark:text-gray-100 text-lg">
+                {(() => {
+                  const phone = data.phone.replace(/^\+1\s*/, '').replace(/\D/g, '');
+                  if (phone.length === 10) {
+                    return `(${phone.slice(0, 3)}) ${phone.slice(3, 6)}-${phone.slice(6)}`;
+                  }
+                  return data.phone;
+                })()}
+              </p>
+            </div>
+
+            {/* Info Message */}
+            <div className="p-3 rounded-lg bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800">
+              <p className="text-sm text-blue-800 dark:text-blue-300 text-center">
+                A verification code will be sent via SMS to this number. Standard messaging rates may apply.
+              </p>
+            </div>
+
+            {/* Buttons */}
+            <div className="flex gap-2">
+              <Button
+                variant="outline"
+                onClick={() => setIsConfirmationDialogOpen(false)}
+                disabled={isSendingCode}
+                className="flex-1"
+              >
+                Cancel
+              </Button>
+              <Button
+                onClick={handleSendVerificationCode}
+                disabled={isSendingCode}
+                className="flex-1 bg-purple-600 hover:bg-purple-700"
+              >
+                {isSendingCode ? (
+                  <>
+                    <span className="mr-2">Sending...</span>
+                  </>
+                ) : (
+                  'Send Code'
+                )}
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Phone Verification Dialog */}
+      <Dialog open={isVerificationDialogOpen} onOpenChange={setIsVerificationDialogOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="text-center">Verify Phone Number</DialogTitle>
+            <DialogDescription className="text-center">
+              Enter the 6-digit verification code we sent to
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="space-y-6">
+            {/* Phone Display */}
+            <div className="p-3 rounded-lg text-center bg-purple-50 dark:bg-purple-900/20 border border-purple-200 dark:border-purple-800">
+              <p className="font-medium text-gray-900 dark:text-gray-100">
+                {(() => {
+                  const phone = data.phone.replace(/^\+1\s*/, '').replace(/\D/g, '');
+                  if (phone.length === 10) {
+                    return `(${phone.slice(0, 3)}) ${phone.slice(3, 6)}-${phone.slice(6)}`;
+                  }
+                  return data.phone;
+                })()}
+              </p>
+            </div>
+
+            {/* Verification Code Input */}
+            <div>
+              <Label className="text-sm mb-3 block font-medium text-center text-gray-700 dark:text-gray-300">
+                Enter Verification Code
+              </Label>
+              <VerificationCodeInput
+                value={verificationCode}
+                onChange={setVerificationCode}
+                onComplete={handleVerifyCode}
+                disabled={isVerifying}
+              />
+              <p className="text-xs text-center mt-3 text-gray-500 dark:text-gray-400">
+                Demo: Enter any <strong>6-digit code</strong> to verify
+              </p>
+            </div>
+
+            {/* Buttons */}
+            <div className="flex gap-2">
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setIsVerificationDialogOpen(false);
+                  setVerificationCode('');
+                }}
+                disabled={isVerifying}
+                className="flex-1"
+              >
+                Cancel
+              </Button>
+              <Button
+                onClick={() => handleVerifyCode(verificationCode)}
+                disabled={verificationCode.length !== 6 || isVerifying}
+                className="flex-1 bg-purple-600 hover:bg-purple-700"
+              >
+                {isVerifying ? 'Verifying...' : 'Verify'}
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </Card>
   );
 }
