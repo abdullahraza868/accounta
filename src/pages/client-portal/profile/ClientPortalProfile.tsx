@@ -23,6 +23,10 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '../../../components/ui/alert-dialog';
+import DemographicsView from '../../../components/DemographicsView';
+import { CreateClientWizard } from '../../../components/CreateClientWizard';
+import { clientToWizardData } from '../../../utils/clientDataTransform';
+import { Client } from '../../../App';
 
 export default function ClientPortalProfile() {
   const { branding } = useBranding();
@@ -46,7 +50,23 @@ export default function ClientPortalProfile() {
   const clientType: 'Individual' | 'Business' = 'Individual'; // Would come from user.clientType
 
   const [isEditing, setIsEditing] = useState(false);
+  const [showEditWizard, setShowEditWizard] = useState(false);
   const [showAccountLinking, setShowAccountLinking] = useState(false);
+  
+  // Create Client object from user data for DemographicsView
+  const clientData: Client = {
+    id: user?.id || 'client-1',
+    name: user?.name || `${profile.firstName} ${profile.lastName}`,
+    firstName: profile.firstName,
+    lastName: profile.lastName,
+    email: profile.email,
+    phone: profile.phone,
+    type: clientType,
+    group: '',
+    assignedTo: '',
+    tags: [],
+    createdDate: new Date().toISOString(),
+  };
   const [linkingState, setLinkingState] = useState<'idle' | 'sending' | 'sent'>('idle');
   const [accountEmail, setAccountEmail] = useState('');
   const [emailError, setEmailError] = useState('');
@@ -432,300 +452,32 @@ export default function ClientPortalProfile() {
 
   return (
     <ClientPortalLayout>
-      <div className="max-w-4xl space-y-6">
-        {/* Page Header */}
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 style={{ color: branding.colors.headingText }}>Profile Settings</h1>
-            <p className="mt-2" style={{ color: branding.colors.mutedText }}>
-              Manage your personal information and contact details
-            </p>
-          </div>
+      <div className="h-full relative">
+        {/* Edit Profile Button - Floating in top right */}
+        <div className="absolute top-4 right-4 z-10">
           <Button
-            onClick={() => (isEditing ? handleSave() : setIsEditing(true))}
+            onClick={() => setShowEditWizard(true)}
             style={{
               background: branding.colors.primaryButton,
               color: branding.colors.primaryButtonText,
             }}
-            className="gap-2"
+            className="gap-2 shadow-lg"
           >
-            {isEditing ? (
-              <>
-                <Save className="w-4 h-4" />
-                Save Changes
-              </>
-            ) : (
-              <>
-                <User className="w-4 h-4" />
-                Edit Profile
-              </>
-            )}
+            <User className="w-4 h-4" />
+            Edit Profile
           </Button>
         </div>
-
-        {/* Profile Avatar Section */}
-        <div
-          className="rounded-lg p-6 border flex items-center gap-6"
-          style={{
-            background: branding.colors.cardBackground,
-            borderColor: branding.colors.borderColor,
-          }}
-        >
-          <Avatar className="w-24 h-24">
-            <AvatarFallback
-              className="text-white text-2xl"
-              style={{ background: branding.colors.primaryButton }}
-            >
-              {profile.firstName[0]}
-              {profile.lastName[0]}
-            </AvatarFallback>
-          </Avatar>
-          <div className="flex-1">
-            <h2 style={{ color: branding.colors.headingText }}>
-              {profile.firstName} {profile.lastName}
-            </h2>
-            <p className="mt-1" style={{ color: branding.colors.mutedText }}>
-              {profile.email}
-            </p>
-            <p className="text-sm mt-2" style={{ color: branding.colors.mutedText }}>
-              Member since October 2024
-            </p>
-          </div>
-        </div>
-
-        {/* Personal Information */}
-        <div
-          className="rounded-lg p-6 border"
-          style={{
-            background: branding.colors.cardBackground,
-            borderColor: branding.colors.borderColor,
-          }}
-        >
-          <h2 className="mb-6" style={{ color: branding.colors.headingText }}>
-            Personal Information
-          </h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div>
-              <Label
-                htmlFor="firstName"
-                style={{ color: branding.colors.bodyText }}
-              >
-                First Name
-              </Label>
-              <div className="relative mt-2">
-                <User
-                  className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4"
-                  style={{ color: branding.colors.mutedText }}
-                />
-                <Input
-                  id="firstName"
-                  value={profile.firstName}
-                  onChange={(e) => handleChange('firstName', e.target.value)}
-                  disabled={!isEditing}
-                  className="pl-10"
-                  style={{
-                    background: branding.colors.inputBackground,
-                    borderColor: branding.colors.inputBorder,
-                    color: branding.colors.inputText,
-                  }}
-                />
-              </div>
-            </div>
-
-            <div>
-              <Label htmlFor="lastName" style={{ color: branding.colors.bodyText }}>
-                Last Name
-              </Label>
-              <div className="relative mt-2">
-                <User
-                  className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4"
-                  style={{ color: branding.colors.mutedText }}
-                />
-                <Input
-                  id="lastName"
-                  value={profile.lastName}
-                  onChange={(e) => handleChange('lastName', e.target.value)}
-                  disabled={!isEditing}
-                  className="pl-10"
-                  style={{
-                    background: branding.colors.inputBackground,
-                    borderColor: branding.colors.inputBorder,
-                    color: branding.colors.inputText,
-                  }}
-                />
-              </div>
-            </div>
-
-            <div>
-              <Label htmlFor="email" style={{ color: branding.colors.bodyText }}>
-                Email Address
-              </Label>
-              <div className="relative mt-2">
-                <Mail
-                  className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4"
-                  style={{ color: branding.colors.mutedText }}
-                />
-                <Input
-                  id="email"
-                  type="email"
-                  value={profile.email}
-                  onChange={(e) => handleChange('email', e.target.value)}
-                  disabled={!isEditing}
-                  className="pl-10"
-                  style={{
-                    background: branding.colors.inputBackground,
-                    borderColor: branding.colors.inputBorder,
-                    color: branding.colors.inputText,
-                  }}
-                />
-              </div>
-            </div>
-
-            <div>
-              <Label htmlFor="phone" style={{ color: branding.colors.bodyText }}>
-                Phone Number
-              </Label>
-              <div className="relative mt-2">
-                <Phone
-                  className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4"
-                  style={{ color: branding.colors.mutedText }}
-                />
-                <Input
-                  id="phone"
-                  value={profile.phone}
-                  onChange={(e) => handleChange('phone', e.target.value)}
-                  disabled={!isEditing}
-                  className="pl-10"
-                  style={{
-                    background: branding.colors.inputBackground,
-                    borderColor: branding.colors.inputBorder,
-                    color: branding.colors.inputText,
-                  }}
-                />
-              </div>
-            </div>
-
-            <div className="md:col-span-2">
-              <Label htmlFor="company" style={{ color: branding.colors.bodyText }}>
-                Company
-              </Label>
-              <div className="relative mt-2">
-                <Building2
-                  className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4"
-                  style={{ color: branding.colors.mutedText }}
-                />
-                <Input
-                  id="company"
-                  value={profile.company}
-                  onChange={(e) => handleChange('company', e.target.value)}
-                  disabled={!isEditing}
-                  className="pl-10"
-                  style={{
-                    background: branding.colors.inputBackground,
-                    borderColor: branding.colors.inputBorder,
-                    color: branding.colors.inputText,
-                  }}
-                />
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Address Information */}
-        <div
-          className="rounded-lg p-6 border"
-          style={{
-            background: branding.colors.cardBackground,
-            borderColor: branding.colors.borderColor,
-          }}
-        >
-          <h2 className="mb-6" style={{ color: branding.colors.headingText }}>
-            Address Information
-          </h2>
-          <div className="grid grid-cols-1 gap-6">
-            <div>
-              <Label htmlFor="address" style={{ color: branding.colors.bodyText }}>
-                Street Address
-              </Label>
-              <div className="relative mt-2">
-                <MapPin
-                  className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4"
-                  style={{ color: branding.colors.mutedText }}
-                />
-                <Input
-                  id="address"
-                  value={profile.address}
-                  onChange={(e) => handleChange('address', e.target.value)}
-                  disabled={!isEditing}
-                  className="pl-10"
-                  style={{
-                    background: branding.colors.inputBackground,
-                    borderColor: branding.colors.inputBorder,
-                    color: branding.colors.inputText,
-                  }}
-                />
-              </div>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div>
-                <Label htmlFor="city" style={{ color: branding.colors.bodyText }}>
-                  City
-                </Label>
-                <Input
-                  id="city"
-                  value={profile.city}
-                  onChange={(e) => handleChange('city', e.target.value)}
-                  disabled={!isEditing}
-                  className="mt-2"
-                  style={{
-                    background: branding.colors.inputBackground,
-                    borderColor: branding.colors.inputBorder,
-                    color: branding.colors.inputText,
-                  }}
-                />
-              </div>
-
-              <div>
-                <Label htmlFor="state" style={{ color: branding.colors.bodyText }}>
-                  State
-                </Label>
-                <Input
-                  id="state"
-                  value={profile.state}
-                  onChange={(e) => handleChange('state', e.target.value)}
-                  disabled={!isEditing}
-                  className="mt-2"
-                  style={{
-                    background: branding.colors.inputBackground,
-                    borderColor: branding.colors.inputBorder,
-                    color: branding.colors.inputText,
-                  }}
-                />
-              </div>
-
-              <div>
-                <Label htmlFor="zipCode" style={{ color: branding.colors.bodyText }}>
-                  ZIP Code
-                </Label>
-                <Input
-                  id="zipCode"
-                  value={profile.zipCode}
-                  onChange={(e) => handleChange('zipCode', e.target.value)}
-                  disabled={!isEditing}
-                  className="mt-2"
-                  style={{
-                    background: branding.colors.inputBackground,
-                    borderColor: branding.colors.inputBorder,
-                    color: branding.colors.inputText,
-                  }}
-                />
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Account Linking Section */}
+        
+        {/* Demographics Section - Exact same UI as Demographics tab */}
+        <div className="h-full">
+          <DemographicsView 
+            client={clientData}
+            isReadOnly={false}
+            hideProfileHeader={false}
+          />
+          
+          {/* Account Linking Section - Positioned at bottom, matching DemographicsView padding */}
+          <div className="px-8 pb-8">
         <div
           className="rounded-lg p-6 border"
           style={{
@@ -1474,6 +1226,8 @@ export default function ClientPortalProfile() {
             )}
           </AnimatePresence>
         </div>
+          </div>
+        </div>
       </div>
 
       {/* Unlink Account Confirmation Dialog */}
@@ -1585,6 +1339,26 @@ export default function ClientPortalProfile() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Edit Profile Wizard */}
+      {showEditWizard && (
+        <CreateClientWizard
+          mode="edit"
+          hideClientType={true}
+          initialData={clientToWizardData(clientData)}
+          clientGroups={[]}
+          asPage={false}
+          title="Edit Profile"
+          onClose={() => setShowEditWizard(false)}
+          onSave={(data) => {
+            // Handle save - update client data
+            console.log('Saving profile data:', data);
+            toast.success('Profile updated successfully');
+            setShowEditWizard(false);
+            // In a real app, you would update the client data here
+          }}
+        />
+      )}
     </ClientPortalLayout>
   );
 }

@@ -175,6 +175,15 @@ const MOCK_TRIGGERS: Trigger[] = [
   // Communication
   { id: 't25', category: 'Communication', name: 'When Email Replied' },
   { id: 't26', category: 'Communication', name: 'When SMS Replied' },
+  { id: 't27', category: 'Communication', name: 'When Incoming Email Received' },
+  { id: 't28', category: 'Communication', name: 'When Incoming SMS Received' },
+  { id: 't29', category: 'Communication', name: 'When Incoming Email or SMS Received' },
+  { id: 't30', category: 'Communication', name: 'When Outgoing SMS Error Occurs' },
+  // Client (Lead Creation Variants)
+  { id: 't31', category: 'Client', name: 'When Client Created via API' },
+  { id: 't32', category: 'Client', name: 'When Client Created via Facebook' },
+  { id: 't33', category: 'Client', name: 'When Client Created via Calendly' },
+  { id: 't34', category: 'Client', name: 'When Custom Field Value Changed' },
 ];
 
 // Actions with IDs
@@ -211,6 +220,16 @@ const MOCK_ACTIONS: Action[] = [
   // Utility
   { id: 'a22', category: 'Utility', name: 'Wait / Delay' },
   { id: 'a23', category: 'Utility', name: 'Notify Team (In-App)' },
+  // Client Management
+  { id: 'a24', category: 'Client Management', name: 'Assign Client to Team Member' },
+  { id: 'a25', category: 'Client Management', name: 'Merge Client into Duplicate' },
+  { id: 'a26', category: 'Client Management', name: 'Add Client to Do Not Contact List' },
+  { id: 'a27', category: 'Client Management', name: 'Remove Client from Do Not Contact List' },
+  // Communication Sequences
+  { id: 'a28', category: 'Communication', name: 'Start Email Sequence' },
+  { id: 'a29', category: 'Communication', name: 'Start SMS Sequence' },
+  { id: 'a30', category: 'Communication', name: 'Stop All Sequences' },
+  { id: 'a31', category: 'Communication', name: 'Send Client Details via Email' },
 ];
 
 // Condition Fields with Type Metadata
@@ -335,6 +354,54 @@ const MOCK_REPORT_TYPES = [
   { value: 'time_tracking', label: 'Time Tracking Report' },
 ];
 
+const MOCK_EMAIL_SEQUENCES = [
+  { value: 'seq1', label: 'Welcome Sequence' },
+  { value: 'seq2', label: 'Onboarding Sequence' },
+  { value: 'seq3', label: 'Follow-up Sequence' },
+  { value: 'seq4', label: 'Payment Reminder Sequence' },
+  { value: 'seq5', label: 'Document Request Sequence' },
+];
+
+const MOCK_SMS_SEQUENCES = [
+  { value: 'sms_seq1', label: 'Welcome SMS Sequence' },
+  { value: 'sms_seq2', label: 'Reminder SMS Sequence' },
+  { value: 'sms_seq3', label: 'Appointment SMS Sequence' },
+  { value: 'sms_seq4', label: 'Payment SMS Sequence' },
+];
+
+const MOCK_EMAIL_ACCOUNTS = [
+  { value: 'email1', label: 'noreply@accounta.com' },
+  { value: 'email2', label: 'support@accounta.com' },
+  { value: 'email3', label: 'info@accounta.com' },
+];
+
+const MOCK_PHONE_ACCOUNTS = [
+  { value: 'phone1', label: '+1 (555) 123-4567' },
+  { value: 'phone2', label: '+1 (555) 987-6543' },
+  { value: 'phone3', label: '+1 (555) 456-7890' },
+];
+
+const MOCK_ERROR_CODES = [
+  { value: '11751', label: '11751 - Media exceeds size limit' },
+  { value: '12300', label: '12300 - Invalid Content-Type' },
+  { value: '30003', label: '30003 - Unavailable destination' },
+  { value: '30005', label: '30005 - Unknown/inactive number' },
+  { value: '30006', label: '30006 - Landline/unreachable' },
+  { value: '30007', label: '30007 - Blocked by carrier' },
+  { value: '30008', label: '30008 - Delivery failed' },
+  { value: '30011', label: '30011 - MMS not supported' },
+  { value: '30019', label: '30019 - Content size exceeds limit' },
+  { value: '30410', label: '30410 - Provider timeout' },
+];
+
+const MOCK_CUSTOM_FIELDS = [
+  { value: 'none', label: 'None (Any Custom Field)' },
+  { value: 'budget', label: 'Budget' },
+  { value: 'qualified', label: 'Qualified' },
+  { value: 'source', label: 'Source' },
+  { value: 'industry', label: 'Industry' },
+];
+
 // Trigger Configuration Schemas
 const TRIGGER_CONFIG_SCHEMAS: Record<string, ConfigField[]> = {
   't5': [ // When Specific Task Completed
@@ -389,6 +456,36 @@ const TRIGGER_CONFIG_SCHEMAS: Record<string, ConfigField[]> = {
   ],
   't19': [ // When Form / Organizer Submitted
     { key: 'formType', label: 'Form Type (Optional)', type: 'select', required: false, options: MOCK_FORM_TYPES, placeholder: 'Any form' },
+  ],
+  't27': [ // When Incoming Email Received
+    { key: 'textMatching', label: 'Text to Match (Optional)', type: 'text', required: false, placeholder: 'Enter text to match (supports | for multiple)' },
+    { key: 'textMatchingType', label: 'Matching Type', type: 'select', required: false, options: [
+      { value: 'exact', label: 'Exact Match' },
+      { value: 'word', label: 'Contains Word' },
+      { value: 'any', label: 'Any Match (Regex)' },
+    ], placeholder: 'Select matching type' },
+  ],
+  't28': [ // When Incoming SMS Received
+    { key: 'textMatching', label: 'Text to Match (Optional)', type: 'text', required: false, placeholder: 'Enter text to match (supports | for multiple)' },
+    { key: 'textMatchingType', label: 'Matching Type', type: 'select', required: false, options: [
+      { value: 'exact', label: 'Exact Match' },
+      { value: 'word', label: 'Contains Word' },
+      { value: 'any', label: 'Any Match (Regex)' },
+    ], placeholder: 'Select matching type' },
+  ],
+  't29': [ // When Incoming Email or SMS Received
+    { key: 'textMatching', label: 'Text to Match (Optional)', type: 'text', required: false, placeholder: 'Enter text to match (supports | for multiple)' },
+    { key: 'textMatchingType', label: 'Matching Type', type: 'select', required: false, options: [
+      { value: 'exact', label: 'Exact Match' },
+      { value: 'word', label: 'Contains Word' },
+      { value: 'any', label: 'Any Match (Regex)' },
+    ], placeholder: 'Select matching type' },
+  ],
+  't30': [ // When Outgoing SMS Error Occurs
+    { key: 'errorCodes', label: 'Error Codes', type: 'multiselect', required: false, options: MOCK_ERROR_CODES, placeholder: 'Select error codes (leave empty for all)' },
+  ],
+  't34': [ // When Custom Field Value Changed
+    { key: 'customField', label: 'Custom Field (Optional)', type: 'select', required: false, options: MOCK_CUSTOM_FIELDS, placeholder: 'Any custom field' },
   ],
 };
 
@@ -511,9 +608,14 @@ const ACTION_CONFIG_SCHEMAS: Record<string, ConfigField[]> = {
     ]},
     { key: 'body', label: 'Data to Sync', type: 'textarea', required: false, rows: 2, placeholder: 'Optional sync details...' },
   ],
-  'a21': [ // Send Webhook to External System
+  'a21': [ // Send Webhook to External System (Enhanced)
     { key: 'webhookUrl', label: 'Webhook URL', type: 'text', required: true, placeholder: 'https://api.example.com/webhook' },
-    { key: 'body', label: 'Custom Payload (JSON)', type: 'textarea', required: false, rows: 4, placeholder: '{"key": "value"}' },
+    { key: 'webhookAction', label: 'HTTP Method', type: 'select', required: false, options: [
+      { value: 'post', label: 'POST' },
+      { value: 'get', label: 'GET' },
+    ], placeholder: 'POST (default)' },
+    { key: 'webhookHeaders', label: 'Custom Headers (JSON)', type: 'textarea', required: false, rows: 3, placeholder: '{"Authorization": "Bearer token"}' },
+    { key: 'webhookBody', label: 'Custom Body (JSON)', type: 'textarea', required: false, rows: 4, placeholder: '{"key": "value"}' },
   ],
   'a22': [ // Wait / Delay
     { key: 'delayAmount', label: 'Delay Amount', type: 'number', required: true, min: 1, placeholder: '1' },
@@ -526,6 +628,35 @@ const ACTION_CONFIG_SCHEMAS: Record<string, ConfigField[]> = {
   'a23': [ // Notify Team (In-App)
     { key: 'assigneeId', label: 'Notify', type: 'select', required: false, options: MOCK_TEAM_MEMBERS, placeholder: 'All team members' },
     { key: 'notificationMessage', label: 'Message', type: 'textarea', required: true, rows: 2, placeholder: 'Notification message...' },
+  ],
+  'a24': [ // Assign Client to Team Member
+    { key: 'assigneeId', label: 'Assign To', type: 'select', required: true, options: MOCK_TEAM_MEMBERS },
+  ],
+  'a25': [ // Merge Client into Duplicate
+    { key: 'mergeBy', label: 'Merge By', type: 'select', required: true, options: [
+      { value: 'email', label: 'Email Address' },
+      { value: 'phone', label: 'Phone Number' },
+    ]},
+  ],
+  'a26': [ // Add Client to Do Not Contact List
+    // No config needed
+  ],
+  'a27': [ // Remove Client from Do Not Contact List
+    // No config needed
+  ],
+  'a28': [ // Start Email Sequence
+    { key: 'emailSequenceTemplateId', label: 'Email Sequence Template', type: 'select', required: true, options: MOCK_EMAIL_SEQUENCES },
+    { key: 'emailAccountId', label: 'Email Account', type: 'select', required: true, options: MOCK_EMAIL_ACCOUNTS },
+  ],
+  'a29': [ // Start SMS Sequence
+    { key: 'smsSequenceTemplateId', label: 'SMS Sequence Template', type: 'select', required: true, options: MOCK_SMS_SEQUENCES },
+    { key: 'phoneAccountId', label: 'Phone Account', type: 'select', required: true, options: MOCK_PHONE_ACCOUNTS },
+  ],
+  'a30': [ // Stop All Sequences
+    // No config needed
+  ],
+  'a31': [ // Send Client Details via Email
+    { key: 'recipientEmail', label: 'Recipient Email', type: 'text', required: true, placeholder: 'recipient@example.com' },
   ],
 };
 
@@ -1547,6 +1678,28 @@ function AutomationPreview({
         if (form) details.push(form.label);
       }
       
+      // Communication configs (text matching)
+      if (config.textMatching) {
+        details.push(`matching "${config.textMatching}"`);
+      }
+      if (config.textMatchingType) {
+        const matchType = config.textMatchingType === 'exact' ? 'exact' : config.textMatchingType === 'word' ? 'word' : 'any';
+        if (config.textMatching) {
+          details[details.length - 1] = details[details.length - 1].replace('matching', `${matchType} matching`);
+        }
+      }
+      
+      // Error codes
+      if (config.errorCodes && Array.isArray(config.errorCodes) && config.errorCodes.length > 0) {
+        details.push(`${config.errorCodes.length} error code${config.errorCodes.length > 1 ? 's' : ''}`);
+      }
+      
+      // Custom field
+      if (config.customField && config.customField !== 'none') {
+        const customField = MOCK_CUSTOM_FIELDS.find(f => f.value === config.customField);
+        if (customField) details.push(customField.label);
+      }
+      
       if (details.length > 0) {
         text += ` (${details.join(', ')})`;
       }
@@ -1622,6 +1775,37 @@ function AutomationPreview({
         details.push(config.integrationType === 'quickbooks' ? 'QuickBooks' : 'Xero');
       }
       
+      // Client Management configs
+      if (config.mergeBy) {
+        details.push(`by ${config.mergeBy}`);
+      }
+      if (config.recipientEmail) {
+        details.push(`to ${config.recipientEmail}`);
+      }
+      
+      // Sequence configs
+      if (config.emailSequenceTemplateId) {
+        const seq = MOCK_EMAIL_SEQUENCES.find(s => s.value === config.emailSequenceTemplateId);
+        if (seq) details.push(seq.label);
+      }
+      if (config.emailAccountId) {
+        const account = MOCK_EMAIL_ACCOUNTS.find(a => a.value === config.emailAccountId);
+        if (account) details.push(`from ${account.label}`);
+      }
+      if (config.smsSequenceTemplateId) {
+        const seq = MOCK_SMS_SEQUENCES.find(s => s.value === config.smsSequenceTemplateId);
+        if (seq) details.push(seq.label);
+      }
+      if (config.phoneAccountId) {
+        const account = MOCK_PHONE_ACCOUNTS.find(a => a.value === config.phoneAccountId);
+        if (account) details.push(`from ${account.label}`);
+      }
+      
+      // Webhook configs (enhanced)
+      if (config.webhookAction) {
+        details.push(config.webhookAction.toUpperCase());
+      }
+      
       if (details.length > 0) {
         text += ` (${details.slice(0, 2).join(', ')})`;
       }
@@ -1692,6 +1876,7 @@ const TRIGGER_CATEGORY_COLORS: Record<string, string> = {
 const ACTION_CATEGORY_COLORS: Record<string, string> = {
   'Communication': 'bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-950/30 dark:text-blue-300 dark:border-blue-800',
   'Client Portal': 'bg-green-50 text-green-700 border-green-200 dark:bg-green-950/30 dark:text-green-300 dark:border-green-800',
+  'Client Management': 'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/30 dark:text-emerald-300 dark:border-emerald-800',
   'Sales / Engagement': 'bg-purple-50 text-purple-700 border-purple-200 dark:bg-purple-950/30 dark:text-purple-300 dark:border-purple-800',
   'Task Management': 'bg-orange-50 text-orange-700 border-orange-200 dark:bg-orange-950/30 dark:text-orange-300 dark:border-orange-800',
   'Workflow': 'bg-indigo-50 text-indigo-700 border-indigo-200 dark:bg-indigo-950/30 dark:text-indigo-300 dark:border-indigo-800',

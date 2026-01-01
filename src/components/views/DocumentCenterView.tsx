@@ -447,6 +447,24 @@ export function DocumentCenterView() {
       newDocumentCount: 1,
       mostRecentDate: '2024-11-05',
     },
+    {
+      id: '15',
+      name: 'Robert Johnson',
+      type: 'Individual',
+      documentCount: 6,
+      newDocumentCount: 2,
+      mostRecentDate: '2024-12-15',
+      linkedAccounts: ['16'], // Linked to spouse
+    },
+    {
+      id: '16',
+      name: 'Maria Johnson',
+      type: 'Individual',
+      documentCount: 5,
+      newDocumentCount: 1,
+      mostRecentDate: '2024-12-12',
+      linkedAccounts: ['15'], // Linked to spouse
+    },
   ]);
 
   // Mock documents data
@@ -734,6 +752,160 @@ export function DocumentCenterView() {
       documentType: 'Donation Receipt',
       year: '2024',
       receivedDate: '2024-11-18 10:05 AM',
+      reviewedDate: null,
+      reviewedBy: null,
+      status: 'pending',
+      method: 'Uploaded File',
+      thumbnail: '📄',
+    },
+    {
+      id: '17a',
+      name: 'W2_Form_2024.pdf',
+      clientName: 'Jane Smith',
+      clientId: '6',
+      clientType: 'Individual',
+      documentType: 'W2 Form',
+      year: '2024',
+      receivedDate: '2024-12-08 11:15 AM',
+      reviewedDate: '2024-12-09 02:30 PM',
+      reviewedBy: 'Sarah Johnson',
+      status: 'approved',
+      method: 'Uploaded File',
+      thumbnail: '📄',
+    },
+    {
+      id: '17b',
+      name: 'Property_Tax_Bill_2024.pdf',
+      clientName: 'Jane Smith',
+      clientId: '6',
+      clientType: 'Individual',
+      documentType: 'Property Tax Bill',
+      year: '2024',
+      receivedDate: '2024-12-01 09:45 AM',
+      reviewedDate: null,
+      reviewedBy: null,
+      status: 'pending',
+      method: 'Email',
+      thumbnail: '📧',
+    },
+    {
+      id: '17c',
+      name: '1099_INT_2024.pdf',
+      clientName: 'Jane Smith',
+      clientId: '6',
+      clientType: 'Individual',
+      documentType: '1099-INT',
+      year: '2024',
+      receivedDate: '2024-11-28 03:20 PM',
+      reviewedDate: '2024-11-29 10:00 AM',
+      reviewedBy: 'Mike Brown',
+      status: 'approved',
+      method: 'Text Message',
+      thumbnail: '💬',
+    },
+
+    // Robert Johnson (id: 15) - Test client with spouse
+    {
+      id: 'test1',
+      name: 'W2_Form_2024.pdf',
+      clientName: 'Robert Johnson',
+      clientId: '15',
+      clientType: 'Individual',
+      documentType: 'W2 Form',
+      year: '2024',
+      receivedDate: '2024-12-10 10:30 AM',
+      reviewedDate: '2024-12-11 02:15 PM',
+      reviewedBy: 'Sarah Johnson',
+      status: 'approved',
+      method: 'Uploaded File',
+      thumbnail: '📄',
+    },
+    {
+      id: 'test2',
+      name: 'Bank_Statement_Dec_2024.pdf',
+      clientName: 'Robert Johnson',
+      clientId: '15',
+      clientType: 'Individual',
+      documentType: 'Bank Statement',
+      year: '2024',
+      receivedDate: '2024-12-15 09:20 AM',
+      reviewedDate: null,
+      reviewedBy: null,
+      status: 'pending',
+      method: 'Email',
+      thumbnail: '📧',
+    },
+    {
+      id: 'test3',
+      name: '1099_DIV_2024.pdf',
+      clientName: 'Robert Johnson',
+      clientId: '15',
+      clientType: 'Individual',
+      documentType: '1099-DIV',
+      year: '2024',
+      receivedDate: '2024-12-05 11:45 AM',
+      reviewedDate: null,
+      reviewedBy: null,
+      status: 'pending',
+      method: 'Uploaded File',
+      thumbnail: '📄',
+    },
+
+    // Maria Johnson (id: 16) - Spouse of Robert Johnson
+    {
+      id: 'test4',
+      name: 'W2_Form_2024.pdf',
+      clientName: 'Maria Johnson',
+      clientId: '16',
+      clientType: 'Individual',
+      documentType: 'W2 Form',
+      year: '2024',
+      receivedDate: '2024-12-08 02:15 PM',
+      reviewedDate: '2024-12-09 10:30 AM',
+      reviewedBy: 'Mike Brown',
+      status: 'approved',
+      method: 'Uploaded File',
+      thumbnail: '📄',
+    },
+    {
+      id: 'test5',
+      name: 'Property_Tax_Bill_2024.pdf',
+      clientName: 'Maria Johnson',
+      clientId: '16',
+      clientType: 'Individual',
+      documentType: 'Property Tax Bill',
+      year: '2024',
+      receivedDate: '2024-12-12 09:00 AM',
+      reviewedDate: null,
+      reviewedBy: null,
+      status: 'pending',
+      method: 'Email',
+      thumbnail: '📧',
+    },
+    {
+      id: 'test6',
+      name: 'Donation_Receipt_2024.pdf',
+      clientName: 'Maria Johnson',
+      clientId: '16',
+      clientType: 'Individual',
+      documentType: 'Donation Receipt',
+      year: '2024',
+      receivedDate: '2024-11-30 03:45 PM',
+      reviewedDate: '2024-12-01 11:20 AM',
+      reviewedBy: 'Sarah Johnson',
+      status: 'approved',
+      method: 'Text Message',
+      thumbnail: '💬',
+    },
+    {
+      id: 'test7',
+      name: '1099_INT_2024.pdf',
+      clientName: 'Maria Johnson',
+      clientId: '16',
+      clientType: 'Individual',
+      documentType: '1099-INT',
+      year: '2024',
+      receivedDate: '2024-12-01 10:15 AM',
       reviewedDate: null,
       reviewedBy: null,
       status: 'pending',
@@ -1099,6 +1271,11 @@ export function DocumentCenterView() {
     return Array.from(accountMap.values());
   }, [filteredDocuments, clients]);
 
+  // Check if there are any Individual (spouse-linked) accounts
+  const hasIndividualAccounts = useMemo(() => {
+    return accountGroups.some(group => group.clientType === 'Individual');
+  }, [accountGroups]);
+
   // Effect: Switch to File Manager tab when Firm is selected
   useEffect(() => {
     const selectedClient = clients.find(c => selectedClientIds.includes(c.id));
@@ -1110,6 +1287,14 @@ export function DocumentCenterView() {
       setActiveTab('documents');
     }
   }, [selectedClientIds, clients]);
+
+  // Effect: Auto-switch to Table View if in Split View but no Individual accounts
+  useEffect(() => {
+    if (viewMode === 'split' && !hasIndividualAccounts && accountGroups.length > 1) {
+      setViewMode('table');
+      toast.info('Split View is only available for spouse-linked accounts');
+    }
+  }, [viewMode, hasIndividualAccounts, accountGroups.length]);
 
   // Filter clients
   const filteredClients = useMemo(() => {
@@ -1257,21 +1442,39 @@ export function DocumentCenterView() {
   // Get all accounts to show in switcher (current + linked accounts)
   // This must be before any early returns to follow Rules of Hooks
   const selectedClient = clients.find(c => selectedClientIds.includes(c.id));
-  const hasLinkedAccounts = selectedClient?.linkedAccounts && selectedClient.linkedAccounts.length > 0;
+  
+  // Find the primary client (the one that has linkedAccounts defined)
+  // This ensures we maintain the original order regardless of which account is selected
+  const primaryClient = useMemo(() => {
+    if (!selectedClient) return null;
+    
+    // If current client has linked accounts, it's the primary
+    if (selectedClient.linkedAccounts && selectedClient.linkedAccounts.length > 0) {
+      return selectedClient;
+    }
+    
+    // Otherwise, find the client that has this one in its linked accounts
+    return clients.find(c => 
+      c.linkedAccounts && c.linkedAccounts.includes(selectedClient.id)
+    ) || selectedClient;
+  }, [selectedClient, clients]);
+  
+  const hasLinkedAccounts = primaryClient?.linkedAccounts && primaryClient.linkedAccounts.length > 0;
   
   const accountsToShow = useMemo(() => {
-    if (!selectedClient || !hasLinkedAccounts) return [];
+    if (!primaryClient || !hasLinkedAccounts) return [];
     
+    // Maintain original order: primary client first, then its linked accounts in their original order
     const allLinkedAccountIds = [
-      selectedClient.id, // Current account
-      ...(selectedClient.linkedAccounts || []) // Linked accounts
+      primaryClient.id, // Primary account
+      ...(primaryClient.linkedAccounts || []) // Linked accounts in original order
     ];
     
     // Get account details and filter out invalid IDs
     return allLinkedAccountIds
       .map(id => clients.find(c => c.id === id))
       .filter(Boolean) as ClientSummary[];
-  }, [selectedClient, hasLinkedAccounts, clients]);
+  }, [primaryClient, hasLinkedAccounts, clients]);
 
   // Handle account switching
   const handleAccountSwitch = (accountId: string) => {
@@ -2534,25 +2737,39 @@ export function DocumentCenterView() {
                       {showOrganizeView ? 'Show All Documents' : 'Organize documents'}
                     </Button>
 
+                    <DropdownMenu>
+                      <div className="flex">
                     <Button 
                       variant="outline" 
                       size="sm"
                       disabled={selectedDocuments.length === 0}
                       onClick={handleDownload}
+                          className="rounded-r-none border-r-0"
                     >
                       <Download className="w-4 h-4 mr-2" />
-                      Download ({selectedDocuments.length})
+                          Download {selectedDocuments.length > 0 ? `(${selectedDocuments.length})` : ''}
                     </Button>
-
+                        <DropdownMenuTrigger asChild>
                     <Button 
                       variant="outline" 
                       size="sm"
                       disabled={filteredDocuments.length === 0}
+                            className="rounded-l-none px-2"
+                          >
+                            <ChevronDown className="w-4 h-4" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                      </div>
+                      <DropdownMenuContent align="end">
+                        <DropdownMenuItem 
                       onClick={handleDownloadAll}
+                          disabled={filteredDocuments.length === 0}
                     >
                       <Download className="w-4 h-4 mr-2" />
-                      Download all
-                    </Button>
+                          Download All ({filteredDocuments.length} documents)
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
 
                     <Button 
                       size="sm"
@@ -2578,7 +2795,7 @@ export function DocumentCenterView() {
 
                 {/* Quick Status Filter Pills */}
                 <div className="flex items-center justify-between gap-2">
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-2 flex-wrap">
                     <span className="text-sm text-gray-600 dark:text-gray-400 mr-2">Quick Filter:</span>
                     <button
                       onClick={() => setStatusFilter('all')}
@@ -2627,97 +2844,110 @@ export function DocumentCenterView() {
                       <CheckCircle className="w-3.5 h-3.5" />
                       Approved ({clientStats.received})
                     </button>
-                  </div>
 
-                  <div className="flex items-center gap-2">
-                    {/* Account Switcher - Only show if linked accounts exist */}
+                    {/* Linked Accounts Quick Filters - Only show if linked accounts exist */}
                     {hasLinkedAccounts && accountsToShow.length > 0 && (
                       <>
-                        <span className="text-sm text-gray-600 dark:text-gray-400 mr-1">Linked Accounts:</span>
-                        <TooltipProvider>
-                          <Tooltip>
-                            <TooltipTrigger asChild>
+                        <span className="text-sm text-gray-600 dark:text-gray-400 mr-1 ml-2">Linked Accounts:</span>
+                        {/* All Accounts Chip */}
+                        <button
+                          onClick={handleAllAccounts}
+                          className={cn(
+                            "px-3 py-1.5 rounded-full text-xs font-medium transition-all flex items-center gap-1.5",
+                            showLinkedAccounts
+                              ? "bg-purple-600 text-white shadow-sm"
+                              : "bg-gray-100 text-gray-700 hover:bg-gray-200 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700"
+                          )}
+                        >
+                          <Users className="w-3.5 h-3.5" />
+                          All Accounts
+                        </button>
+                        {/* Individual Account Chips - Show first 3, rest in "More" dropdown */}
+                        {accountsToShow.slice(0, 3).map(account => {
+                          const isActive = selectedClientIds.includes(account.id) && !showLinkedAccounts;
+                          const isBusiness = account.type === 'Business';
+                          return (
+                            <button
+                              key={account.id}
+                              onClick={() => handleAccountSwitch(account.id)}
+                              className={cn(
+                                "px-3 py-1.5 rounded-full text-xs font-medium transition-all flex items-center gap-1.5",
+                                isActive
+                                  ? isBusiness
+                                    ? "bg-blue-600 text-white shadow-sm"
+                                    : "bg-green-600 text-white shadow-sm"
+                                  : isBusiness
+                                    ? "bg-blue-50 text-blue-700 hover:bg-blue-100 dark:bg-blue-900/30 dark:text-blue-300 dark:hover:bg-blue-900/50"
+                                    : "bg-green-50 text-green-700 hover:bg-green-100 dark:bg-green-900/30 dark:text-green-300 dark:hover:bg-green-900/50"
+                              )}
+                            >
+                              {isBusiness ? (
+                                <Building2 className="w-3.5 h-3.5" />
+                              ) : (
+                                <User className="w-3.5 h-3.5" />
+                              )}
+                              {account.name}
+                            </button>
+                          );
+                        })}
+                        {/* "More" Dropdown for overflow accounts */}
+                        {accountsToShow.length > 3 && (
                               <DropdownMenu>
                                 <DropdownMenuTrigger asChild>
-                                <Button 
-                                  variant="outline" 
-                                  size="sm" 
+                              <button
                                   className={cn(
-                                    "gap-2 border-purple-200 text-purple-700 hover:bg-purple-50 dark:border-purple-800 dark:text-purple-400 dark:hover:bg-purple-900/20",
-                                    showLinkedAccounts && "bg-purple-50 dark:bg-purple-900/20"
-                                  )}
-                                >
-                                  <Users className="w-4 h-4" />
-                                  {showLinkedAccounts ? 'All Accounts' : selectedClient?.name}
-                                  <ChevronDown className="w-4 h-4" />
-                                </Button>
+                                  "px-3 py-1.5 rounded-full text-xs font-medium transition-all flex items-center gap-1.5",
+                                  "bg-gray-100 text-gray-700 hover:bg-gray-200 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700"
+                                )}
+                              >
+                                More
+                                <ChevronDown className="w-3.5 h-3.5" />
+                              </button>
                                 </DropdownMenuTrigger>
                               <DropdownMenuContent align="end" className="w-64">
                                 <div className="px-2 py-1.5 border-b border-gray-200 dark:border-gray-700 mb-1">
-                                  <p className="text-xs font-medium text-gray-700 dark:text-gray-300">Switch Account</p>
+                                <p className="text-xs font-medium text-gray-700 dark:text-gray-300">Additional Accounts</p>
                                   <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
-                                    Switch between linked accounts to view their documents
+                                  Switch to another linked account
                                   </p>
                                 </div>
-                                {/* All Accounts Option */}
-                                <DropdownMenuItem
-                                  onClick={handleAllAccounts}
-                                  className={cn(
-                                    showLinkedAccounts && "bg-purple-50 dark:bg-purple-900/20"
-                                  )}
-                                >
-                                  <div className="flex items-center gap-3 w-full">
-                                    <Users className="w-4 h-4 text-purple-600 dark:text-purple-400" />
-                                    <div className="flex-1">
-                                      <div className="font-medium">All Accounts</div>
-                                      <div className="text-xs text-gray-500 dark:text-gray-400">View all linked accounts</div>
-                                    </div>
-                                    {showLinkedAccounts && (
-                                      <CheckCircle2 className="w-4 h-4 text-purple-600 dark:text-purple-400" />
-                                    )}
-                                  </div>
-                                </DropdownMenuItem>
-                                <DropdownMenuSeparator />
-                                {accountsToShow.map(account => (
+                              {accountsToShow.slice(3).map(account => {
+                                const isActive = selectedClientIds.includes(account.id) && !showLinkedAccounts;
+                                return (
                             <DropdownMenuItem
                               key={account.id}
                               onClick={() => handleAccountSwitch(account.id)}
                               className={cn(
-                                selectedClientIds.includes(account.id) && "bg-purple-50 dark:bg-purple-900/20"
+                                      isActive && "bg-purple-50 dark:bg-purple-900/20"
                               )}
                             >
                               <div className="flex items-center gap-3 w-full">
                                 {account.type === 'Business' ? (
-                                  <Building2 className="w-4 h-4 text-purple-600 dark:text-purple-400" />
+                                        <Building2 className="w-4 h-4 text-blue-600 dark:text-blue-400" />
                                 ) : (
-                                  <User className="w-4 h-4 text-purple-600 dark:text-purple-400" />
+                                        <User className="w-4 h-4 text-green-600 dark:text-green-400" />
                                 )}
                                 <div className="flex-1">
                                   <div className="font-medium">{account.name}</div>
                                   <div className="text-xs text-gray-500 dark:text-gray-400">{account.type}</div>
                                 </div>
-                                {selectedClientIds.includes(account.id) && (
+                                      {isActive && (
                                   <CheckCircle2 className="w-4 h-4 text-purple-600 dark:text-purple-400" />
                                 )}
                               </div>
                             </DropdownMenuItem>
-                                ))}
+                                );
+                              })}
                               </DropdownMenuContent>
                             </DropdownMenu>
-                          </TooltipTrigger>
-                          <TooltipContent side="bottom" className="max-w-xs">
-                            <p className="text-sm font-medium mb-1">Switch Between Linked Accounts</p>
-                            <p className="text-xs text-gray-400">
-                              Quickly switch to view documents from other linked accounts (e.g., spouse or business accounts) without going back to the client list.
-                            </p>
-                          </TooltipContent>
-                        </Tooltip>
-                      </TooltipProvider>
+                        )}
                       </>
                     )}
+                  </div>
 
-                    {/* View Toggle - Only show if multiple accounts */}
-                    {accountGroups.length > 1 && (
+                  <div className="flex items-center gap-2">
+                    {/* View Toggle - Only show if multiple accounts AND at least one is Individual (spouse-linked) */}
+                    {accountGroups.length > 1 && hasIndividualAccounts && (
                     <div className="flex items-center gap-1 border border-gray-200 dark:border-gray-700 rounded-lg p-1 bg-gray-50 dark:bg-gray-800/50">
                       <Button
                         size="sm"
@@ -2846,6 +3076,12 @@ export function DocumentCenterView() {
                 {viewMode === 'table' ? (
                   <Card className="border-gray-200/60">
                     <div className="overflow-x-auto">
+                      {(() => {
+                        // Determine if client column should be shown
+                        const showClientColumn = showLinkedAccounts || accountGroups.length > 1;
+                        const columnCount = showClientColumn ? 9 : 8;
+                        
+                        return (
                       <table className="w-full min-w-[1400px]">
                         <thead className="bg-gray-50/50 border-b border-gray-200">
                           <tr>
@@ -2858,6 +3094,11 @@ export function DocumentCenterView() {
                           <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                             Document
                           </th>
+                          {showClientColumn && (
+                            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                              Client
+                            </th>
+                          )}
                           <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                             Document Type
                           </th>
@@ -2884,7 +3125,7 @@ export function DocumentCenterView() {
                           organizedDocuments.flatMap((group) => [
                             // Category Header Row
             <tr key={`category-${group.category.id}`} className="bg-gray-100 dark:bg-gray-800">
-                              <td colSpan={8} className="px-4 py-3">
+                              <td colSpan={columnCount} className="px-4 py-3">
                                 <div className="flex items-center gap-2">
                                   <div className="h-1 w-1 rounded-full bg-purple-600"></div>
                                   <span className="font-semibold text-gray-900 dark:text-white uppercase tracking-wide text-xs">
@@ -2904,12 +3145,19 @@ export function DocumentCenterView() {
                           const shouldGrayOut = isRequested && statusFilter !== 'pending'; // Only gray out if NOT filtering by requested
                           const latestReminder = getLatestReminder(doc);
                           
+                          // Check if document belongs to a linked spouse account
+                          const isLinkedSpouseDoc = showLinkedAccounts && selectedClientIds.length > 0 && (() => {
+                            const selectedClient = clients.find(c => selectedClientIds.includes(c.id));
+                            return selectedClient?.linkedAccounts?.includes(doc.clientId) ?? false;
+                          })();
+                          
                           return (
                           <tr 
                             key={doc.id}
                             className={cn(
                               "hover:bg-gray-50/50 dark:hover:bg-gray-800/50 transition-colors group",
                               selectedDocuments.includes(doc.id) && "bg-purple-50/30 dark:bg-purple-900/10",
+                              isLinkedSpouseDoc && "bg-blue-50/30 dark:bg-blue-900/10",
                               isDifferentYear && isUnreviewed && "bg-amber-50/40 dark:bg-amber-900/20 border-l-4 border-amber-500"
                             )}
                           >
@@ -3004,6 +3252,20 @@ export function DocumentCenterView() {
                                 </div>
                               </div>
                             </td>
+                            {showClientColumn && (
+                              <td className={cn("px-4 py-4", shouldGrayOut && "opacity-50")}>
+                                <div className="flex items-center gap-2">
+                                  {doc.clientType === 'Business' ? (
+                                    <Building2 className="w-4 h-4 text-blue-600 dark:text-blue-400 flex-shrink-0" />
+                                  ) : (
+                                    <User className="w-4 h-4 text-green-600 dark:text-green-400 flex-shrink-0" />
+                                  )}
+                                  <span className="text-sm font-medium text-gray-900 dark:text-white">
+                                    {doc.clientName}
+                                  </span>
+                                </div>
+                              </td>
+                            )}
                             <td className="px-4 py-4">
                               <Select 
                                 value={doc.documentType}
@@ -3235,12 +3497,19 @@ export function DocumentCenterView() {
                           const shouldGrayOut = isRequested && statusFilter !== 'pending'; // Only gray out if NOT filtering by requested
                           const latestReminder = getLatestReminder(doc);
                           
+                          // Check if document belongs to a linked spouse account
+                          const isLinkedSpouseDoc = showLinkedAccounts && selectedClientIds.length > 0 && (() => {
+                            const selectedClient = clients.find(c => selectedClientIds.includes(c.id));
+                            return selectedClient?.linkedAccounts?.includes(doc.clientId) ?? false;
+                          })();
+                          
                           return (
                           <tr 
                             key={doc.id}
                             className={cn(
                               "hover:bg-gray-50/50 dark:hover:bg-gray-800/50 transition-colors group",
                               selectedDocuments.includes(doc.id) && "bg-purple-50/30 dark:bg-purple-900/10",
+                              isLinkedSpouseDoc && "bg-blue-50/30 dark:bg-blue-900/10",
                               isDifferentYear && isUnreviewed && "bg-amber-50/40 dark:bg-amber-900/20 border-l-4 border-amber-500"
                             )}
                           >
@@ -3335,6 +3604,20 @@ export function DocumentCenterView() {
                                 </div>
                               </div>
                             </td>
+                            {showClientColumn && (
+                              <td className={cn("px-4 py-4", shouldGrayOut && "opacity-50")}>
+                                <div className="flex items-center gap-2">
+                                  {doc.clientType === 'Business' ? (
+                                    <Building2 className="w-4 h-4 text-blue-600 dark:text-blue-400 flex-shrink-0" />
+                                  ) : (
+                                    <User className="w-4 h-4 text-green-600 dark:text-green-400 flex-shrink-0" />
+                                  )}
+                                  <span className="text-sm font-medium text-gray-900 dark:text-white">
+                                    {doc.clientName}
+                                  </span>
+                                </div>
+                              </td>
+                            )}
                             <td className="px-4 py-4">
                               <Select 
                                 value={doc.documentType}
@@ -3559,10 +3842,12 @@ export function DocumentCenterView() {
                         )}
                       </tbody>
                     </table>
+                        );
+                      })()}
                   </div>
                 </Card>
-                ) : (
-                  // Split View - Group by Account
+                ) : viewMode === 'split' && hasIndividualAccounts ? (
+                  // Split View - Group by Account (only available for Individual/spouse-linked accounts)
                   <div className="space-y-6">
                     {accountGroups.length === 0 ? (
                       <Card className="border-gray-200/60 p-12 text-center">
@@ -3677,12 +3962,19 @@ export function DocumentCenterView() {
                                             const shouldGrayOut = isRequested && statusFilter !== 'pending';
                                             const latestReminder = getLatestReminder(doc);
                                             
+                                            // Check if document belongs to a linked spouse account
+                                            const isLinkedSpouseDoc = showLinkedAccounts && selectedClientIds.length > 0 && (() => {
+                                              const selectedClient = clients.find(c => selectedClientIds.includes(c.id));
+                                              return selectedClient?.linkedAccounts?.includes(doc.clientId) ?? false;
+                                            })();
+                                            
                                             return (
                                               <tr 
                                                 key={doc.id}
                                                 className={cn(
                                                   "hover:bg-gray-50/50 dark:hover:bg-gray-800/50 transition-colors group",
                                                   selectedDocuments.includes(doc.id) && "bg-purple-50/30 dark:bg-purple-900/10",
+                                                  isLinkedSpouseDoc && "bg-blue-50/30 dark:bg-blue-900/10",
                                                   isDifferentYear && isUnreviewed && "bg-amber-50/40 dark:bg-amber-900/20 border-l-4 border-amber-500"
                                                 )}
                                               >
@@ -4003,12 +4295,19 @@ export function DocumentCenterView() {
                                         const shouldGrayOut = isRequested && statusFilter !== 'pending';
                                         const latestReminder = getLatestReminder(doc);
                                         
+                                        // Check if document belongs to a linked spouse account
+                                        const isLinkedSpouseDoc = showLinkedAccounts && selectedClientIds.length > 0 && (() => {
+                                          const selectedClient = clients.find(c => selectedClientIds.includes(c.id));
+                                          return selectedClient?.linkedAccounts?.includes(doc.clientId) ?? false;
+                                        })();
+                                        
                                         return (
                                           <tr 
                                             key={doc.id}
                                             className={cn(
                                               "hover:bg-gray-50/50 dark:hover:bg-gray-800/50 transition-colors group",
                                               selectedDocuments.includes(doc.id) && "bg-purple-50/30 dark:bg-purple-900/10",
+                                              isLinkedSpouseDoc && "bg-blue-50/30 dark:bg-blue-900/10",
                                               isDifferentYear && isUnreviewed && "bg-amber-50/40 dark:bg-amber-900/20 border-l-4 border-amber-500"
                                             )}
                                           >
@@ -4331,6 +4630,12 @@ export function DocumentCenterView() {
                       })
                     )}
                   </div>
+                ) : (
+                  // Fallback: Show Table View if Split View is not available (e.g., only Business accounts)
+                  <Card className="border-gray-200/60 p-12 text-center">
+                    <FileText className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+                    <p className="text-gray-600 dark:text-gray-400">Split View is only available for spouse-linked accounts</p>
+                  </Card>
                 )}
               </div>
             </div>

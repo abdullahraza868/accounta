@@ -577,6 +577,25 @@ export function ConsolidatedBusinessDemographicsCard({
               </p>
             </div>
 
+            {/* Important Notice - Firm Initiating on Behalf of Client */}
+            <div className="p-4 rounded-lg bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800">
+              <div className="flex items-start gap-3">
+                <Shield className="w-5 h-5 text-amber-600 dark:text-amber-400 flex-shrink-0 mt-0.5" />
+                <div className="flex-1 space-y-2">
+                  <p className="text-sm font-medium text-amber-900 dark:text-amber-200">
+                    Verification Code Will Be Sent to Client
+                  </p>
+                  <p className="text-xs text-amber-800 dark:text-amber-300 leading-relaxed">
+                    The verification code will be sent to the client's phone number, not yours. You'll need to either:
+                  </p>
+                  <ul className="text-xs text-amber-800 dark:text-amber-300 space-y-1.5 ml-4 list-disc">
+                    <li>Request the code from the client after it's sent</li>
+                    <li>Ask the client to complete verification in their client portal</li>
+                  </ul>
+                </div>
+              </div>
+            </div>
+
             {/* Info Message */}
             <div className="p-3 rounded-lg bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800">
               <p className="text-sm text-blue-800 dark:text-blue-300 text-center">

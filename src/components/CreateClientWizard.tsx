@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useClientVisibility } from '../contexts/ClientVisibilityContext';
 import { Button } from './ui/button';
@@ -81,6 +81,38 @@ interface CreateClientWizardProps {
   onClose?: () => void;
   clientGroups: ClientGroup[];
   asPage?: boolean;
+  mode?: 'create' | 'edit';
+  initialData?: Partial<ClientWizardData>;
+  hideClientType?: boolean;
+  title?: string;
+  onSave?: (data: any) => void;
+}
+
+interface ClientWizardData {
+  clientType: ClientType;
+  profilePhoto: string;
+  selectedGroups: string[];
+  clientNumber: string;
+  firstName?: string;
+  middleName?: string;
+  lastName?: string;
+  preferredName?: string;
+  email?: string;
+  phone?: string;
+  dob?: string;
+  ssn?: string;
+  filingStatus?: FilingStatus;
+  profession?: string;
+  address1?: string;
+  address2?: string;
+  city?: string;
+  state?: string;
+  postalCode?: string;
+  companyName?: string;
+  dbaName?: string;
+  ein?: string;
+  entityType?: EntityType;
+  [key: string]: any;
 }
 
 interface Withholding {
@@ -155,22 +187,36 @@ const SERVICES: { id: ServiceType; label: string }[] = [
   { id: 'year-end', label: 'Year-End Tax' },
 ];
 
-export function CreateClientWizard({ onClose, clientGroups, asPage = false }: CreateClientWizardProps) {
+export function CreateClientWizard({ 
+  onClose, 
+  clientGroups, 
+  asPage = false,
+  mode = 'create',
+  initialData,
+  hideClientType = false,
+  title,
+  onSave
+}: CreateClientWizardProps) {
   const navigate = useNavigate();
   const fileInputRef = useRef<HTMLInputElement>(null);
   
   // Get visibility settings from context
   const { individualCardVisibility, businessCardVisibility } = useClientVisibility();
 
+  // Determine initial step - skip 'basic' if client type is hidden
+  const initialStep = (hideClientType || mode === 'edit') ? 'identity' : 'basic';
+  
   // Step management
-  const [currentStep, setCurrentStep] = useState<'basic' | 'identity' | 'financial' | 'additional' | 'demographics' | 'review'>('basic');
-  const [visitedSteps, setVisitedSteps] = useState<Set<string>>(new Set(['basic']));
+  const [currentStep, setCurrentStep] = useState<'basic' | 'identity' | 'financial' | 'additional' | 'demographics' | 'review'>(initialStep);
+  const [visitedSteps, setVisitedSteps] = useState<Set<string>>(new Set([initialStep]));
 
-  // Step 1: Basic Profile
-  const [clientType, setClientType] = useState<ClientType>('individual');
-  const [profilePhoto, setProfilePhoto] = useState<string>('');
-  const [selectedGroups, setSelectedGroups] = useState<string[]>(['lead']);
-  const [clientNumber, setClientNumber] = useState('');
+  // Step 1: Basic Profile - initialize from initialData if provided
+  const [clientType, setClientType] = useState<ClientType>(
+    initialData?.clientType || (initialData?.clientType === 'business' ? 'business' : 'individual')
+  );
+  const [profilePhoto, setProfilePhoto] = useState<string>(initialData?.profilePhoto || '');
+  const [selectedGroups, setSelectedGroups] = useState<string[]>(initialData?.selectedGroups || ['lead']);
+  const [clientNumber, setClientNumber] = useState<string>(initialData?.clientNumber || '');
   
   // Client Groups Dialog
   const [showClientGroupsDialog, setShowClientGroupsDialog] = useState(false);
@@ -245,14 +291,64 @@ export function CreateClientWizard({ onClose, clientGroups, asPage = false }: Cr
 
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const steps: StepConfig[] = [
+  // Pre-populate form fields from initialData
+  useEffect(() => {
+    if (initialData) {
+      // Individual fields
+      if (initialData.firstName) setFirstName(initialData.firstName);
+      if (initialData.middleName) setMiddleName(initialData.middleName);
+      if (initialData.lastName) setLastName(initialData.lastName);
+      if (initialData.preferredName) setPreferredName(initialData.preferredName);
+      if (initialData.email) setEmail(initialData.email);
+      if (initialData.phone) setPhone(initialData.phone);
+      if (initialData.dob) setDob(initialData.dob);
+      if (initialData.ssn) setSsn(initialData.ssn);
+      if (initialData.filingStatus) setFilingStatus(initialData.filingStatus as FilingStatus);
+      if (initialData.profession) setProfession(initialData.profession);
+      if (initialData.address1) setAddress1(initialData.address1);
+      if (initialData.address2) setAddress2(initialData.address2);
+      if (initialData.city) setCity(initialData.city);
+      if (initialData.state) setState(initialData.state);
+      if (initialData.postalCode) setPostalCode(initialData.postalCode);
+      
+      // Business fields
+      if (initialData.companyName) setCompanyName(initialData.companyName);
+      if (initialData.dbaName) setDbaName(initialData.dbaName);
+      if (initialData.ein) setEin(initialData.ein);
+      if (initialData.entityType) setEntityType(initialData.entityType as EntityType);
+      if (initialData.stateOfIncorporation) setStateOfIncorporation(initialData.stateOfIncorporation);
+      if (initialData.ownerName) setOwnerName(initialData.ownerName);
+      
+      // Financial fields
+      if (initialData.bankName) setBankName(initialData.bankName);
+      if (initialData.accountNumber) setAccountNumber(initialData.accountNumber);
+      if (initialData.routingNumber) setRoutingNumber(initialData.routingNumber);
+      if (initialData.accountType) setAccountType(initialData.accountType as AccountType);
+      if (initialData.selectedServices) {
+        setSelectedServices(new Set(initialData.selectedServices as ServiceType[]));
+      }
+      
+      // Additional fields
+      if (initialData.spouse) setSpouse(initialData.spouse as Spouse);
+      if (initialData.dependents) setDependents(initialData.dependents as Dependent[]);
+      if (initialData.additionalContacts) setAdditionalContacts(initialData.additionalContacts as AdditionalContact[]);
+      if (initialData.referredBy) setReferredBy(initialData.referredBy);
+    }
+  }, [initialData]);
+
+  // Steps array - exclude 'basic' if client type is hidden
+  const allSteps: StepConfig[] = [
     { id: 'basic', label: 'Basic Profile', number: 1 },
     { id: 'identity', label: 'Identity & Contact', number: 2 },
     { id: 'financial', label: 'Financial & Services', number: 3 },
     { id: 'additional', label: 'Additional Info', number: 4 },
     { id: 'demographics', label: 'Demographics Preview', number: 5 },
-    { id: 'review', label: 'Review & Create', number: 6 },
+    { id: 'review', label: mode === 'edit' ? 'Review & Save' : 'Review & Create', number: 6 },
   ];
+
+  const steps: StepConfig[] = hideClientType 
+    ? allSteps.filter(s => s.id !== 'basic').map((s, idx) => ({ ...s, number: idx + 1 }))
+    : allSteps;
 
   const sortedGroups = [...clientGroups].sort((a, b) => a.name.localeCompare(b.name));
   const hasLeadGroup = clientGroups.some(g => g.id === 'lead');
@@ -262,7 +358,9 @@ export function CreateClientWizard({ onClose, clientGroups, asPage = false }: Cr
   };
 
   const handleNext = () => {
-    const stepOrder: (typeof currentStep)[] = ['basic', 'identity', 'financial', 'additional', 'demographics', 'review'];
+    const stepOrder: (typeof currentStep)[] = hideClientType 
+      ? ['identity', 'financial', 'additional', 'demographics', 'review']
+      : ['basic', 'identity', 'financial', 'additional', 'demographics', 'review'];
     const currentIndex = stepOrder.indexOf(currentStep);
     if (currentIndex < stepOrder.length - 1) {
       const nextStep = stepOrder[currentIndex + 1];
@@ -272,7 +370,9 @@ export function CreateClientWizard({ onClose, clientGroups, asPage = false }: Cr
   };
 
   const handleBack = () => {
-    const stepOrder: (typeof currentStep)[] = ['basic', 'identity', 'financial', 'additional', 'demographics', 'review'];
+    const stepOrder: (typeof currentStep)[] = hideClientType 
+      ? ['identity', 'financial', 'additional', 'demographics', 'review']
+      : ['basic', 'identity', 'financial', 'additional', 'demographics', 'review'];
     const currentIndex = stepOrder.indexOf(currentStep);
     if (currentIndex > 0) {
       setCurrentStep(stepOrder[currentIndex - 1]);
@@ -390,29 +490,43 @@ export function CreateClientWizard({ onClose, clientGroups, asPage = false }: Cr
         twoFactorEnabled,
       };
 
-      await new Promise(resolve => setTimeout(resolve, 1500));
+      if (mode === 'edit' && onSave) {
+        // Edit mode - call onSave callback
+        await new Promise(resolve => setTimeout(resolve, 1500));
+        onSave(clientData);
+        toast.success('Profile Updated Successfully', {
+          description: 'Your profile has been updated',
+          icon: <Check className="w-4 h-4" />,
+        });
+        if (onClose) {
+          onClose();
+        }
+      } else {
+        // Create mode - original flow
+        await new Promise(resolve => setTimeout(resolve, 1500));
 
-      console.log('Creating client:', clientData);
+        console.log('Creating client:', clientData);
 
-      const clientName = clientType === 'business' ? companyName : `${firstName} ${lastName}`;
+        const clientName = clientType === 'business' ? companyName : `${firstName} ${lastName}`;
 
-      toast.success('Client Created Successfully', {
-        description: `${clientName} has been added to your client list`,
-        icon: <Check className="w-4 h-4" />,
-      });
+        toast.success('Client Created Successfully', {
+          description: `${clientName} has been added to your client list`,
+          icon: <Check className="w-4 h-4" />,
+        });
 
-      if (onClose) {
-        onClose();
+        if (onClose) {
+          onClose();
+        }
+
+        const mockClientId = `client-${Date.now()}`;
+        setTimeout(() => {
+          navigate(`/clients/${mockClientId}`);
+        }, 300);
       }
 
-      const mockClientId = `client-${Date.now()}`;
-      setTimeout(() => {
-        navigate(`/clients/${mockClientId}`);
-      }, 300);
-
     } catch (error) {
-      console.error('Error creating client:', error);
-      toast.error('Failed to Create Client', {
+      console.error('Error saving client:', error);
+      toast.error(mode === 'edit' ? 'Failed to Update Profile' : 'Failed to Create Client', {
         description: 'Please try again or contact support if the problem persists',
       });
     } finally {
@@ -423,79 +537,81 @@ export function CreateClientWizard({ onClose, clientGroups, asPage = false }: Cr
   // Step 1: Basic Profile
   const renderBasicProfile = () => (
     <div className="max-w-4xl mx-auto space-y-6">
-      {/* Client Type Toggle */}
-      <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-6">
-        <h3 className="font-medium mb-4">Client Type</h3>
-        <div className="grid grid-cols-2 gap-4">
-          <button
-            type="button"
-            onClick={() => setClientType('individual')}
-            className={cn(
-              'p-6 border-2 rounded-xl transition-all text-left',
-              'hover:border-gray-300 dark:hover:border-gray-600',
-              clientType === 'individual'
-                ? 'border-purple-600 bg-purple-50 dark:bg-purple-900/20'
-                : 'border-gray-200 dark:border-gray-700'
-            )}
-          >
-            <div className="flex items-start gap-4">
-              <div className={cn(
-                'w-12 h-12 rounded-xl flex items-center justify-center',
+      {/* Client Type Toggle - Hidden when hideClientType is true */}
+      {!hideClientType && (
+        <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-6">
+          <h3 className="font-medium mb-4">Client Type</h3>
+          <div className="grid grid-cols-2 gap-4">
+            <button
+              type="button"
+              onClick={() => setClientType('individual')}
+              className={cn(
+                'p-6 border-2 rounded-xl transition-all text-left',
+                'hover:border-gray-300 dark:hover:border-gray-600',
                 clientType === 'individual'
-                  ? 'bg-purple-100 dark:bg-purple-900/40'
-                  : 'bg-gray-100 dark:bg-gray-700'
-              )}>
-                <User className={cn(
-                  'w-6 h-6',
+                  ? 'border-purple-600 bg-purple-50 dark:bg-purple-900/20'
+                  : 'border-gray-200 dark:border-gray-700'
+              )}
+            >
+              <div className="flex items-start gap-4">
+                <div className={cn(
+                  'w-12 h-12 rounded-xl flex items-center justify-center',
                   clientType === 'individual'
-                    ? 'text-purple-600 dark:text-purple-400'
-                    : 'text-gray-500 dark:text-gray-400'
-                )} />
+                    ? 'bg-purple-100 dark:bg-purple-900/40'
+                    : 'bg-gray-100 dark:bg-gray-700'
+                )}>
+                  <User className={cn(
+                    'w-6 h-6',
+                    clientType === 'individual'
+                      ? 'text-purple-600 dark:text-purple-400'
+                      : 'text-gray-500 dark:text-gray-400'
+                  )} />
+                </div>
+                <div>
+                  <p className="font-medium mb-1">Individual Client</p>
+                  <p className="text-sm text-gray-500 dark:text-gray-400">
+                    Personal tax client
+                  </p>
+                </div>
               </div>
-              <div>
-                <p className="font-medium mb-1">Individual Client</p>
-                <p className="text-sm text-gray-500 dark:text-gray-400">
-                  Personal tax client
-                </p>
-              </div>
-            </div>
-          </button>
+            </button>
 
-          <button
-            type="button"
-            onClick={() => setClientType('business')}
-            className={cn(
-              'p-6 border-2 rounded-xl transition-all text-left',
-              'hover:border-gray-300 dark:hover:border-gray-600',
-              clientType === 'business'
-                ? 'border-purple-600 bg-purple-50 dark:bg-purple-900/20'
-                : 'border-gray-200 dark:border-gray-700'
-            )}
-          >
-            <div className="flex items-start gap-4">
-              <div className={cn(
-                'w-12 h-12 rounded-xl flex items-center justify-center',
+            <button
+              type="button"
+              onClick={() => setClientType('business')}
+              className={cn(
+                'p-6 border-2 rounded-xl transition-all text-left',
+                'hover:border-gray-300 dark:hover:border-gray-600',
                 clientType === 'business'
-                  ? 'bg-purple-100 dark:bg-purple-900/40'
-                  : 'bg-gray-100 dark:bg-gray-700'
-              )}>
-                <Building2 className={cn(
-                  'w-6 h-6',
+                  ? 'border-purple-600 bg-purple-50 dark:bg-purple-900/20'
+                  : 'border-gray-200 dark:border-gray-700'
+              )}
+            >
+              <div className="flex items-start gap-4">
+                <div className={cn(
+                  'w-12 h-12 rounded-xl flex items-center justify-center',
                   clientType === 'business'
-                    ? 'text-purple-600 dark:text-purple-400'
-                    : 'text-gray-500 dark:text-gray-400'
-                )} />
+                    ? 'bg-purple-100 dark:bg-purple-900/40'
+                    : 'bg-gray-100 dark:bg-gray-700'
+                )}>
+                  <Building2 className={cn(
+                    'w-6 h-6',
+                    clientType === 'business'
+                      ? 'text-purple-600 dark:text-purple-400'
+                      : 'text-gray-500 dark:text-gray-400'
+                  )} />
+                </div>
+                <div>
+                  <p className="font-medium mb-1">Business Client</p>
+                  <p className="text-sm text-gray-500 dark:text-gray-400">
+                    Business entity
+                  </p>
+                </div>
               </div>
-              <div>
-                <p className="font-medium mb-1">Business Client</p>
-                <p className="text-sm text-gray-500 dark:text-gray-400">
-                  Business entity
-                </p>
-              </div>
-            </div>
-          </button>
+            </button>
+          </div>
         </div>
-      </div>
+      )}
 
       {/* Profile Photo */}
       <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-6">
@@ -3039,12 +3155,12 @@ export function CreateClientWizard({ onClose, clientGroups, asPage = false }: Cr
               Clients
             </button>
             <span>/</span>
-            <span className="text-gray-900 dark:text-white">Create New Client</span>
+            <span className="text-gray-900 dark:text-white">{title || (mode === 'edit' ? 'Edit Profile' : 'Create New Client')}</span>
           </div>
 
           <div className="flex items-center justify-between mb-6">
             <div>
-              <h2 className="text-2xl">Create New Client</h2>
+              <h2 className="text-2xl">{title || (mode === 'edit' ? 'Edit Profile' : 'Create New Client')}</h2>
               <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
                 Add a new client to your CRM system
               </p>
@@ -3107,7 +3223,7 @@ export function CreateClientWizard({ onClose, clientGroups, asPage = false }: Cr
                 ) : (
                   <>
                     <Check className="w-4 h-4" />
-                    Create Client
+                    {mode === 'edit' ? 'Save Changes' : 'Create Client'}
                   </>
                 )}
               </Button>
@@ -3156,7 +3272,7 @@ export function CreateClientWizard({ onClose, clientGroups, asPage = false }: Cr
         <div className="px-8 py-6 border-b border-gray-200 dark:border-gray-700">
           <div className="flex items-center justify-between mb-6">
             <div>
-              <h2 className="text-2xl font-semibold">Create New Client</h2>
+              <h2 className="text-2xl font-semibold">{title || (mode === 'edit' ? 'Edit Profile' : 'Create New Client')}</h2>
               <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
                 Add a new client to your CRM system
               </p>
@@ -3225,7 +3341,7 @@ export function CreateClientWizard({ onClose, clientGroups, asPage = false }: Cr
                 ) : (
                   <>
                     <Check className="w-4 h-4" />
-                    Create Client
+                    {mode === 'edit' ? 'Save Changes' : 'Create Client'}
                   </>
                 )}
               </Button>

@@ -503,6 +503,19 @@ export function DocumentsTab({ client }: DocumentsTabProps) {
     return Array.from(groups.values());
   }, [filteredDocs, tableViewMode, mockLinkedAccounts]);
 
+  // Check if there are any Individual (spouse-linked) accounts
+  const hasIndividualAccounts = useMemo(() => {
+    return accountGroups.some((group: { clientType: 'Individual' | 'Business' }) => group.clientType === 'Individual');
+  }, [accountGroups]);
+
+  // Effect: Auto-switch to Table View if in Split View but no Individual accounts
+  useEffect(() => {
+    if (tableViewMode === 'split' && !hasIndividualAccounts && accountGroups.length > 1) {
+      setTableViewMode('table');
+      toast.info('Split View is only available for spouse-linked accounts');
+    }
+  }, [tableViewMode, hasIndividualAccounts, accountGroups.length]);
+
   const toggleDocumentSelection = (id: string) => {
     setSelectedDocuments((prev: string[]) => 
       prev.includes(id) ? prev.filter((docId: string) => docId !== id) : [...prev, id]
@@ -548,52 +561,68 @@ export function DocumentsTab({ client }: DocumentsTabProps) {
   };
 
   // Helper function to render table header
-  const renderTableHeader = () => (
-    <thead className="bg-gray-50/50 border-b border-gray-200">
-      <tr>
-        <th className="px-4 py-3 text-left w-12">
-          <Checkbox 
-            checked={selectedDocuments.length === filteredDocs.length && filteredDocs.length > 0}
-            onCheckedChange={toggleSelectAll}
-          />
-        </th>
-        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-          Document
-        </th>
-        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-          Document Type
-        </th>
-        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-          Year
-        </th>
-        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-          Received
-        </th>
-        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-          Reviewed
-        </th>
-        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-          Method
-        </th>
-        <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-          Actions
-        </th>
-      </tr>
-    </thead>
-  );
+  const renderTableHeader = () => {
+    // Determine if client column should be shown (only in table view when viewing multiple clients)
+    const showClientColumn = showLinkedAccounts || accountGroups.length > 1;
+    
+    return (
+      <thead className="bg-gray-50/50 border-b border-gray-200">
+        <tr>
+          <th className="px-4 py-3 text-left w-12">
+            <Checkbox 
+              checked={selectedDocuments.length === filteredDocs.length && filteredDocs.length > 0}
+              onCheckedChange={toggleSelectAll}
+            />
+          </th>
+          <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+            Document
+          </th>
+          {showClientColumn && (
+            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              Client
+            </th>
+          )}
+          <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+            Document Type
+          </th>
+          <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+            Year
+          </th>
+          <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+            Received
+          </th>
+          <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+            Reviewed
+          </th>
+          <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+            Method
+          </th>
+          <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+            Actions
+          </th>
+        </tr>
+      </thead>
+    );
+  };
 
   // Helper function to render document row
   const renderDocumentRow = (doc: Document) => {
     const isDifferentYear = selectedYear !== 'all' && doc.year !== selectedYear;
     const isUnreviewed = doc.reviewedDate === null;
     
+    // Check if document belongs to a linked spouse account
+    const isLinkedSpouseDoc = showLinkedAccounts && currentClientSummary && doc.clientId && 
+      currentClientSummary.linkedAccounts?.includes(doc.clientId) && 
+      doc.clientId !== client.id;
+    
     return (
       <tr 
         key={doc.id}
         className={cn(
-          "hover:bg-gray-50/50 transition-colors group",
-          selectedDocuments.includes(doc.id) && "bg-purple-50/30",
-          isDifferentYear && isUnreviewed && "bg-amber-50/40 border-l-4 border-amber-500"
+          "hover:bg-gray-50/50 dark:hover:bg-gray-800/50 transition-colors group",
+          selectedDocuments.includes(doc.id) && "bg-purple-50/30 dark:bg-purple-900/10",
+          isLinkedSpouseDoc && "bg-blue-50/30 dark:bg-blue-900/10",
+          isDifferentYear && isUnreviewed && "bg-amber-50/40 dark:bg-amber-900/20 border-l-4 border-amber-500"
         )}
       >
         <td className="px-4 py-4">
@@ -643,6 +672,20 @@ export function DocumentsTab({ client }: DocumentsTabProps) {
             </div>
           </div>
         </td>
+        {(showLinkedAccounts || accountGroups.length > 1) && (
+          <td className="px-4 py-4">
+            <div className="flex items-center gap-2">
+              {doc.clientType === 'Business' ? (
+                <Building2 className="w-4 h-4 text-blue-600 dark:text-blue-400 flex-shrink-0" />
+              ) : (
+                <User className="w-4 h-4 text-green-600 dark:text-green-400 flex-shrink-0" />
+              )}
+              <span className="text-sm font-medium text-gray-900 dark:text-white">
+                {doc.clientName || 'Unknown'}
+              </span>
+            </div>
+          </td>
+        )}
         <td className="px-4 py-4">
           <Select 
             value={doc.documentType}
@@ -987,93 +1030,141 @@ export function DocumentsTab({ client }: DocumentsTabProps) {
                 </button>
               </div>
 
-              <div className="flex items-center gap-2">
-                {/* Account Switcher - Only show if linked accounts exist */}
+              <div className="flex items-center gap-2 flex-wrap">
+                {/* Linked Accounts Quick Filters - Only show if linked accounts exist */}
                 {hasLinkedAccounts && accountsToShow.length > 0 && (
-                  <>
-                    <span className="text-sm text-gray-600 dark:text-gray-400 mr-1">Linked Accounts:</span>
-                    <TooltipProvider>
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                className={cn(
-                                  "gap-2 border-purple-200 text-purple-700 hover:bg-purple-50 dark:border-purple-800 dark:text-purple-400 dark:hover:bg-purple-900/20",
-                                  showLinkedAccounts && "bg-purple-50 dark:bg-purple-900/20"
-                                )}
-                              >
-                                <Users className="w-4 h-4" />
-                                {currentAccountDisplayName}
-                                <ChevronDown className="w-4 h-4" />
-                              </Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end" className="w-64">
-                              <div className="px-2 py-1.5 border-b border-gray-200 dark:border-gray-700 mb-1">
-                                <p className="text-xs font-medium text-gray-700 dark:text-gray-300">Switch Account</p>
-                                <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
-                                  Switch between linked accounts to view their documents
-                                </p>
-                              </div>
-                              <DropdownMenuItem
-                                onClick={handleAllAccounts}
-                                className={cn(
-                                  "flex items-center gap-3 w-full",
-                                  showLinkedAccounts && "bg-purple-50 dark:bg-purple-900/20"
-                                )}
-                              >
-                                <Users className="w-4 h-4 text-purple-600 dark:text-purple-400" />
-                                <div className="flex-1">
-                                  <div className="font-medium">All Accounts</div>
-                                  <div className="text-xs text-gray-500 dark:text-gray-400">View all linked accounts</div>
-                                </div>
-                                {showLinkedAccounts && (
-                                  <CheckCircle2 className="w-4 h-4 text-purple-600 dark:text-purple-400" />
-                                )}
-                              </DropdownMenuItem>
-                              <DropdownMenuSeparator />
-                              {accountsToShow.map(account => (
+                  <div className="flex items-center gap-2 flex-nowrap">
+                    <span className="text-sm text-gray-600 dark:text-gray-400 mr-1 whitespace-nowrap">Linked Accounts:</span>
+                    {/* All Accounts Chip */}
+                    <button
+                      onClick={handleAllAccounts}
+                      className={cn(
+                        "px-3 py-1.5 rounded-full text-xs font-medium transition-all flex items-center gap-1.5 whitespace-nowrap flex-shrink-0",
+                        showLinkedAccounts
+                          ? "bg-purple-600 text-white shadow-sm"
+                          : "bg-gray-100 text-gray-700 hover:bg-gray-200 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700"
+                      )}
+                    >
+                      <Users className="w-3.5 h-3.5 flex-shrink-0" />
+                      All Accounts
+                    </button>
+                    {/* Individual Account Chips - Show first 2, rest in "+X more" dropdown */}
+                    {accountsToShow.slice(0, 2).map(account => {
+                      const isActive = selectedAccountId === account.id && !showLinkedAccounts;
+                      const isBusiness = account.type === 'Business';
+                      return (
+                        <button
+                          key={account.id}
+                          onClick={() => handleAccountSwitch(account.id)}
+                          className={cn(
+                            "px-3 py-1.5 rounded-full text-xs font-medium transition-all flex items-center gap-1.5 whitespace-nowrap flex-shrink-0",
+                            isActive
+                              ? isBusiness
+                                ? "bg-blue-600 text-white shadow-sm"
+                                : "bg-green-600 text-white shadow-sm"
+                              : isBusiness
+                                ? "bg-blue-50 text-blue-700 hover:bg-blue-100 dark:bg-blue-900/30 dark:text-blue-300 dark:hover:bg-blue-900/50"
+                                : "bg-green-50 text-green-700 hover:bg-green-100 dark:bg-green-900/30 dark:text-green-300 dark:hover:bg-green-900/50"
+                          )}
+                        >
+                          {isBusiness ? (
+                            <Building2 className="w-3.5 h-3.5 flex-shrink-0" />
+                          ) : (
+                            <User className="w-3.5 h-3.5 flex-shrink-0" />
+                          )}
+                          <span className="truncate max-w-[120px]">{account.name}</span>
+                        </button>
+                      );
+                    })}
+                    {/* "+X more" Dropdown for overflow accounts */}
+                    {accountsToShow.length > 2 && (
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <button
+                            className={cn(
+                              "px-3 py-1.5 rounded-full text-xs font-medium transition-all flex items-center gap-1.5 whitespace-nowrap flex-shrink-0",
+                              "bg-gray-100 text-gray-700 hover:bg-gray-200 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700"
+                            )}
+                          >
+                            +{accountsToShow.length - 2} more
+                            <ChevronDown className="w-3.5 h-3.5 flex-shrink-0" />
+                          </button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end" className="w-64">
+                          <div className="px-2 py-1.5 border-b border-gray-200 dark:border-gray-700 mb-1">
+                            <p className="text-xs font-medium text-gray-700 dark:text-gray-300">Additional Accounts</p>
+                            <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
+                              Switch to another linked account
+                            </p>
+                          </div>
+                          {/* On small screens: show from index 1 (second chip is hidden) */}
+                          {/* On large screens: show from index 2 (first 2 chips are visible) */}
+                          <div className="sm:hidden">
+                            {accountsToShow.slice(1).map(account => {
+                              const isActive = selectedAccountId === account.id && !showLinkedAccounts;
+                              return (
                                 <DropdownMenuItem
                                   key={account.id}
                                   onClick={() => handleAccountSwitch(account.id)}
                                   className={cn(
-                                    selectedAccountId === account.id && !showLinkedAccounts && "bg-purple-50 dark:bg-purple-900/20"
+                                    isActive && "bg-purple-50 dark:bg-purple-900/20"
                                   )}
                                 >
                                   <div className="flex items-center gap-3 w-full">
                                     {account.type === 'Business' ? (
-                                      <Building2 className="w-4 h-4 text-purple-600 dark:text-purple-400" />
+                                      <Building2 className="w-4 h-4 text-blue-600 dark:text-blue-400" />
                                     ) : (
-                                      <User className="w-4 h-4 text-purple-600 dark:text-purple-400" />
+                                      <User className="w-4 h-4 text-green-600 dark:text-green-400" />
                                     )}
                                     <div className="flex-1">
                                       <div className="font-medium">{account.name}</div>
                                       <div className="text-xs text-gray-500 dark:text-gray-400">{account.type}</div>
                                     </div>
-                                    {selectedAccountId === account.id && !showLinkedAccounts && (
+                                    {isActive && (
                                       <CheckCircle2 className="w-4 h-4 text-purple-600 dark:text-purple-400" />
                                     )}
                                   </div>
                                 </DropdownMenuItem>
-                              ))}
-                            </DropdownMenuContent>
-                          </DropdownMenu>
-                        </TooltipTrigger>
-                        <TooltipContent side="bottom" className="max-w-xs">
-                          <p className="text-sm font-medium mb-1">Switch Between Linked Accounts</p>
-                          <p className="text-xs text-gray-400">
-                            Quickly switch to view documents from other linked accounts (e.g., spouse or business accounts) without going back to the client list.
-                          </p>
-                        </TooltipContent>
-                      </Tooltip>
-                    </TooltipProvider>
-                  </>
+                              );
+                            })}
+                          </div>
+                          <div className="hidden sm:block">
+                            {accountsToShow.slice(2).map(account => {
+                              const isActive = selectedAccountId === account.id && !showLinkedAccounts;
+                              return (
+                                <DropdownMenuItem
+                                  key={account.id}
+                                  onClick={() => handleAccountSwitch(account.id)}
+                                  className={cn(
+                                    isActive && "bg-purple-50 dark:bg-purple-900/20"
+                                  )}
+                                >
+                                  <div className="flex items-center gap-3 w-full">
+                                    {account.type === 'Business' ? (
+                                      <Building2 className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+                                    ) : (
+                                      <User className="w-4 h-4 text-green-600 dark:text-green-400" />
+                                    )}
+                                    <div className="flex-1">
+                                      <div className="font-medium">{account.name}</div>
+                                      <div className="text-xs text-gray-500 dark:text-gray-400">{account.type}</div>
+                                    </div>
+                                    {isActive && (
+                                      <CheckCircle2 className="w-4 h-4 text-purple-600 dark:text-purple-400" />
+                                    )}
+                                  </div>
+                                </DropdownMenuItem>
+                              );
+                            })}
+                          </div>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    )}
+                  </div>
                 )}
 
-                {/* View Toggle - Only show if multiple accounts */}
-                {accountGroups.length > 1 && (
+                {/* View Toggle - Only show if multiple accounts and Individual accounts exist */}
+                {accountGroups.length > 1 && hasIndividualAccounts && (
                   <div className="flex items-center gap-1 border border-gray-200 dark:border-gray-700 rounded-lg p-1 bg-gray-50 dark:bg-gray-800/50">
                     <Button
                       size="sm"
@@ -1183,15 +1274,43 @@ export function DocumentsTab({ client }: DocumentsTabProps) {
               </div>
 
               <div className="flex items-center gap-2">
-                <Button 
-                  variant="outline" 
-                  size="sm"
-                  disabled={filteredDocs.length === 0}
-                  onClick={handleDownloadAll}
-                >
-                  <Download className="w-4 h-4 mr-2" />
-                  Download all
-                </Button>
+                <DropdownMenu>
+                  <div className="flex">
+                    <Button 
+                      variant="outline" 
+                      size="sm"
+                      disabled={selectedDocuments.length === 0}
+                      onClick={() => {
+                        if (selectedDocuments.length > 0) {
+                          toast.success(`Downloading ${selectedDocuments.length} document${selectedDocuments.length !== 1 ? 's' : ''}...`);
+                        }
+                      }}
+                      className="rounded-r-none border-r-0"
+                    >
+                      <Download className="w-4 h-4 mr-2" />
+                      Download {selectedDocuments.length > 0 ? `(${selectedDocuments.length})` : ''}
+                    </Button>
+                    <DropdownMenuTrigger asChild>
+                      <Button 
+                        variant="outline" 
+                        size="sm"
+                        disabled={filteredDocs.length === 0}
+                        className="rounded-l-none px-2"
+                      >
+                        <ChevronDown className="w-4 h-4" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                  </div>
+                  <DropdownMenuContent align="end">
+                    <DropdownMenuItem 
+                      onClick={handleDownloadAll}
+                      disabled={filteredDocs.length === 0}
+                    >
+                      <Download className="w-4 h-4 mr-2" />
+                      Download All ({filteredDocs.length} documents)
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
                 <Button variant="outline" size="sm">
                   <ArrowUpDown className="w-4 h-4 mr-2" />
                   Sort
@@ -1221,15 +1340,6 @@ export function DocumentsTab({ client }: DocumentsTabProps) {
                     </DropdownMenuItem>
                   </DropdownMenuContent>
                 </DropdownMenu>
-
-                <Button 
-                  variant="outline" 
-                  size="sm"
-                  disabled={selectedDocuments.length === 0}
-                >
-                  <Download className="w-4 h-4 mr-2" />
-                  Download ({selectedDocuments.length})
-                </Button>
 
                 <Button 
                   size="sm"
@@ -1305,8 +1415,8 @@ export function DocumentsTab({ client }: DocumentsTabProps) {
                   </table>
                 </div>
               </Card>
-            ) : (
-              // Split View - Group by Account
+            ) : tableViewMode === 'split' && hasIndividualAccounts ? (
+              // Split View - Group by Account (only available for Individual/spouse-linked accounts)
               <div className="space-y-6">
                 {accountGroups.length === 0 ? (
                   <Card className="border-gray-200/60 p-12 text-center">
@@ -1354,7 +1464,16 @@ export function DocumentsTab({ client }: DocumentsTabProps) {
                   })
                 )}
               </div>
-            )}
+            ) : tableViewMode === 'split' && !hasIndividualAccounts ? (
+              // Fallback when Split View is not available (only Business accounts)
+              <Card className="border-gray-200/60 p-12 text-center">
+                <FileText className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+                <p className="text-gray-600 dark:text-gray-400 mb-2">Split View is only available for spouse-linked accounts</p>
+                <p className="text-sm text-gray-500 dark:text-gray-500">
+                  Switch to Table View to see all documents
+                </p>
+              </Card>
+            ) : null}
           </div>
         )}
 

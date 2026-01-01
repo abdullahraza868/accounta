@@ -57,6 +57,7 @@ export function MoveDocumentDialog({
   const [searchQuery, setSearchQuery] = useState('');
   const [confirmationText, setConfirmationText] = useState('');
   const [unlinkedConfirmationText, setUnlinkedConfirmationText] = useState('');
+  const [clientTypeFilter, setClientTypeFilter] = useState<'all' | 'Individual' | 'Business'>('all');
 
   if (!document) return null;
 
@@ -88,6 +89,7 @@ export function MoveDocumentDialog({
     setSelectedClientId('');
     setUnlinkedConfirmationText('');
     setConfirmationText('');
+    setClientTypeFilter('all');
   };
 
   const handleMove = () => {
@@ -119,7 +121,7 @@ export function MoveDocumentDialog({
     onClose();
   };
 
-  // Filter clients based on active tab and search
+  // Filter clients based on active tab, search, and client type
   const getFilteredClients = () => {
     let clientsToShow = activeTab === 'linked' ? linkedAccounts : allOtherClients;
     
@@ -130,12 +132,15 @@ export function MoveDocumentDialog({
       );
     }
     
+    // Apply client type filter
+    if (clientTypeFilter !== 'all') {
+      clientsToShow = clientsToShow.filter(c => c.type === clientTypeFilter);
+    }
+    
     return clientsToShow;
   };
 
-  const filteredClients = getFilteredClients();
-  const businessClients = filteredClients.filter(c => c.type === 'Business').sort((a, b) => a.name.localeCompare(b.name));
-  const individualClients = filteredClients.filter(c => c.type === 'Individual').sort((a, b) => a.name.localeCompare(b.name));
+  const filteredClients = getFilteredClients().sort((a, b) => a.name.localeCompare(b.name));
 
   return (
     <Dialog 
@@ -148,6 +153,7 @@ export function MoveDocumentDialog({
           setSearchQuery('');
           setConfirmationText('');
           setUnlinkedConfirmationText('');
+          setClientTypeFilter('all');
         }
         onClose();
       }}
@@ -303,6 +309,45 @@ export function MoveDocumentDialog({
             </div>
           </div>
 
+          {/* Filter Chips */}
+          <div className="flex gap-2">
+              <button
+                onClick={() => setClientTypeFilter('all')}
+                className={cn(
+                  "flex-1 px-3 py-1.5 rounded-md text-xs font-medium transition-colors",
+                  clientTypeFilter === 'all'
+                    ? "bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300"
+                    : "bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700"
+                )}
+              >
+                All
+              </button>
+              <button
+                onClick={() => setClientTypeFilter('Individual')}
+                className={cn(
+                  "flex-1 px-3 py-1.5 rounded-md text-xs font-medium transition-colors flex items-center justify-center gap-1",
+                  clientTypeFilter === 'Individual'
+                    ? "bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300"
+                    : "bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700"
+                )}
+              >
+                <User className="w-3 h-3" />
+                Individual
+              </button>
+              <button
+                onClick={() => setClientTypeFilter('Business')}
+                className={cn(
+                  "flex-1 px-3 py-1.5 rounded-md text-xs font-medium transition-colors flex items-center justify-center gap-1",
+                  clientTypeFilter === 'Business'
+                    ? "bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300"
+                    : "bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700"
+                )}
+              >
+                <Building2 className="w-3 h-3" />
+                Business
+              </button>
+            </div>
+
           {/* Client List */}
           <div className="flex-1 overflow-hidden min-h-0">
             <ScrollArea className="h-80 w-full">
@@ -319,116 +364,62 @@ export function MoveDocumentDialog({
                   </div>
                 )}
 
-                {/* Business Clients */}
-                {businessClients.length > 0 && (
-                  <div>
-                    <h4 className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2 flex items-center gap-2">
-                      <Building2 className="w-3 h-3" />
-                      Business ({businessClients.length})
-                    </h4>
-                    <div className="space-y-1">
-                      {businessClients.map((client) => {
-                        const isClientLinked = currentClient?.linkedAccounts?.includes(client.id);
-                        return (
-                          <button
-                            key={client.id}
-                            onClick={() => setSelectedClientId(client.id)}
-                            className={cn(
-                              "w-full text-left p-3 rounded-lg border-2 transition-all",
-                              selectedClientId === client.id
-                                ? "border-purple-500 bg-purple-50 dark:bg-purple-900/20"
-                                : "border-transparent hover:border-gray-300 dark:hover:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-800"
-                            )}
-                          >
-                            <div className="flex items-center justify-between">
-                              <div className="flex items-center gap-2 flex-1 min-w-0">
-                                <span className="font-medium text-gray-900 dark:text-white truncate">{client.name}</span>
-                                {activeTab === 'linked' && (
-                                  <Badge variant="outline" className="text-[10px] px-1.5 py-0 h-4 bg-green-50 text-green-700 border-green-200 dark:bg-green-900/30 dark:text-green-300 dark:border-green-700">
-                                    Linked Account
-                                  </Badge>
-                                )}
-                                {activeTab === 'all' && !isClientLinked && (
-                                  <Badge variant="outline" className="text-[10px] px-1.5 py-0 h-4 border-orange-200 text-orange-700 dark:border-orange-800 dark:text-orange-400">
-                                    Not Linked
-                                  </Badge>
-                                )}
-                              </div>
-                              {selectedClientId === client.id && (
-                                <div className="w-5 h-5 rounded-full bg-purple-600 flex items-center justify-center flex-shrink-0">
-                                  <svg className="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
-                                  </svg>
-                                </div>
+                {/* Client List - Unified */}
+                {filteredClients.length > 0 && (
+                  <div className="space-y-1">
+                    {filteredClients.map((client) => {
+                      const isClientLinked = currentClient?.linkedAccounts?.includes(client.id);
+                      return (
+                        <button
+                          key={client.id}
+                          onClick={() => setSelectedClientId(client.id)}
+                          className={cn(
+                            "w-full text-left p-3 rounded-lg border-2 transition-all",
+                            selectedClientId === client.id
+                              ? "border-purple-500 bg-purple-50 dark:bg-purple-900/20"
+                              : "border-transparent hover:border-gray-300 dark:hover:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-800"
+                          )}
+                        >
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-2 flex-1 min-w-0">
+                              {client.type === 'Business' ? (
+                                <Building2 className="w-4 h-4 text-blue-600 dark:text-blue-400 flex-shrink-0 mt-0.5" />
+                              ) : (
+                                <User className="w-4 h-4 text-green-600 dark:text-green-400 flex-shrink-0 mt-0.5" />
+                              )}
+                              <span className="font-medium text-gray-900 dark:text-white truncate">{client.name}</span>
+                              {activeTab === 'linked' && (
+                                <Badge variant="outline" className="text-[10px] px-1.5 py-0 h-4 bg-green-50 text-green-700 border-green-200 dark:bg-green-900/30 dark:text-green-300 dark:border-green-700">
+                                  Linked Account
+                                </Badge>
+                              )}
+                              {activeTab === 'all' && !isClientLinked && (
+                                <Badge variant="outline" className="text-[10px] px-1.5 py-0 h-4 border-orange-200 text-orange-700 dark:border-orange-800 dark:text-orange-400">
+                                  Not Linked
+                                </Badge>
                               )}
                             </div>
-                            <div className="text-xs text-gray-600 dark:text-gray-400 mt-1">
-                              {client.documentCount} documents
-                            </div>
-                          </button>
-                        );
-                      })}
-                    </div>
-                  </div>
-                )}
-
-                {/* Individual Clients */}
-                {individualClients.length > 0 && (
-                  <div>
-                    <h4 className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2 flex items-center gap-2">
-                      <User className="w-3 h-3" />
-                      Individual ({individualClients.length})
-                    </h4>
-                    <div className="space-y-1">
-                      {individualClients.map((client) => {
-                        const isClientLinked = currentClient?.linkedAccounts?.includes(client.id);
-                        return (
-                          <button
-                            key={client.id}
-                            onClick={() => setSelectedClientId(client.id)}
-                            className={cn(
-                              "w-full text-left p-3 rounded-lg border-2 transition-all",
-                              selectedClientId === client.id
-                                ? "border-purple-500 bg-purple-50 dark:bg-purple-900/20"
-                                : "border-transparent hover:border-gray-300 dark:hover:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-800"
-                            )}
-                          >
-                            <div className="flex items-center justify-between">
-                              <div className="flex items-center gap-2 flex-1 min-w-0">
-                                <span className="font-medium text-gray-900 dark:text-white truncate">{client.name}</span>
-                                {activeTab === 'linked' && (
-                                  <Badge variant="outline" className="text-[10px] px-1.5 py-0 h-4 bg-green-50 text-green-700 border-green-200 dark:bg-green-900/30 dark:text-green-300 dark:border-green-700">
-                                    Linked Account
-                                  </Badge>
-                                )}
-                                {activeTab === 'all' && !isClientLinked && (
-                                  <Badge variant="outline" className="text-[10px] px-1.5 py-0 h-4 border-orange-200 text-orange-700 dark:border-orange-800 dark:text-orange-400">
-                                    Not Linked
-                                  </Badge>
-                                )}
+                            {selectedClientId === client.id && (
+                              <div className="w-5 h-5 rounded-full bg-purple-600 flex items-center justify-center flex-shrink-0">
+                                <svg className="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                                </svg>
                               </div>
-                              {selectedClientId === client.id && (
-                                <div className="w-5 h-5 rounded-full bg-purple-600 flex items-center justify-center flex-shrink-0">
-                                  <svg className="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
-                                  </svg>
-                                </div>
-                              )}
-                            </div>
-                            <div className="text-xs text-gray-600 dark:text-gray-400 mt-1">
-                              {client.documentCount} documents
-                            </div>
-                          </button>
-                        );
-                      })}
-                    </div>
+                            )}
+                          </div>
+                          <div className="text-xs text-gray-600 dark:text-gray-400 mt-1">
+                            {client.documentCount} documents
+                          </div>
+                        </button>
+                      );
+                    })}
                   </div>
                 )}
 
                 {/* No results */}
-                {businessClients.length === 0 && individualClients.length === 0 && activeTab === 'all' && (
+                {filteredClients.length === 0 && (
                   <div className="text-center py-8 text-gray-500 dark:text-gray-400">
-                    {searchQuery ? `No clients found matching "${searchQuery}"` : 'No other clients available'}
+                    {searchQuery ? `No clients found matching "${searchQuery}"` : activeTab === 'linked' ? 'No linked accounts available' : 'No other clients available'}
                   </div>
                 )}
               </div>

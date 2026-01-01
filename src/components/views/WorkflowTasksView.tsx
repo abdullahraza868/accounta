@@ -1,5 +1,5 @@
 // Workflow Tasks View with Visual Filters and Include/Exclude functionality
-import { useState, Fragment } from 'react';
+import { useState, Fragment, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Card } from '../ui/card';
 import { Badge } from '../ui/badge';
@@ -60,6 +60,11 @@ interface WorkflowTasksViewProps {
   excludedPriorities?: string[];
   includedTaskLists?: string[];
   excludedTaskLists?: string[];
+  assigneeMode?: 'include' | 'exclude';
+  clientMode?: 'include' | 'exclude';
+  statusMode?: 'include' | 'exclude';
+  priorityMode?: 'include' | 'exclude';
+  taskListMode?: 'include' | 'exclude';
 }
 
 interface TaskList {
@@ -148,7 +153,7 @@ function DraggableTaskRow({
   );
 }
 
-export function WorkflowTasksView({ workflowTasks, projects, onTaskUpdate, filterStatus = 'all', selectedAssignees = [], selectedProjects = [], workflow, searchQuery = '', showFilterPanel = false, onToggleFilterPanel, viewMode = 'list', timeFilter = 'all', completedDisplayMode = 'hide', includedAssignees: propIncludedAssignees = [], excludedAssignees: propExcludedAssignees = [], includedClients: propIncludedClients = [], excludedClients: propExcludedClients = [], includedStatuses: propIncludedStatuses = [], excludedStatuses: propExcludedStatuses = [], includedPriorities: propIncludedPriorities = [], excludedPriorities: propExcludedPriorities = [], includedTaskLists: propIncludedTaskLists = [], excludedTaskLists: propExcludedTaskLists = [] }: WorkflowTasksViewProps) {
+export function WorkflowTasksView({ workflowTasks, projects, onTaskUpdate, filterStatus = 'all', selectedAssignees = [], selectedProjects = [], workflow, searchQuery = '', showFilterPanel = false, onToggleFilterPanel, viewMode = 'list', timeFilter = 'all', completedDisplayMode = 'hide', includedAssignees: propIncludedAssignees = [], excludedAssignees: propExcludedAssignees = [], includedClients: propIncludedClients = [], excludedClients: propExcludedClients = [], includedStatuses: propIncludedStatuses = [], excludedStatuses: propExcludedStatuses = [], includedPriorities: propIncludedPriorities = [], excludedPriorities: propExcludedPriorities = [], includedTaskLists: propIncludedTaskLists = [], excludedTaskLists: propExcludedTaskLists = [], assigneeMode: propAssigneeMode = 'include', clientMode: propClientMode = 'include', statusMode: propStatusMode = 'include', priorityMode: propPriorityMode = 'include', taskListMode: propTaskListMode = 'include' }: WorkflowTasksViewProps) {
   // Get timer functions from context
   const { activeTimer, startTimer, stopTimer, getTimerElapsed } = useWorkflowContext();
   const navigate = useNavigate();
@@ -159,7 +164,7 @@ export function WorkflowTasksView({ workflowTasks, projects, onTaskUpdate, filte
   const [isMultiSelectMode, setIsMultiSelectMode] = useState(false);
   const [expandedTaskId, setExpandedTaskId] = useState<string | null>(null);
   
-  // Separate included and excluded arrays for each filter type - use props if provided, otherwise use local state
+  // Separate included and excluded arrays for each filter type - sync with props
   const [includedAssignees, setIncludedAssignees] = useState<string[]>(propIncludedAssignees);
   const [excludedAssignees, setExcludedAssignees] = useState<string[]>(propExcludedAssignees);
   const [includedClients, setIncludedClients] = useState<string[]>(propIncludedClients);
@@ -171,12 +176,35 @@ export function WorkflowTasksView({ workflowTasks, projects, onTaskUpdate, filte
   const [includedTaskLists, setIncludedTaskLists] = useState<string[]>(propIncludedTaskLists);
   const [excludedTaskLists, setExcludedTaskLists] = useState<string[]>(propExcludedTaskLists);
   
-  // Include/Exclude modes
-  const [assigneeMode, setAssigneeMode] = useState<'include' | 'exclude'>('include');
-  const [clientMode, setClientMode] = useState<'include' | 'exclude'>('include');
-  const [statusMode, setStatusMode] = useState<'include' | 'exclude'>('include');
-  const [priorityMode, setPriorityMode] = useState<'include' | 'exclude'>('include');
-  const [taskListMode, setTaskListMode] = useState<'include' | 'exclude'>('include');
+  // Include/Exclude modes - sync with props
+  const [assigneeMode, setAssigneeMode] = useState<'include' | 'exclude'>(propAssigneeMode);
+  const [clientMode, setClientMode] = useState<'include' | 'exclude'>(propClientMode);
+  const [statusMode, setStatusMode] = useState<'include' | 'exclude'>(propStatusMode);
+  const [priorityMode, setPriorityMode] = useState<'include' | 'exclude'>(propPriorityMode);
+  const [taskListMode, setTaskListMode] = useState<'include' | 'exclude'>(propTaskListMode);
+  
+  // Sync filter arrays with props
+  useEffect(() => {
+    setIncludedAssignees(propIncludedAssignees);
+    setExcludedAssignees(propExcludedAssignees);
+    setIncludedClients(propIncludedClients);
+    setExcludedClients(propExcludedClients);
+    setIncludedStatuses(propIncludedStatuses);
+    setExcludedStatuses(propExcludedStatuses);
+    setIncludedPriorities(propIncludedPriorities);
+    setExcludedPriorities(propExcludedPriorities);
+    setIncludedTaskLists(propIncludedTaskLists);
+    setExcludedTaskLists(propExcludedTaskLists);
+  }, [propIncludedAssignees, propExcludedAssignees, propIncludedClients, propExcludedClients, propIncludedStatuses, propExcludedStatuses, propIncludedPriorities, propExcludedPriorities, propIncludedTaskLists, propExcludedTaskLists]);
+  
+  // Sync filter modes with props
+  useEffect(() => {
+    setAssigneeMode(propAssigneeMode);
+    setClientMode(propClientMode);
+    setStatusMode(propStatusMode);
+    setPriorityMode(propPriorityMode);
+    setTaskListMode(propTaskListMode);
+  }, [propAssigneeMode, propClientMode, propStatusMode, propPriorityMode, propTaskListMode]);
   
   // Inline editing state
   const [editingTaskId, setEditingTaskId] = useState<string | null>(null);
@@ -378,29 +406,38 @@ export function WorkflowTasksView({ workflowTasks, projects, onTaskUpdate, filte
       if (task.status === 'completed' || !isDueSoon(task.dueDate)) return false;
     }
     
-    // Visual filter matches with include/exclude logic
-    const assigneeMatch = includedAssignees.includes(task.assignee);
-    const matchesAssignee = includedAssignees.length === 0 || 
-      (assigneeMode === 'include' ? assigneeMatch : !assigneeMatch);
+    // Filter by assignee: must be in included list (if any) and not in excluded list (if any)
+    const matchesAssignee = 
+      (includedAssignees.length === 0 && excludedAssignees.length === 0) ||
+      (includedAssignees.length > 0 ? includedAssignees.includes(task.assignee) : true) &&
+      (excludedAssignees.length > 0 ? !excludedAssignees.includes(task.assignee) : true);
     
-    const taskClient = projects.find(p => p.id === task.projectId)?.clientName;
-    const clientMatch = taskClient && includedClients.includes(taskClient);
-    const matchesClient = includedClients.length === 0 || 
-      (clientMode === 'include' ? clientMatch : !clientMatch);
+    // Filter by client: resolve client name from project, then check included/excluded
+    const taskClient = projects.find(p => p.id === task.projectId)?.clientName || '';
+    const matchesClient = 
+      (includedClients.length === 0 && excludedClients.length === 0) ||
+      (includedClients.length > 0 ? (taskClient && includedClients.includes(taskClient)) : true) &&
+      (excludedClients.length > 0 ? !(taskClient && excludedClients.includes(taskClient)) : true);
     
-    const statusMatch = includedStatuses.includes(task.status);
-    const matchesStatus = includedStatuses.length === 0 || 
-      (statusMode === 'include' ? statusMatch : !statusMatch);
+    // Filter by status: must be in included list (if any) and not in excluded list (if any)
+    const matchesStatus = 
+      (includedStatuses.length === 0 && excludedStatuses.length === 0) ||
+      (includedStatuses.length > 0 ? includedStatuses.includes(task.status) : true) &&
+      (excludedStatuses.length > 0 ? !excludedStatuses.includes(task.status) : true);
     
-    const priorityMatch = includedPriorities.includes(task.priority);
-    const matchesPriority = includedPriorities.length === 0 || 
-      (priorityMode === 'include' ? priorityMatch : !priorityMatch);
+    // Filter by priority: must be in included list (if any) and not in excluded list (if any)
+    const taskPriority = task.priority || '';
+    const matchesPriority = 
+      (includedPriorities.length === 0 && excludedPriorities.length === 0) ||
+      (includedPriorities.length > 0 ? (taskPriority && includedPriorities.includes(taskPriority)) : true) &&
+      (excludedPriorities.length > 0 ? !(taskPriority && excludedPriorities.includes(taskPriority)) : true);
     
     // Task list matching (taskListId may not exist on ProjectTask)
     const taskListId = (task as any).taskListId || taskListAssignments[task.id];
-    const taskListMatch = taskListId && includedTaskLists.includes(taskListId);
-    const matchesTaskList = includedTaskLists.length === 0 || 
-      (taskListMode === 'include' ? taskListMatch : !taskListMatch);
+    const matchesTaskList = 
+      (includedTaskLists.length === 0 && excludedTaskLists.length === 0) ||
+      (includedTaskLists.length > 0 ? (taskListId && includedTaskLists.includes(taskListId)) : true) &&
+      (excludedTaskLists.length > 0 ? !(taskListId && excludedTaskLists.includes(taskListId)) : true);
     
     return matchesAssignee && matchesClient && matchesStatus && matchesPriority && matchesTaskList;
   });

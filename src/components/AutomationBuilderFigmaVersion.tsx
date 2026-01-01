@@ -8,7 +8,7 @@ import { Badge } from './ui/badge';
 import { Switch } from './ui/switch';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from './ui/alert-dialog';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from './ui/dialog';
-import { Plus, Trash2, Clock, Zap, FileCheck, CreditCard, Calendar, Edit2, ChevronDown, Info, Play, Loader2, CheckCircle, XCircle, AlertTriangle } from 'lucide-react';
+import { Plus, Trash2, Clock, Zap, FileCheck, CreditCard, Calendar, Edit2, ChevronDown, Info, Play, Loader2, CheckCircle, XCircle, AlertTriangle, Power } from 'lucide-react';
 import { Textarea } from './ui/textarea';
 import { toast } from 'sonner';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from './ui/collapsible';
@@ -139,6 +139,15 @@ const MOCK_TRIGGERS: TriggerStructured[] = [
   // Communication
   { id: 't25', category: 'Communication', name: 'When Email Replied' },
   { id: 't26', category: 'Communication', name: 'When SMS Replied' },
+  { id: 't27', category: 'Communication', name: 'When Incoming Email Received' },
+  { id: 't28', category: 'Communication', name: 'When Incoming SMS Received' },
+  { id: 't29', category: 'Communication', name: 'When Incoming Email or SMS Received' },
+  { id: 't30', category: 'Communication', name: 'When Outgoing SMS Error Occurs' },
+  // Client (Lead Creation Variants)
+  { id: 't31', category: 'Client', name: 'When Client Created via API' },
+  { id: 't32', category: 'Client', name: 'When Client Created via Facebook' },
+  { id: 't33', category: 'Client', name: 'When Client Created via Calendly' },
+  { id: 't34', category: 'Client', name: 'When Custom Field Value Changed' },
 ];
 
 // Actions with IDs
@@ -175,6 +184,16 @@ const MOCK_ACTIONS: ActionStructured[] = [
   // Utility
   { id: 'a22', category: 'Utility', name: 'Wait / Delay' },
   { id: 'a23', category: 'Utility', name: 'Notify Team (In-App)' },
+  // Client Management
+  { id: 'a24', category: 'Client Management', name: 'Assign Client to Team Member' },
+  { id: 'a25', category: 'Client Management', name: 'Merge Client into Duplicate' },
+  { id: 'a26', category: 'Client Management', name: 'Add Client to Do Not Contact List' },
+  { id: 'a27', category: 'Client Management', name: 'Remove Client from Do Not Contact List' },
+  // Communication Sequences
+  { id: 'a28', category: 'Communication', name: 'Start Email Sequence' },
+  { id: 'a29', category: 'Communication', name: 'Start SMS Sequence' },
+  { id: 'a30', category: 'Communication', name: 'Stop All Sequences' },
+  { id: 'a31', category: 'Communication', name: 'Send Client Details via Email' },
 ];
 
 // Condition Fields with Type Metadata
@@ -299,6 +318,54 @@ const MOCK_REPORT_TYPES = [
   { value: 'time_tracking', label: 'Time Tracking Report' },
 ];
 
+const MOCK_EMAIL_SEQUENCES = [
+  { value: 'seq1', label: 'Welcome Sequence' },
+  { value: 'seq2', label: 'Onboarding Sequence' },
+  { value: 'seq3', label: 'Follow-up Sequence' },
+  { value: 'seq4', label: 'Payment Reminder Sequence' },
+  { value: 'seq5', label: 'Document Request Sequence' },
+];
+
+const MOCK_SMS_SEQUENCES = [
+  { value: 'sms_seq1', label: 'Welcome SMS Sequence' },
+  { value: 'sms_seq2', label: 'Reminder SMS Sequence' },
+  { value: 'sms_seq3', label: 'Appointment SMS Sequence' },
+  { value: 'sms_seq4', label: 'Payment SMS Sequence' },
+];
+
+const MOCK_EMAIL_ACCOUNTS = [
+  { value: 'email1', label: 'noreply@accounta.com' },
+  { value: 'email2', label: 'support@accounta.com' },
+  { value: 'email3', label: 'info@accounta.com' },
+];
+
+const MOCK_PHONE_ACCOUNTS = [
+  { value: 'phone1', label: '+1 (555) 123-4567' },
+  { value: 'phone2', label: '+1 (555) 987-6543' },
+  { value: 'phone3', label: '+1 (555) 456-7890' },
+];
+
+const MOCK_ERROR_CODES = [
+  { value: '11751', label: '11751 - Media exceeds size limit' },
+  { value: '12300', label: '12300 - Invalid Content-Type' },
+  { value: '30003', label: '30003 - Unavailable destination' },
+  { value: '30005', label: '30005 - Unknown/inactive number' },
+  { value: '30006', label: '30006 - Landline/unreachable' },
+  { value: '30007', label: '30007 - Blocked by carrier' },
+  { value: '30008', label: '30008 - Delivery failed' },
+  { value: '30011', label: '30011 - MMS not supported' },
+  { value: '30019', label: '30019 - Content size exceeds limit' },
+  { value: '30410', label: '30410 - Provider timeout' },
+];
+
+const MOCK_CUSTOM_FIELDS = [
+  { value: 'none', label: 'None (Any Custom Field)' },
+  { value: 'budget', label: 'Budget' },
+  { value: 'qualified', label: 'Qualified' },
+  { value: 'source', label: 'Source' },
+  { value: 'industry', label: 'Industry' },
+];
+
 // Trigger Configuration Schemas
 const TRIGGER_CONFIG_SCHEMAS: Record<string, ConfigField[]> = {
   't5': [ // When Specific Task Completed
@@ -353,6 +420,36 @@ const TRIGGER_CONFIG_SCHEMAS: Record<string, ConfigField[]> = {
   ],
   't19': [ // When Form / Organizer Submitted
     { key: 'formType', label: 'Form Type (Optional)', type: 'select', required: false, options: MOCK_FORM_TYPES, placeholder: 'Any form' },
+  ],
+  't27': [ // When Incoming Email Received
+    { key: 'textMatching', label: 'Text to Match (Optional)', type: 'text', required: false, placeholder: 'Enter text to match (supports | for multiple)' },
+    { key: 'textMatchingType', label: 'Matching Type', type: 'select', required: false, options: [
+      { value: 'exact', label: 'Exact Match' },
+      { value: 'word', label: 'Contains Word' },
+      { value: 'any', label: 'Any Match (Regex)' },
+    ], placeholder: 'Select matching type' },
+  ],
+  't28': [ // When Incoming SMS Received
+    { key: 'textMatching', label: 'Text to Match (Optional)', type: 'text', required: false, placeholder: 'Enter text to match (supports | for multiple)' },
+    { key: 'textMatchingType', label: 'Matching Type', type: 'select', required: false, options: [
+      { value: 'exact', label: 'Exact Match' },
+      { value: 'word', label: 'Contains Word' },
+      { value: 'any', label: 'Any Match (Regex)' },
+    ], placeholder: 'Select matching type' },
+  ],
+  't29': [ // When Incoming Email or SMS Received
+    { key: 'textMatching', label: 'Text to Match (Optional)', type: 'text', required: false, placeholder: 'Enter text to match (supports | for multiple)' },
+    { key: 'textMatchingType', label: 'Matching Type', type: 'select', required: false, options: [
+      { value: 'exact', label: 'Exact Match' },
+      { value: 'word', label: 'Contains Word' },
+      { value: 'any', label: 'Any Match (Regex)' },
+    ], placeholder: 'Select matching type' },
+  ],
+  't30': [ // When Outgoing SMS Error Occurs
+    { key: 'errorCodes', label: 'Error Codes', type: 'multiselect', required: false, options: MOCK_ERROR_CODES, placeholder: 'Select error codes (leave empty for all)' },
+  ],
+  't34': [ // When Custom Field Value Changed
+    { key: 'customField', label: 'Custom Field (Optional)', type: 'select', required: false, options: MOCK_CUSTOM_FIELDS, placeholder: 'Any custom field' },
   ],
 };
 
@@ -533,6 +630,106 @@ function generateMockTriggerEvent(
         timestamp: now,
       };
     
+    case 't27': // Incoming Email
+      return {
+        type: 'incoming_email',
+        data: {
+          ...baseData,
+          emailFrom: MOCK_SAMPLE_DATA.clientEmail,
+          emailSubject: 'Incoming Email Subject',
+          emailBody: triggerConfig.textMatching || 'Sample email body',
+          textMatching: triggerConfig.textMatching,
+          textMatchingType: triggerConfig.textMatchingType,
+        },
+        timestamp: now,
+      };
+    
+    case 't28': // Incoming SMS
+      return {
+        type: 'incoming_sms',
+        data: {
+          ...baseData,
+          smsFrom: '+15551234567',
+          smsBody: triggerConfig.textMatching || 'Sample SMS message',
+          textMatching: triggerConfig.textMatching,
+          textMatchingType: triggerConfig.textMatchingType,
+        },
+        timestamp: now,
+      };
+    
+    case 't29': // Incoming Email or SMS
+      return {
+        type: 'incoming_any',
+        data: {
+          ...baseData,
+          channel: 'email',
+          message: triggerConfig.textMatching || 'Sample message',
+          textMatching: triggerConfig.textMatching,
+          textMatchingType: triggerConfig.textMatchingType,
+        },
+        timestamp: now,
+      };
+    
+    case 't30': // Outgoing SMS Error
+      return {
+        type: 'outgoing_sms_error',
+        data: {
+          ...baseData,
+          errorCode: triggerConfig.errorCodes?.[0] || '30008',
+          errorCodes: triggerConfig.errorCodes || [],
+          smsTo: '+15551234567',
+        },
+        timestamp: now,
+      };
+    
+    case 't31': // Client Created via API
+      return {
+        type: 'client_created_api',
+        data: {
+          ...baseData,
+          clientName: MOCK_SAMPLE_DATA.clientName,
+          clientEmail: MOCK_SAMPLE_DATA.clientEmail,
+          createProvider: 'api',
+        },
+        timestamp: now,
+      };
+    
+    case 't32': // Client Created via Facebook
+      return {
+        type: 'client_created_facebook',
+        data: {
+          ...baseData,
+          clientName: MOCK_SAMPLE_DATA.clientName,
+          clientEmail: MOCK_SAMPLE_DATA.clientEmail,
+          createProvider: 'facebook',
+        },
+        timestamp: now,
+      };
+    
+    case 't33': // Client Created via Calendly
+      return {
+        type: 'client_created_calendly',
+        data: {
+          ...baseData,
+          clientName: MOCK_SAMPLE_DATA.clientName,
+          clientEmail: MOCK_SAMPLE_DATA.clientEmail,
+          createProvider: 'calendly',
+        },
+        timestamp: now,
+      };
+    
+    case 't34': // Custom Field Value Changed
+      return {
+        type: 'custom_field_changed',
+        data: {
+          ...baseData,
+          customField: triggerConfig.customField || 'budget',
+          oldValue: '10000',
+          newValue: '15000',
+        },
+        timestamp: now,
+      };
+    
     default:
       return {
         type: 'generic_trigger',
@@ -595,7 +792,7 @@ function simulateActionExecution(
       details.push(`Subject: "${actionConfig.subject || 'Team Notification'}"`);
       break;
     
-    case 'a11': // Create Follow-up Task
+    case 'a11': { // Create Follow-up Task
       details.push(`Task: "${actionConfig.taskName || 'Follow-up Task'}"`);
       if (actionConfig.assigneeId) {
         const assignee = MOCK_TEAM_MEMBERS.find(m => m.value === actionConfig.assigneeId);
@@ -605,27 +802,78 @@ function simulateActionExecution(
         details.push(`Due in: ${actionConfig.dueDateOffset} days`);
       }
       break;
+    }
     
-    case 'a12': // Assign Task to Team Member
+    case 'a12': { // Assign Task to Team Member
       const taskId = actionConfig.taskId;
       const task = MOCK_CONFIG_TASKS.find(t => t.value === taskId);
       const assignee = MOCK_TEAM_MEMBERS.find(m => m.value === actionConfig.assigneeId);
       details.push(`Task: ${task?.label || 'Selected Task'}`);
       details.push(`Assigned to: ${assignee?.label || 'Team Member'}`);
       break;
+    }
     
-    case 'a15': // Move to Next Stage
+    case 'a15': { // Move to Next Stage
       const currentStage = workflow?.stages.find(s => s.id === currentStageId);
       const currentIndex = workflow?.stages.findIndex(s => s.id === currentStageId) || 0;
       const nextStage = workflow?.stages[currentIndex + 1];
       details.push(`From: ${currentStage?.name || 'Current Stage'}`);
       details.push(`To: ${nextStage?.name || 'Next Stage'}`);
       break;
+    }
     
-    case 'a16': // Move Back to Stage
+    case 'a16': { // Move Back to Stage
       const targetStageId = actionConfig.targetStageId;
       const targetStage = workflow?.stages.find(s => s.id === targetStageId);
       details.push(`Target Stage: ${targetStage?.name || 'Selected Stage'}`);
+      break;
+    }
+    
+    case 'a24': { // Assign Client to Team Member
+      const assignee = MOCK_TEAM_MEMBERS.find(m => m.value === actionConfig.assigneeId);
+      details.push(`Assigned to: ${assignee?.label || 'Team Member'}`);
+      break;
+    }
+    
+    case 'a25': { // Merge Client into Duplicate
+      details.push(`Merge by: ${actionConfig.mergeBy || 'email'}`);
+      details.push(`Finding duplicate by ${actionConfig.mergeBy || 'email'} address`);
+      break;
+    }
+    
+    case 'a26': { // Add to DNC
+      details.push(`All client contacts added to Do Not Contact list`);
+      break;
+    }
+    
+    case 'a27': { // Remove from DNC
+      details.push(`All client contacts removed from Do Not Contact list`);
+      break;
+    }
+    
+    case 'a28': { // Start Email Sequence
+      const emailSeq = MOCK_EMAIL_SEQUENCES.find(s => s.value === actionConfig.emailSequenceTemplateId);
+      const emailAccount = MOCK_EMAIL_ACCOUNTS.find(a => a.value === actionConfig.emailAccountId);
+      details.push(`Sequence: ${emailSeq?.label || 'Email Sequence'}`);
+      details.push(`From: ${emailAccount?.label || 'Email Account'}`);
+      break;
+    }
+    
+    case 'a29': { // Start SMS Sequence
+      const smsSeq = MOCK_SMS_SEQUENCES.find(s => s.value === actionConfig.smsSequenceTemplateId);
+      const phoneAccount = MOCK_PHONE_ACCOUNTS.find(a => a.value === actionConfig.phoneAccountId);
+      details.push(`Sequence: ${smsSeq?.label || 'SMS Sequence'}`);
+      details.push(`From: ${phoneAccount?.label || 'Phone Account'}`);
+      break;
+    }
+    
+    case 'a30': // Stop All Sequences
+      details.push(`All active email and SMS sequences stopped`);
+      break;
+    
+    case 'a31': // Send Client Details via Email
+      details.push(`To: ${actionConfig.recipientEmail || 'recipient@example.com'}`);
+      details.push(`Subject: Client Details - ${MOCK_SAMPLE_DATA.clientName}`);
       break;
     
     default:
@@ -1158,6 +1406,44 @@ const ACTION_CONFIG_SCHEMAS: Record<string, ConfigField[]> = {
     { key: 'assigneeId', label: 'Notify', type: 'select', required: false, options: MOCK_TEAM_MEMBERS, placeholder: 'All team members' },
     { key: 'notificationMessage', label: 'Message', type: 'textarea', required: true, rows: 2, placeholder: 'Notification message...' },
   ],
+  'a24': [ // Assign Client to Team Member
+    { key: 'assigneeId', label: 'Assign To', type: 'select', required: true, options: MOCK_TEAM_MEMBERS },
+  ],
+  'a25': [ // Merge Client into Duplicate
+    { key: 'mergeBy', label: 'Merge By', type: 'select', required: true, options: [
+      { value: 'email', label: 'Email Address' },
+      { value: 'phone', label: 'Phone Number' },
+    ]},
+  ],
+  'a26': [ // Add Client to Do Not Contact List
+    // No config needed
+  ],
+  'a27': [ // Remove Client from Do Not Contact List
+    // No config needed
+  ],
+  'a28': [ // Start Email Sequence
+    { key: 'emailSequenceTemplateId', label: 'Email Sequence Template', type: 'select', required: true, options: MOCK_EMAIL_SEQUENCES },
+    { key: 'emailAccountId', label: 'Email Account', type: 'select', required: true, options: MOCK_EMAIL_ACCOUNTS },
+  ],
+  'a29': [ // Start SMS Sequence
+    { key: 'smsSequenceTemplateId', label: 'SMS Sequence Template', type: 'select', required: true, options: MOCK_SMS_SEQUENCES },
+    { key: 'phoneAccountId', label: 'Phone Account', type: 'select', required: true, options: MOCK_PHONE_ACCOUNTS },
+  ],
+  'a30': [ // Stop All Sequences
+    // No config needed
+  ],
+  'a31': [ // Send Client Details via Email
+    { key: 'recipientEmail', label: 'Recipient Email', type: 'text', required: true, placeholder: 'recipient@example.com' },
+  ],
+  'a21': [ // Send Webhook to External System (Enhanced)
+    { key: 'webhookUrl', label: 'Webhook URL', type: 'text', required: true, placeholder: 'https://api.example.com/webhook' },
+    { key: 'webhookAction', label: 'HTTP Method', type: 'select', required: false, options: [
+      { value: 'post', label: 'POST' },
+      { value: 'get', label: 'GET' },
+    ], placeholder: 'POST (default)' },
+    { key: 'webhookHeaders', label: 'Custom Headers (JSON)', type: 'textarea', required: false, rows: 3, placeholder: '{"Authorization": "Bearer token"}' },
+    { key: 'webhookBody', label: 'Custom Body (JSON)', type: 'textarea', required: false, rows: 4, placeholder: '{"key": "value"}' },
+  ],
 };
 
 // ==================== ADAPTER FUNCTIONS ====================
@@ -1190,6 +1476,14 @@ const TRIGGER_VALUE_TO_ID_MAP: Record<string, string> = {
   'subscription_failed': 't24',
   'email_replied': 't25',
   'sms_replied': 't26',
+  'incoming_email': 't27',
+  'incoming_sms': 't28',
+  'incoming_any': 't29',
+  'outgoing_sms_error': 't30',
+  'client_created_api': 't31',
+  'client_created_facebook': 't32',
+  'client_created_calendly': 't33',
+  'custom_field_changed': 't34',
 };
 
 // Reverse mapping
@@ -1223,6 +1517,14 @@ const ACTION_VALUE_TO_ID_MAP: Record<string, string> = {
   'send_webhook': 'a21',
   'wait_delay': 'a22',
   'notify_team': 'a23',
+  'assign_client': 'a24',
+  'merge_client': 'a25',
+  'add_dnc': 'a26',
+  'remove_dnc': 'a27',
+  'start_email_sequence': 'a28',
+  'start_sms_sequence': 'a29',
+  'stop_sequences': 'a30',
+  'send_client_details': 'a31',
 };
 
 // Reverse mapping
@@ -1674,11 +1976,13 @@ function AutomationPreview({
   conditions,
   actions,
   logicOperator,
+  compact = false,
 }: {
   trigger: TriggerStructured | null;
   conditions: Condition[];
   actions: ActionStructured[];
   logicOperator?: 'AND' | 'OR';
+  compact?: boolean;
 }) {
   const getConditionText = (condition: Condition): string => {
     const field = CONDITION_FIELDS.find(f => f.value === condition.field);
@@ -1736,6 +2040,28 @@ function AutomationPreview({
       if (config.formType) {
         const form = MOCK_FORM_TYPES.find(f => f.value === config.formType);
         if (form) details.push(form.label);
+      }
+      
+      // Communication configs (text matching)
+      if (config.textMatching) {
+        details.push(`matching "${config.textMatching}"`);
+      }
+      if (config.textMatchingType) {
+        const matchType = config.textMatchingType === 'exact' ? 'exact' : config.textMatchingType === 'word' ? 'word' : 'any';
+        if (config.textMatching) {
+          details[details.length - 1] = details[details.length - 1].replace('matching', `${matchType} matching`);
+        }
+      }
+      
+      // Error codes
+      if (config.errorCodes && Array.isArray(config.errorCodes) && config.errorCodes.length > 0) {
+        details.push(`${config.errorCodes.length} error code${config.errorCodes.length > 1 ? 's' : ''}`);
+      }
+      
+      // Custom field
+      if (config.customField && config.customField !== 'none') {
+        const customField = MOCK_CUSTOM_FIELDS.find(f => f.value === config.customField);
+        if (customField) details.push(customField.label);
       }
       
       if (details.length > 0) {
@@ -1813,6 +2139,37 @@ function AutomationPreview({
         details.push(config.integrationType === 'quickbooks' ? 'QuickBooks' : 'Xero');
       }
       
+      // Client Management configs
+      if (config.mergeBy) {
+        details.push(`by ${config.mergeBy}`);
+      }
+      if (config.recipientEmail) {
+        details.push(`to ${config.recipientEmail}`);
+      }
+      
+      // Sequence configs
+      if (config.emailSequenceTemplateId) {
+        const seq = MOCK_EMAIL_SEQUENCES.find(s => s.value === config.emailSequenceTemplateId);
+        if (seq) details.push(seq.label);
+      }
+      if (config.emailAccountId) {
+        const account = MOCK_EMAIL_ACCOUNTS.find(a => a.value === config.emailAccountId);
+        if (account) details.push(`from ${account.label}`);
+      }
+      if (config.smsSequenceTemplateId) {
+        const seq = MOCK_SMS_SEQUENCES.find(s => s.value === config.smsSequenceTemplateId);
+        if (seq) details.push(seq.label);
+      }
+      if (config.phoneAccountId) {
+        const account = MOCK_PHONE_ACCOUNTS.find(a => a.value === config.phoneAccountId);
+        if (account) details.push(`from ${account.label}`);
+      }
+      
+      // Webhook configs (enhanced)
+      if (config.webhookAction) {
+        details.push(config.webhookAction.toUpperCase());
+      }
+      
       if (details.length > 0) {
         text += ` (${details.slice(0, 2).join(', ')})`;
       }
@@ -1820,6 +2177,52 @@ function AutomationPreview({
     
     return text;
   };
+
+  if (compact) {
+    return (
+      <div className="bg-slate-50 border border-slate-200 rounded-lg p-3 mt-3">
+        <div className="text-xs font-semibold text-slate-700 mb-2">
+          Automation Preview
+        </div>
+        <div className="text-xs text-slate-600 space-y-1.5">
+          <div>
+            <span className="font-semibold text-slate-700">When</span>{' '}
+            <span className="text-slate-600">
+              {getTriggerText()}
+            </span>
+          </div>
+
+          {conditions.length > 0 && (
+            <div>
+              <span className="font-semibold text-slate-700">And</span>{' '}
+              {conditions.map((condition, index) => (
+                <span key={condition.id}>
+                  {index > 0 && ` ${logicOperator || 'AND'} `}
+                  <span className="text-slate-600">{getConditionText(condition)}</span>
+                </span>
+              ))}
+            </div>
+          )}
+
+          <div>
+            <span className="font-semibold text-slate-700">Then</span>{' '}
+            {actions.length > 0 ? (
+              <div className="mt-0.5 space-y-0.5">
+                {actions.map((action, index) => (
+                  <div key={`${action.id}-${index}`} className="ml-3">
+                    <span className="text-slate-500">{index + 1}.</span>{' '}
+                    <span className="text-slate-600">{getActionText(action)}</span>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <span className="text-slate-400">(No actions)</span>
+            )}
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <Card className="bg-violet-50 border-violet-200">
@@ -1963,6 +2366,17 @@ export function AutomationBuilder({
   const [testResult, setTestResult] = useState<TestResult | null>(null);
   const [showTestResults, setShowTestResults] = useState(false);
   const [isTesting, setIsTesting] = useState(false);
+
+  // Auto-show create form if there are no automations and not editing
+  useEffect(() => {
+    // Only auto-show create form if:
+    // 1. There are no automations
+    // 2. Not currently editing an automation
+    // 3. No focused automation (which would trigger edit)
+    if (automations.length === 0 && !editingId && !focusedAutomationId) {
+      setIsCreating(true);
+    }
+  }, [automations.length, editingId, focusedAutomationId]);
 
   // Filter automations when a task is focused or when editing
   const displayedAutomations = editingId
@@ -2326,7 +2740,7 @@ export function AutomationBuilder({
       >
         <Card className="p-4 border-slate-200">
           <CollapsibleTrigger className="w-full">
-            <div className="flex items-center justify-between w-full">
+            <div className="flex items-center justify-between w-full gap-4">
               <div className="flex items-center gap-2">
                 <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
                   <span className="text-sm text-blue-700">2</span>
@@ -2340,9 +2754,42 @@ export function AutomationBuilder({
                       ? 'Restrict when this automation runs'
                       : `${newAutomation.conditions.length} condition${newAutomation.conditions.length !== 1 ? 's' : ''} added`}
               </p>
+              {newAutomation.conditions.length === 0 && (
+                <div className="flex items-center gap-1.5 mt-1.5">
+                  <Info className="w-3 h-3 text-blue-500 flex-shrink-0" />
+                  <p className="text-xs text-blue-600">
+                    Skip this step unless you need to restrict when the automation runs
+                  </p>
+                </div>
+              )}
             </div>
               </div>
-              <ChevronDown className={`w-4 h-4 text-slate-400 transition-transform duration-200 ${showConditions || newAutomation.conditions.length > 0 ? 'rotate-180' : ''}`} />
+              
+              <div className="flex items-center gap-2">
+                {/* Add Condition Button - Always visible, on left of chevron */}
+            <Button 
+              variant="outline" 
+              size="sm" 
+                  className="gap-2 flex-shrink-0"
+                onClick={(e) => {
+                  e.stopPropagation();
+                    // Open accordion if closed
+                    if (!showConditions && newAutomation.conditions.length === 0) {
+                  setShowConditions(true);
+                    }
+                    // Add new condition
+                setNewAutomation({
+                  ...newAutomation,
+                    conditions: [...newAutomation.conditions, { id: `cond-${Date.now()}`, field: '', operator: '', value: '' }]
+                });
+              }}
+            >
+              <Plus className="w-4 h-4" />
+              Add Condition
+            </Button>
+                
+                <ChevronDown className={`w-4 h-4 text-slate-400 transition-transform duration-200 flex-shrink-0 ${showConditions || newAutomation.conditions.length > 0 ? 'rotate-180' : ''}`} />
+              </div>
             </div>
           </CollapsibleTrigger>
           
@@ -2353,22 +2800,6 @@ export function AutomationBuilder({
                   ? 'No conditions - automation will run for all triggers'
                   : 'Configure conditions to restrict when this automation runs'}
               </p>
-            <Button 
-              variant="outline" 
-              size="sm" 
-              className="gap-2"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setShowConditions(true);
-                setNewAutomation({
-                  ...newAutomation,
-                    conditions: [...newAutomation.conditions, { id: `cond-${Date.now()}`, field: '', operator: '', value: '' }]
-                });
-              }}
-            >
-              <Plus className="w-4 h-4" />
-              Add Condition
-            </Button>
           </div>
 
             {/* Logic Operator Toggle (only show when there are 2+ conditions) */}
@@ -2862,118 +3293,290 @@ export function AutomationBuilder({
         )}
 
           {/* Automation Cards */}
-        {displayedAutomations.map((automation) => (
+        {displayedAutomations.map((automation) => {
+          // Convert automation data to structured format for preview
+          const triggerObj = automation.triggerObj || toStructuredTrigger(automation.trigger, automation.triggerObj?.config);
+          const conditions = (automation.conditions || []).map(c => {
+            // Add id if missing
+            if (!c.id) {
+              return { ...c, id: `cond-${Date.now()}-${Math.random()}` };
+            }
+            return c;
+          });
+          
+          // Convert actionDetails to ActionStructured
+          const actionObjs = automation.actionObjs || (automation.actionDetails || []).map((a: Action) => {
+            // Check if it's already structured (has the new fields)
+            const maybeStructured = a as any;
+            if (maybeStructured.id && maybeStructured.category && maybeStructured.name) {
+              // Already structured
+              return maybeStructured as ActionStructured;
+            } else if (a.type) {
+              // Old format with type string - try to parse details as JSON config
+              let config = {};
+              try {
+                if (a.details) {
+                  config = JSON.parse(a.details);
+                }
+              } catch (e) {
+                // Not JSON, use empty config
+              }
+              const converted = toStructuredAction(a.type, config);
+              return converted || { id: '', category: '', name: '', config: {} };
+            }
+            return { id: '', category: '', name: '', config: {} };
+          }).filter(action => action.id); // Filter out empty actions
+          
+          return (
             <div 
               key={automation.id}
-              className="group border border-slate-200 hover:border-violet-300 transition-all cursor-pointer rounded-xl bg-white shadow-sm hover:shadow-md"
+              className="group border border-slate-200 hover:border-violet-300 transition-all duration-200 cursor-pointer rounded-xl bg-white shadow-sm hover:shadow-lg"
                 onClick={(e) => {
                   console.log('Card clicked', automation.id);
                   handleEditAutomation(automation);
                 }}
               >
-                <div className="p-4 flex items-start justify-between gap-4">
-                  <div className="flex items-start gap-3 flex-1">
-                    <div onClick={(e) => e.stopPropagation()}>
-                      <Switch 
-                        checked={automation.enabled}
-                        onCheckedChange={(checked) => {
-                          setAutomations(automations.map(a => 
-                            a.id === automation.id ? { ...a, enabled: checked } : a
-                          ));
-                        }}
-                        className="mt-1"
-                      />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm text-slate-900">{automation.name}</p>
-                      <div className="flex items-center gap-2 mt-2 flex-wrap">
-                        <Badge variant="outline" className="text-xs">
-                          {triggerTypes.find((t) => t.value === automation.trigger)?.label}
-                        </Badge>
-                        {(automation as any).details && (
-                          <Badge variant="outline" className="text-xs text-blue-700 border-blue-300">
-                            {(automation as any).details}
-                          </Badge>
-                        )}
-                        <span className="text-xs text-slate-400">→</span>
-                        {(automation.actionDetails || []).map((actionDetail, idx) => {
-                          // Get action type label
-                          const actionType = actionTypes.find(a => a.value === actionDetail.type);
-                          let displayText = actionType?.label || actionDetail.type || automation.actions[idx] || 'Action';
-                          let isEmail = false;
-                          
-                          // For email actions, try to show subject
-                          if ((actionDetail.type === 'send_client_email' || actionDetail.type === 'send_team_email') && actionDetail.details) {
-                            try {
-                              const emailData = JSON.parse(actionDetail.details);
-                              if (emailData.subject) {
-                                displayText = `${actionType?.label}: "${emailData.subject}"`;
-                                isEmail = true;
-                              }
-                            } catch (e) {
-                              // Not JSON, use default display
+                <div className="p-5">
+                  <div className="space-y-3">
+                    {/* Row 1: Status + Name + Actions */}
+                    <div className="flex items-start justify-between gap-4">
+                      <div className="flex items-center gap-3 flex-1 min-w-0">
+                        {/* Status Toggle - Horizontal Layout */}
+                        <div 
+                          onClick={(e) => e.stopPropagation()} 
+                          className="flex items-center gap-2 w-[100px] flex-shrink-0"
+                        >
+                          <Switch 
+                            checked={automation.enabled}
+                            onCheckedChange={(checked) => {
+                              setAutomations(automations.map(a => 
+                                a.id === automation.id ? { ...a, enabled: checked } : a
+                              ));
+                            }}
+                            className={automation.enabled 
+                              ? 'data-[state=checked]:!bg-green-600' 
+                              : 'data-[state=unchecked]:!bg-slate-400'
                             }
-                          }
-                          
-                          return (
-                            <Badge 
-                              key={idx} 
-                              className={`text-xs ${isEmail ? 'bg-blue-100 text-blue-700' : 'bg-violet-100 text-violet-700'} hover:bg-violet-100`}
-                            >
-                              {displayText}
-                            </Badge>
-                          );
-                        })
-                        }
-                        {/* Fallback to actions array if actionDetails not available */}
-                        {(!automation.actionDetails || automation.actionDetails.length === 0) && automation.actions.map((action, idx) => (
-                          <Badge key={idx} className="text-xs bg-violet-100 text-violet-700 hover:bg-violet-100">
-                            {action}
+                          />
+                          <Badge 
+                            variant={automation.enabled ? "default" : "secondary"}
+                            className={`text-xs whitespace-nowrap ${
+                              automation.enabled 
+                                ? 'bg-green-50 text-green-700 border border-green-200 hover:bg-green-50' 
+                                : 'bg-slate-50 text-slate-500 border border-slate-200 hover:bg-slate-50'
+                            }`}
+                          >
+                            {automation.enabled ? 'Active' : 'Inactive'}
                           </Badge>
-                        ))}
+                        </div>
+
+                        {/* Name */}
+                        <h3 className="text-base font-semibold text-slate-900 truncate flex-1">
+                          {automation.name}
+                        </h3>
                       </div>
-                      {!automation.enabled && (
-                        <p className="text-xs text-amber-600 mt-2">
-                          Disabled - This automation will not run
-                        </p>
-                      )}
+
+                      {/* Action Buttons */}
+                      <div className="flex gap-1 w-[72px] flex-shrink-0" onClick={(e) => e.stopPropagation()}>
+                        <Button 
+                          variant="ghost" 
+                          size="icon"
+                          className="hover:bg-violet-50 hover:text-violet-600 transition-colors"
+                          title="Edit automation"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleEditAutomation(automation);
+                          }}
+                        >
+                          <Edit2 className="w-4 h-4" />
+                        </Button>
+                        <Button 
+                          variant="ghost" 
+                          size="icon"
+                          className="hover:bg-red-50 hover:text-red-600 transition-colors"
+                          title="Delete automation"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setDeleteConfirmId(automation.id);
+                          }}
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </Button>
+                      </div>
                     </div>
-                  </div>
-                  <div className="flex gap-1" onClick={(e) => e.stopPropagation()}>
-                    <Button 
-                      variant="ghost" 
-                      size="icon"
-                      className="hover:bg-violet-50"
-                      title="Edit automation"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleEditAutomation(automation);
-                      }}
-                    >
-                      <Edit2 className="w-4 h-4 text-slate-400" />
-                    </Button>
-                    <Button 
-                      variant="ghost" 
-                      size="icon"
-                      className="hover:bg-red-50"
-                      title="Delete automation"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setDeleteConfirmId(automation.id);
-                      }}
-                    >
-                      <Trash2 className="w-4 h-4 text-slate-400 hover:text-red-600" />
-                    </Button>
+
+                    {/* Row 2: Preview Section */}
+                    {triggerObj && actionObjs.length > 0 && (
+                      <div className="bg-violet-50/50 border border-violet-100 rounded-lg p-2.5">
+                        <p className="text-xs font-semibold text-slate-800 mb-2">Automation Preview</p>
+                        <div className="text-xs text-slate-600 space-y-1">
+                          <div>
+                            <span className="font-semibold text-slate-700">When</span>{' '}
+                            <span className="text-slate-600">
+                              {(() => {
+                                const trigger = triggerObj;
+                                if (!trigger) return '(No trigger)';
+                                
+                                if (trigger.category === 'Invoice') {
+                                  if (trigger.name === 'invoice_created') return 'an invoice is created';
+                                  if (trigger.name === 'invoice_sent') return 'an invoice is sent';
+                                  if (trigger.name === 'invoice_paid') return 'an invoice is paid';
+                                  if (trigger.name === 'invoice_overdue') return 'an invoice becomes overdue';
+                                }
+                                if (trigger.category === 'Payment') {
+                                  if (trigger.name === 'payment_received') return 'a payment is received';
+                                  if (trigger.name === 'payment_failed') return 'a payment fails';
+                                }
+                                if (trigger.category === 'Client') {
+                                  if (trigger.name === 'client_created') return 'a client is created';
+                                }
+                                if (trigger.category === 'Time') {
+                                  const config = trigger.config as any;
+                                  if (trigger.name === 'scheduled') {
+                                    return `at ${config?.time || 'scheduled time'} ${config?.frequency || 'daily'}`;
+                                  }
+                                }
+                                return trigger.name || 'event occurs';
+                              })()}
+                            </span>
+                          </div>
+
+                          {conditions.length > 0 && (
+                            <div>
+                              <span className="font-semibold text-slate-700">And</span>{' '}
+                              {conditions.map((condition, index) => (
+                                <span key={condition.id}>
+                                  {index > 0 && ` ${automation.logicOperator || 'AND'} `}
+                                  <span className="text-slate-600">
+                                    {(() => {
+                                      const fieldLabels: Record<string, string> = {
+                                        'invoice_amount': 'invoice amount',
+                                        'invoice_status': 'invoice status',
+                                        'client_type': 'client type',
+                                        'payment_method': 'payment method',
+                                        'days_overdue': 'days overdue',
+                                      };
+                                      const operatorLabels: Record<string, string> = {
+                                        'equals': 'is',
+                                        'not_equals': 'is not',
+                                        'greater_than': 'is greater than',
+                                        'less_than': 'is less than',
+                                        'contains': 'contains',
+                                      };
+                                      const field = fieldLabels[condition.field] || condition.field;
+                                      const op = operatorLabels[condition.operator] || condition.operator;
+                                      return `${field} ${op} ${condition.value}`;
+                                    })()}
+                                  </span>
+                                </span>
+                              ))}
+                            </div>
+                          )}
+
+                          <div>
+                            <span className="font-semibold text-slate-700">Then</span>{' '}
+                            {actionObjs.length > 0 ? (
+                              <div className="mt-0.5 space-y-0.5">
+                                {actionObjs.map((action, index) => (
+                                  <div key={`${action.id}-${index}`} className="ml-3">
+                                    <span className="text-slate-500">{index + 1}.</span>{' '}
+                                    <span className="text-slate-600">
+                                      {(() => {
+                                        const config = action.config as any;
+                                        if (action.category === 'Email') {
+                                          if (action.name === 'send_client_email') {
+                                            return `Send email to client${config?.subject ? `: "${config.subject}"` : ''}`;
+                                          }
+                                          if (action.name === 'send_team_email') {
+                                            return `Send email to team${config?.subject ? `: "${config.subject}"` : ''}`;
+                                          }
+                                        }
+                                        if (action.category === 'Invoice') {
+                                          if (action.name === 'update_invoice_status') {
+                                            return `Update invoice status to ${config?.status || 'new status'}`;
+                                          }
+                                          if (action.name === 'apply_late_fee') {
+                                            return `Apply late fee of ${config?.amount || 'specified amount'}`;
+                                          }
+                                        }
+                                        if (action.category === 'Notification') {
+                                          if (action.name === 'send_slack_notification') {
+                                            return `Send Slack notification${config?.message ? `: "${config.message}"` : ''}`;
+                                          }
+                                        }
+                                        return action.name || 'Perform action';
+                                      })()}
+                                    </span>
+                                  </div>
+                                ))}
+                              </div>
+                            ) : (
+                              <span className="text-slate-400">(No actions)</span>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Row 3: Badges */}
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <Badge variant="outline" className="text-xs bg-blue-50 text-blue-700 border-blue-200">
+                        {triggerTypes.find((t) => t.value === automation.trigger)?.label}
+                      </Badge>
+                      {(automation as any).details && (
+                        <Badge variant="outline" className="text-xs bg-blue-50 text-blue-700 border-blue-200">
+                          {(automation as any).details}
+                        </Badge>
+                      )}
+                      <span className="text-xs text-slate-300 mx-1">→</span>
+                      {(automation.actionDetails || []).map((actionDetail, idx) => {
+                        // Get action type label
+                        const actionType = actionTypes.find(a => a.value === actionDetail.type);
+                        let displayText = actionType?.label || actionDetail.type || automation.actions[idx] || 'Action';
+                        
+                        // For email actions, try to show subject
+                        if ((actionDetail.type === 'send_client_email' || actionDetail.type === 'send_team_email') && actionDetail.details) {
+                          try {
+                            const emailData = JSON.parse(actionDetail.details);
+                            if (emailData.subject) {
+                              displayText = `${actionType?.label}: "${emailData.subject}"`;
+                            }
+                          } catch (e) {
+                            // Not JSON, use default display
+                          }
+                        }
+                        
+                        return (
+                          <Badge 
+                            key={idx} 
+                            variant="outline"
+                            className="text-xs bg-violet-50 text-violet-700 border-violet-200"
+                          >
+                            {displayText}
+                          </Badge>
+                        );
+                      })
+                      }
+                      {/* Fallback to actions array if actionDetails not available */}
+                      {(!automation.actionDetails || automation.actionDetails.length === 0) && automation.actions.map((action, idx) => (
+                        <Badge key={idx} variant="outline" className="text-xs bg-violet-50 text-violet-700 border-violet-200">
+                          {action}
+                        </Badge>
+                      ))}
+                    </div>
+
+                    {/* Click to edit hint */}
+                    <div className="pt-1 border-t border-slate-100">
+                      <p className="text-xs text-slate-400 group-hover:text-violet-600 transition-colors flex items-center gap-1">
+                        <Edit2 className="w-3 h-3" />
+                        Click to edit this automation
+                      </p>
+                    </div>
                   </div>
                 </div>
-                <div className="px-4 pb-3 pt-2 border-t border-slate-100 mt-2">
-                  <p className="text-xs text-slate-400 group-hover:text-violet-600 transition-colors flex items-center gap-1">
-                    <Edit2 className="w-3 h-3" />
-                    Click to edit this automation
-                  </p>
-              </div>
           </div>
-        ))}
+          );
+        })}
           </div>
         )}
       {/* Delete Confirmation Dialog */}

@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Card } from './ui/card';
 import { Button } from './ui/button';
@@ -20,7 +20,9 @@ import { toast } from 'sonner@2.0.3';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from './ui/tooltip';
 import { Separator } from './ui/separator';
 import { RadioGroup, RadioGroupItem } from './ui/radio-group';
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from './ui/dropdown-menu';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator, DropdownMenuLabel } from './ui/dropdown-menu';
+import { Checkbox } from './ui/checkbox';
+import { useAuth } from '../contexts/AuthContext';
 
 interface ProjectCard {
   id: string;
@@ -69,7 +71,8 @@ const mockClients = [
 
 export function KanbanBoard({ viewMode = 'kanban', onViewModeChange, onProjectClick, onActivityLogClick, onStartWizard, onEditWorkflow, onViewTasks }: KanbanBoardProps) {
   const navigate = useNavigate();
-  const { workflows, projects, tasks, addProject, moveProject, getWorkflow, getTasksByWorkflow, getTaskCounts, updateTask } = useWorkflowContext();
+  const { user } = useAuth();
+  const { workflows, projects, tasks, addProject, moveProject, getWorkflow, getTasksByWorkflow, getTaskCounts, updateTask, userProfiles } = useWorkflowContext();
   const [selectedWorkflowId, setSelectedWorkflowId] = useState(workflows[0]?.id || '');
   const [showTasksView, setShowTasksView] = useState(false);
   const [taskViewMode, setTaskViewMode] = useState<'list' | 'kanban'>('list');
@@ -182,6 +185,85 @@ export function KanbanBoard({ viewMode = 'kanban', onViewModeChange, onProjectCl
   const allTaskStatuses = Array.from(new Set(workflowTasks.map(t => t.status).filter(Boolean))) as string[];
   const allTaskPriorities = Array.from(new Set(workflowTasks.map(t => t.priority).filter(Boolean))) as string[];
   const allTaskLists: Array<{ id: string; name: string; color: string; taskCount: number }> = []; // TODO: Get from context if available
+  
+  // Get logged-in user's full name
+  const loggedInUserName = useMemo(() => {
+    if (!user) return null;
+    // Try to match user with userProfiles by name or email
+    const userProfile = userProfiles?.find(profile => 
+      profile.name.toLowerCase().includes(user.name.toLowerCase()) ||
+      profile.email?.toLowerCase() === user.emailAddress?.toLowerCase()
+    );
+    return userProfile?.name || `${user.name} ${user.surname || ''}`.trim();
+  }, [user, userProfiles]);
+  
+  // Create team members array from userProfiles (for Team View dropdown)
+  // Ensure logged-in user is included even if not in userProfiles
+  const teamMembers = useMemo(() => {
+    const colors = ['#7c3aed', '#2563eb', '#059669', '#dc2626', '#ea580c', '#ca8a04', '#0891b2', '#7e22ce'];
+    
+    const membersFromProfiles = (userProfiles || []).map((profile: any, index: number) => {
+      const fullName = profile.name;
+      const initials = fullName
+        .split(' ')
+        .map((n: string) => n[0])
+        .join('')
+        .substring(0, 2)
+        .toUpperCase();
+      
+      return {
+        id: profile.id,
+        name: fullName,
+        avatar: initials,
+        color: colors[index % colors.length]
+      };
+    });
+    
+    // If logged-in user is not in the list, add them
+    if (loggedInUserName && !membersFromProfiles.some((m: any) => m.name === loggedInUserName)) {
+      const userInitials = loggedInUserName
+        .split(' ')
+        .map((n: string) => n[0])
+        .join('')
+        .substring(0, 2)
+        .toUpperCase();
+      
+      membersFromProfiles.unshift({
+        id: user?.id?.toString() || 'current-user',
+        name: loggedInUserName,
+        avatar: userInitials,
+        color: colors[0] // Use first color for logged-in user
+      });
+    }
+    
+    return membersFromProfiles;
+  }, [userProfiles, loggedInUserName, user]);
+  
+  // Initialize default assignee to logged-in user when Tasks view is shown
+  useEffect(() => {
+    if (showTasksView && loggedInUserName && includedAssignees.length === 0 && excludedAssignees.length === 0) {
+      setIncludedAssignees([loggedInUserName]);
+      setAssigneeMode('include');
+    }
+  }, [showTasksView, loggedInUserName]);
+  
+  // Toggle team member in assignee filter (for Team View dropdown)
+  const toggleTeamMember = (memberName: string) => {
+    // Remove from excluded if it's there
+    if (excludedAssignees.includes(memberName)) {
+      setExcludedAssignees(excludedAssignees.filter(name => name !== memberName));
+    }
+    
+    // Toggle in included
+    if (includedAssignees.includes(memberName)) {
+      setIncludedAssignees(includedAssignees.filter(name => name !== memberName));
+    } else {
+      setIncludedAssignees([...includedAssignees, memberName]);
+    }
+    
+    // Set mode to include when selecting members
+    setAssigneeMode('include');
+  };
   
   // Clear all task filters
   const clearAllTaskFilters = () => {
@@ -754,6 +836,54 @@ export function KanbanBoard({ viewMode = 'kanban', onViewModeChange, onProjectCl
                               Completed Only
                             </DropdownMenuItem>
                           )}
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+
+                      {/* Team View Dropdown */}
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button variant="outline" size="sm" className="gap-2 flex-shrink-0">
+                            <Users className="w-4 h-4" />
+                            Team View
+                            {includedAssignees.length > 0 && (
+                              <Badge variant="secondary" className="ml-1">
+                                {includedAssignees.length}
+                              </Badge>
+                            )}
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end" className="w-56">
+                          <DropdownMenuLabel>Select Team Members</DropdownMenuLabel>
+                          <DropdownMenuSeparator />
+                          {teamMembers.map(member => {
+                            const isSelected = includedAssignees.includes(member.name);
+                            return (
+                              <DropdownMenuItem
+                                key={member.id}
+                                className="cursor-pointer"
+                                onSelect={(e) => {
+                                  e.preventDefault(); // Prevent dropdown from closing
+                                  toggleTeamMember(member.name);
+                                }}
+                              >
+                                <div className="flex items-center gap-3 w-full">
+                                  <Checkbox
+                                    checked={isSelected}
+                                    onClick={(e) => {
+                                      e.stopPropagation(); // Prevent event bubbling
+                                    }}
+                                  />
+                                  <div 
+                                    className="w-6 h-6 rounded-full flex items-center justify-center text-white text-xs font-medium"
+                                    style={{ backgroundColor: member.color }}
+                                  >
+                                    {member.avatar}
+                                  </div>
+                                  <span className="flex-1">{member.name}</span>
+                                </div>
+                              </DropdownMenuItem>
+                            );
+                          })}
                         </DropdownMenuContent>
                       </DropdownMenu>
 
@@ -2067,6 +2197,11 @@ export function KanbanBoard({ viewMode = 'kanban', onViewModeChange, onProjectCl
                   excludedPriorities={excludedPriorities}
                   includedTaskLists={includedTaskLists}
                   excludedTaskLists={excludedTaskLists}
+                  assigneeMode={assigneeMode}
+                  clientMode={clientMode}
+                  statusMode={statusMode}
+                  priorityMode={priorityMode}
+                  taskListMode={taskListMode}
                 />
               </div>
             )}

@@ -1214,7 +1214,12 @@ export function WorkflowBuilder({ onStartWizard, newWorkflow, onPreview }: Workf
                             setSelectedStage(stage);
                             setSelectedTask(null);
                             setAutomationLevel('stage');
+                            // If no automations exist, don't set focusedAutomationId so it auto-opens create form
+                            if ((stage.automations || []).length === 0) {
                             setFocusedAutomationId(null);
+                            } else {
+                              setFocusedAutomationId(null);
+                            }
                             setEditingAutomation(null);
                             setShowAutomationBuilder(true);
                           }}
@@ -1771,6 +1776,7 @@ export function WorkflowBuilder({ onStartWizard, newWorkflow, onPreview }: Workf
         setShowAutomationBuilder(open);
         if (!open) {
           setFocusedAutomationId(null);
+          setEditingAutomation(null);
         }
       }}>
         <DialogContent className="!max-w-[1540px] w-[95vw] max-h-[90vh] overflow-y-auto">
