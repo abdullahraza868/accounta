@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { Card } from "../ui/card";
 import { Button } from "../ui/button";
@@ -41,6 +41,8 @@ import {
   Upload,
   Search,
   StickyNote,
+  MessageCircle,
+  Smartphone,
 } from "lucide-react";
 import { ActivityLog } from "../ActivityLog";
 import { TimeTracker } from "../TimeTracker";
@@ -48,6 +50,8 @@ import { EmailTemplateSelector } from "../EmailTemplateSelector";
 import { AddNoteDialog } from "../AddNoteDialog";
 import { Separator } from "../ui/separator";
 import { ProjectsDocumentsTab } from "../folder-tabs/ProjectsDocumentsTab";
+import { ProjectsCommunicationTab } from "../folder-tabs/ProjectsCommunicationTab";
+import { cn } from "../ui/utils";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -87,6 +91,25 @@ export function ProjectDetailPage({
   onViewActivityLog,
 }: ProjectDetailsPageProps) {
   const [activeTab, setActiveTab] = useState("overview");
+  
+  // Communication tab state
+  const communicationTabRef = useRef<{
+    channelMode: 'internal' | 'external' | 'texting' | 'email';
+    setChannelMode: (mode: 'internal' | 'external' | 'texting' | 'email') => void;
+    searchQuery: string;
+    setSearchQuery: (query: string) => void;
+  } | null>(null);
+  const [currentChannelMode, setCurrentChannelMode] = useState<'internal' | 'external' | 'texting' | 'email'>('internal');
+  const [communicationKey, setCommunicationKey] = useState(0);
+
+  // Force re-render when Communication tab becomes active
+  useEffect(() => {
+    if (activeTab === 'communication') {
+      setTimeout(() => {
+        setCommunicationKey(prev => prev + 1);
+      }, 100);
+    }
+  }, [activeTab]);
 
   // Lead person state
   const [leadPerson, setLeadPerson] = useState("Sarah Miller");
@@ -379,14 +402,14 @@ export function ProjectDetailPage({
             <div className="flex items-center gap-3 mt-3 flex-wrap">
               {/* Account Manager Card */}
               <div className="flex items-center gap-2 p-2 bg-amber-50 border border-amber-200 rounded-lg">
-                <Star className="w-4 h-4 text-amber-600" />
-                <span className="text-sm">
-                  <span className="text-amber-700 font-medium">
-                    Account Manager:
-                  </span>{" "}
-                  {leadPerson}
-                </span>
-              </div>
+              <Star className="w-4 h-4 text-amber-600" />
+              <span className="text-sm">
+                <span className="text-amber-700 font-medium">
+                  Account Manager:
+                </span>{" "}
+                {leadPerson}
+              </span>
+            </div>
 
               {/* Team Members Card */}
               <button
@@ -1106,60 +1129,103 @@ export function ProjectDetailPage({
         </TabsContent>
 
         {/* Communication Tab */}
-        <TabsContent value="communication" className="space-y-6">
-          <Card className="p-6">
-            <h3 className="text-slate-900 mb-4">Send Communication</h3>
-            <p className="text-sm text-slate-600 mb-4">
-              Choose from pre-built templates or compose a custom message to send to your client.
-            </p>
-            <EmailTemplateSelector 
-              onSelect={(template) => {
-                console.log('Selected template:', template);
-              }}
-            />
-          </Card>
-
-          <Card className="p-6">
-            <h3 className="text-slate-900 mb-4">Communication History</h3>
-            <div className="space-y-4">
-              <div className="border-l-4 border-blue-500 pl-4 py-2">
-                <div className="flex items-start justify-between">
-                  <div>
-                    <p className="text-sm">Project Update Email</p>
-                    <p className="text-xs text-slate-500 mt-1">Sent to client@example.com</p>
-                  </div>
-                  <p className="text-xs text-slate-500">2 days ago</p>
-                </div>
-                <p className="text-sm text-slate-600 mt-2">
-                  Hi, I wanted to update you on the progress of your project...
-                </p>
-              </div>
-              <div className="border-l-4 border-green-500 pl-4 py-2">
-                <div className="flex items-start justify-between">
-                  <div>
-                    <p className="text-sm">Document Request</p>
-                    <p className="text-xs text-slate-500 mt-1">Sent to client@example.com</p>
-                  </div>
-                  <p className="text-xs text-slate-500">5 days ago</p>
-                </div>
-                <p className="text-sm text-slate-600 mt-2">
-                  We need the following documents to proceed...
-                </p>
-              </div>
-              <div className="border-l-4 border-violet-500 pl-4 py-2">
-                <div className="flex items-start justify-between">
-                  <div>
-                    <p className="text-sm">Welcome Email</p>
-                    <p className="text-xs text-slate-500 mt-1">Sent to client@example.com</p>
-                  </div>
-                  <p className="text-xs text-slate-500">1 week ago</p>
-                </div>
-                <p className="text-sm text-slate-600 mt-2">
-                  Welcome! We're excited to work with you...
-                </p>
-              </div>
+        <TabsContent value="communication" className="space-y-0">
+          {/* Submenu Bar - Channel Mode Switcher */}
+          <div className="bg-white border-b border-gray-200 px-4 py-2 flex items-center justify-between gap-4">
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => {
+                  setCurrentChannelMode('internal');
+                  communicationTabRef.current?.setChannelMode('internal');
+                }}
+                className={cn(
+                  "h-10 px-3 rounded-md text-xs font-medium transition-all border flex items-center gap-1.5 relative",
+                  currentChannelMode === 'internal'
+                    ? "bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 border-blue-300 dark:border-blue-700 hover:bg-blue-200 dark:hover:bg-blue-900/50"
+                    : "bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-300 border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700 hover:border-gray-300 dark:hover:border-gray-600"
+                )}
+              >
+                <MessageCircle className="w-3.5 h-3.5" />
+                Internal Discussion
+                <Badge className="ml-1 bg-orange-500 hover:bg-orange-500 text-white text-[10px] h-4 min-w-4 px-1">
+                  2
+                </Badge>
+              </button>
+              <button
+                onClick={() => {
+                  setCurrentChannelMode('external');
+                  communicationTabRef.current?.setChannelMode('external');
+                }}
+                className={cn(
+                  "h-10 px-3 rounded-md text-xs font-medium transition-all border flex items-center gap-1.5 relative",
+                  currentChannelMode === 'external'
+                    ? "bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-400 border-purple-300 dark:border-purple-700 hover:bg-purple-200 dark:hover:bg-purple-900/50"
+                    : "bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-300 border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700 hover:border-gray-300 dark:hover:border-gray-600"
+                )}
+              >
+                <MessageSquare className="w-3.5 h-3.5" />
+                Client Chat
+                <Badge className="ml-1 bg-red-600 hover:bg-red-600 text-white text-[10px] h-4 min-w-4 px-1 animate-pulse">
+                  1
+                </Badge>
+              </button>
+              <button
+                onClick={() => {
+                  setCurrentChannelMode('email');
+                  communicationTabRef.current?.setChannelMode('email');
+                }}
+                className={cn(
+                  "h-10 px-3 rounded-md text-xs font-medium transition-all border flex items-center gap-1.5 relative",
+                  currentChannelMode === 'email'
+                    ? "bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-400 border-purple-300 dark:border-purple-700 hover:bg-purple-200 dark:hover:bg-purple-900/50"
+                    : "bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-300 border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700 hover:border-gray-300 dark:hover:border-gray-600"
+                )}
+              >
+                <Mail className="w-3.5 h-3.5" />
+                Email
+                <Badge className="ml-1 bg-purple-600 hover:bg-purple-600 text-white text-[10px] h-4 min-w-4 px-1">
+                  1
+                </Badge>
+              </button>
+              <button
+                onClick={() => {
+                  setCurrentChannelMode('texting');
+                  communicationTabRef.current?.setChannelMode('texting');
+                }}
+                className={cn(
+                  "h-10 px-3 rounded-md text-xs font-medium transition-all border flex items-center gap-1.5 relative",
+                  currentChannelMode === 'texting'
+                    ? "bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 border-green-300 dark:border-green-700 hover:bg-green-200 dark:hover:bg-green-900/50"
+                    : "bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-300 border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700 hover:border-gray-300 dark:hover:border-gray-600"
+                )}
+              >
+                <Smartphone className="w-3.5 h-3.5" />
+                Text Messages
+              </button>
             </div>
-          </Card>
+
+            {/* Search - Right Side */}
+            <div className="relative w-64 flex-shrink-0">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400" />
+              <Input
+                placeholder="Search messages..."
+                value={communicationTabRef.current?.searchQuery || ''}
+                onChange={(e) => communicationTabRef.current?.setSearchQuery(e.target.value)}
+                className="pl-9 pr-9 h-8 text-sm"
+              />
+              {communicationTabRef.current?.searchQuery && (
+                <button
+                  onClick={() => communicationTabRef.current?.setSearchQuery('')}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                >
+                  <X className="w-3.5 h-3.5" />
+                </button>
+              )}
+            </div>
+          </div>
+
+          {/* Communication Tab Content */}
+          <ProjectsCommunicationTab key={communicationKey} ref={communicationTabRef} project={project} />
         </TabsContent>
       </Tabs>
 
@@ -1204,8 +1270,8 @@ export function ProjectDetailPage({
                   <Badge variant="secondary" className="text-xs">
                     Active
                   </Badge>
-                </div>
-              );
+    </div>
+  );
             })}
           </div>
         </DialogContent>
@@ -1237,10 +1303,10 @@ export function ProjectDetailPage({
                 <div className="flex items-center space-x-2 p-2 rounded-lg border border-slate-200 hover:bg-slate-50">
                   <RadioGroupItem value="Public" id="public" />
                   <Label htmlFor="public" className="flex-1 cursor-pointer">
-                    <div>
+                  <div>
                       <span className="font-medium">Public</span>
                       <p className="text-xs text-slate-500">Visible to all team members</p>
-                    </div>
+                  </div>
                   </Label>
                 </div>
                 <div className="flex items-center space-x-2 p-2 rounded-lg border border-slate-200 hover:bg-slate-50">
@@ -1249,20 +1315,20 @@ export function ProjectDetailPage({
                     <div>
                       <span className="font-medium">Team</span>
                       <p className="text-xs text-slate-500">Visible to selected team members</p>
-                    </div>
+              </div>
                   </Label>
                 </div>
                 <div className="flex items-center space-x-2 p-2 rounded-lg border border-slate-200 hover:bg-slate-50">
                   <RadioGroupItem value="Private" id="private" />
                   <Label htmlFor="private" className="flex-1 cursor-pointer">
-                    <div>
+                  <div>
                       <span className="font-medium">Private</span>
                       <p className="text-xs text-slate-500">Only visible to you</p>
-                    </div>
+                  </div>
                   </Label>
                 </div>
               </RadioGroup>
-            </div>
+              </div>
 
             {/* Visible Users (only show if Team is selected) */}
             {projectVisibility.level === 'Team' && (
@@ -1300,16 +1366,16 @@ export function ProjectDetailPage({
                           </AvatarFallback>
                         </Avatar>
                         <Label htmlFor={userCode} className="flex-1 cursor-pointer">
-                          <div>
+                  <div>
                             <p className="text-sm font-medium">{member.name}</p>
                             <p className="text-xs text-slate-500">{member.role}</p>
-                          </div>
+                  </div>
                         </Label>
-                      </div>
+                </div>
                     );
                   })}
-                </div>
               </div>
+            </div>
             )}
 
             {/* Action Buttons */}
