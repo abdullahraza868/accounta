@@ -41,6 +41,7 @@ export type Client = {
   assignedTo: string;
   tags: string[];
   createdDate: string;
+  services?: string[];
 };
 
 export type FolderTab = 

@@ -652,6 +652,157 @@ export function CreateClientWizard({
         </div>
       </div>
 
+      {/* Service Classification */}
+      {(clientType === 'individual' ? individualCardVisibility.services : businessCardVisibility.businessServices) && (
+        <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-6">
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="font-medium">Service Classification</h3>
+            <div className="flex gap-2">
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => setIsAddingService(true)}
+                className="gap-2"
+              >
+                <Plus className="w-4 h-4" />
+                Add New Service
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={toggleAllServices}
+                className="gap-2"
+              >
+                {selectedServices.size === SERVICES.length + customServices.length ? (
+                  <>
+                    <X className="w-4 h-4" />
+                    Deselect All
+                  </>
+                ) : (
+                  <>
+                    <Check className="w-4 h-4" />
+                    All Services
+                  </>
+                )}
+              </Button>
+            </div>
+          </div>
+          
+          {/* Add New Service Form */}
+          {isAddingService && (
+            <div className="mb-4 p-4 border-2 border-dashed rounded-lg" style={{ borderColor: 'var(--primaryColor)' }}>
+              <Label className="mb-2 block">New Service Name</Label>
+              <div className="flex gap-2">
+                <Input
+                  placeholder="Enter service name..."
+                  value={newServiceName}
+                  onChange={(e) => setNewServiceName(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' && newServiceName.trim()) {
+                      e.preventDefault();
+                      const serviceId = `custom-${Date.now()}`;
+                      setCustomServices([...customServices, { id: serviceId, label: newServiceName.trim() }]);
+                      setSelectedServices(new Set([...selectedServices, serviceId as ServiceType]));
+                      setNewServiceName('');
+                      setIsAddingService(false);
+                      toast.success(`Service "${newServiceName.trim()}" added`);
+                    } else if (e.key === 'Escape') {
+                      setIsAddingService(false);
+                      setNewServiceName('');
+                    }
+                  }}
+                  className="flex-1"
+                  autoFocus
+                />
+                <Button
+                  type="button"
+                  size="sm"
+                  onClick={() => {
+                    if (newServiceName.trim()) {
+                      const serviceId = `custom-${Date.now()}`;
+                      setCustomServices([...customServices, { id: serviceId, label: newServiceName.trim() }]);
+                      setSelectedServices(new Set([...selectedServices, serviceId as ServiceType]));
+                      setNewServiceName('');
+                      setIsAddingService(false);
+                      toast.success(`Service "${newServiceName.trim()}" added`);
+                    }
+                  }}
+                  disabled={!newServiceName.trim()}
+                  style={{ backgroundColor: 'var(--primaryColor)' }}
+                  className="text-white"
+                >
+                  <Check className="w-4 h-4" />
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    setIsAddingService(false);
+                    setNewServiceName('');
+                  }}
+                >
+                  <X className="w-4 h-4" />
+                </Button>
+              </div>
+            </div>
+          )}
+
+          <div className="grid grid-cols-4 gap-3">
+            {/* Default Services */}
+            {SERVICES.map((service) => (
+              <button
+                key={service.id}
+                type="button"
+                onClick={() => toggleService(service.id)}
+                className={cn(
+                  'p-3 border-2 rounded-lg transition-all text-sm',
+                  selectedServices.has(service.id)
+                    ? 'border-purple-600 bg-purple-50 dark:bg-purple-900/20 text-purple-900 dark:text-purple-100'
+                    : 'border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600'
+                )}
+              >
+                {service.label}
+              </button>
+            ))}
+            
+            {/* Custom Services */}
+            {customServices.map((service) => (
+              <div key={service.id} className="relative group">
+                <button
+                  type="button"
+                  onClick={() => toggleService(service.id as ServiceType)}
+                  className={cn(
+                    'w-full p-3 border-2 rounded-lg transition-all text-sm',
+                    selectedServices.has(service.id as ServiceType)
+                      ? 'border-purple-600 bg-purple-50 dark:bg-purple-900/20 text-purple-900 dark:text-purple-100'
+                      : 'border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600'
+                  )}
+                >
+                  {service.label}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setCustomServices(customServices.filter(s => s.id !== service.id));
+                    const newSelected = new Set(selectedServices);
+                    newSelected.delete(service.id as ServiceType);
+                    setSelectedServices(newSelected);
+                    toast.success(`Service "${service.label}" removed`);
+                  }}
+                  className="absolute -top-2 -right-2 w-5 h-5 bg-red-500 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center hover:bg-red-600"
+                  title="Remove custom service"
+                >
+                  <X className="w-3 h-3" />
+                </button>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
       {/* Client Group & Number */}
       <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-6">
         <h3 className="font-medium mb-4">Client Organization</h3>
@@ -1577,157 +1728,6 @@ export function CreateClientWizard({
             </div>
           </div>
         </div>
-        </div>
-      )}
-
-      {/* Service Classification */}
-      {(clientType === 'individual' ? individualCardVisibility.services : businessCardVisibility.businessServices) && (
-        <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-6">
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="font-medium">Service Classification</h3>
-            <div className="flex gap-2">
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={() => setIsAddingService(true)}
-                className="gap-2"
-              >
-                <Plus className="w-4 h-4" />
-                Add New Service
-              </Button>
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={toggleAllServices}
-                className="gap-2"
-              >
-                {selectedServices.size === SERVICES.length + customServices.length ? (
-                  <>
-                    <X className="w-4 h-4" />
-                    Deselect All
-                  </>
-                ) : (
-                  <>
-                    <Check className="w-4 h-4" />
-                    All Services
-                  </>
-                )}
-              </Button>
-            </div>
-          </div>
-          
-          {/* Add New Service Form */}
-          {isAddingService && (
-            <div className="mb-4 p-4 border-2 border-dashed rounded-lg" style={{ borderColor: 'var(--primaryColor)' }}>
-              <Label className="mb-2 block">New Service Name</Label>
-              <div className="flex gap-2">
-                <Input
-                  placeholder="Enter service name..."
-                  value={newServiceName}
-                  onChange={(e) => setNewServiceName(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter' && newServiceName.trim()) {
-                      e.preventDefault();
-                      const serviceId = `custom-${Date.now()}`;
-                      setCustomServices([...customServices, { id: serviceId, label: newServiceName.trim() }]);
-                      setSelectedServices(new Set([...selectedServices, serviceId as ServiceType]));
-                      setNewServiceName('');
-                      setIsAddingService(false);
-                      toast.success(`Service "${newServiceName.trim()}" added`);
-                    } else if (e.key === 'Escape') {
-                      setIsAddingService(false);
-                      setNewServiceName('');
-                    }
-                  }}
-                  className="flex-1"
-                  autoFocus
-                />
-                <Button
-                  type="button"
-                  size="sm"
-                  onClick={() => {
-                    if (newServiceName.trim()) {
-                      const serviceId = `custom-${Date.now()}`;
-                      setCustomServices([...customServices, { id: serviceId, label: newServiceName.trim() }]);
-                      setSelectedServices(new Set([...selectedServices, serviceId as ServiceType]));
-                      setNewServiceName('');
-                      setIsAddingService(false);
-                      toast.success(`Service "${newServiceName.trim()}" added`);
-                    }
-                  }}
-                  disabled={!newServiceName.trim()}
-                  style={{ backgroundColor: 'var(--primaryColor)' }}
-                  className="text-white"
-                >
-                  <Check className="w-4 h-4" />
-                </Button>
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  onClick={() => {
-                    setIsAddingService(false);
-                    setNewServiceName('');
-                  }}
-                >
-                  <X className="w-4 h-4" />
-                </Button>
-              </div>
-            </div>
-          )}
-
-          <div className="grid grid-cols-4 gap-3">
-            {/* Default Services */}
-            {SERVICES.map((service) => (
-              <button
-                key={service.id}
-                type="button"
-                onClick={() => toggleService(service.id)}
-                className={cn(
-                  'p-3 border-2 rounded-lg transition-all text-sm',
-                  selectedServices.has(service.id)
-                    ? 'border-purple-600 bg-purple-50 dark:bg-purple-900/20 text-purple-900 dark:text-purple-100'
-                    : 'border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600'
-                )}
-              >
-                {service.label}
-              </button>
-            ))}
-            
-            {/* Custom Services */}
-            {customServices.map((service) => (
-              <div key={service.id} className="relative group">
-                <button
-                  type="button"
-                  onClick={() => toggleService(service.id as ServiceType)}
-                  className={cn(
-                    'w-full p-3 border-2 rounded-lg transition-all text-sm',
-                    selectedServices.has(service.id as ServiceType)
-                      ? 'border-purple-600 bg-purple-50 dark:bg-purple-900/20 text-purple-900 dark:text-purple-100'
-                      : 'border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600'
-                  )}
-                >
-                  {service.label}
-                </button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setCustomServices(customServices.filter(s => s.id !== service.id));
-                    const newSelected = new Set(selectedServices);
-                    newSelected.delete(service.id as ServiceType);
-                    setSelectedServices(newSelected);
-                    toast.success(`Service "${service.label}" removed`);
-                  }}
-                  className="absolute -top-2 -right-2 w-5 h-5 bg-red-500 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center hover:bg-red-600"
-                  title="Remove custom service"
-                >
-                  <X className="w-3 h-3" />
-                </button>
-              </div>
-            ))}
-          </div>
         </div>
       )}
 

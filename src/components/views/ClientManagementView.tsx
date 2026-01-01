@@ -42,7 +42,8 @@ export function ClientManagementView() {
       group: 'Trial',
       assignedTo: 'Sarah Johnson',
       tags: ['Trial', 'Tax 2024'],
-      createdDate: '2024-01-15T10:30:00Z'
+      createdDate: '2024-01-15T10:30:00Z',
+      services: ['Tax', 'Bookkeeping']
     },
     { 
       id: '2', 
@@ -55,7 +56,8 @@ export function ClientManagementView() {
       group: 'Premium',
       assignedTo: 'Mike Brown',
       tags: ['Premium', 'Quarterly Review'],
-      createdDate: '2023-11-20T14:15:00Z'
+      createdDate: '2023-11-20T14:15:00Z',
+      services: ['Tax', 'Advisory', 'Bookkeeping']
     },
     { 
       id: '3', 
@@ -68,7 +70,8 @@ export function ClientManagementView() {
       group: 'Fit-St Premium',
       assignedTo: 'Sarah Johnson',
       tags: ['Fit-St Premium'],
-      createdDate: '2024-03-10T09:00:00Z'
+      createdDate: '2024-03-10T09:00:00Z',
+      services: ['Bookkeeping', 'Payroll']
     },
     { 
       id: '4', 
@@ -81,7 +84,8 @@ export function ClientManagementView() {
       group: 'Fit-St Premium',
       assignedTo: 'Sarah Johnson',
       tags: ['Fit-St Premium', 'VIP', 'Tax Services'],
-      createdDate: '2023-09-05T11:20:00Z'
+      createdDate: '2023-09-05T11:20:00Z',
+      services: ['Tax', 'Bookkeeping', 'Advisory']
     },
     { 
       id: '5', 
@@ -94,7 +98,8 @@ export function ClientManagementView() {
       group: 'FreeTrial',
       assignedTo: 'Emily Davis',
       tags: ['FreeTrial', 'Bookkeeping'],
-      createdDate: '2024-10-18T16:45:00Z'
+      createdDate: '2024-10-18T16:45:00Z',
+      services: ['Bookkeeping']
     },
     { 
       id: '6', 
@@ -107,7 +112,8 @@ export function ClientManagementView() {
       group: 'FreeTrial',
       assignedTo: 'Sarah Johnson',
       tags: ['FreeTrial', 'Onboarding'],
-      createdDate: '2024-10-22T13:30:00Z'
+      createdDate: '2024-10-22T13:30:00Z',
+      services: ['Tax']
     },
     { 
       id: '7', 
@@ -120,7 +126,8 @@ export function ClientManagementView() {
       group: 'FreeTrial',
       assignedTo: 'Emily Davis',
       tags: ['Individual', 'New'],
-      createdDate: '2024-10-20T10:00:00Z'
+      createdDate: '2024-10-20T10:00:00Z',
+      services: ['Tax']
     },
     { 
       id: '8', 
@@ -133,7 +140,8 @@ export function ClientManagementView() {
       group: 'Premium',
       assignedTo: 'Mike Brown',
       tags: ['Individual', 'Tax Planning'],
-      createdDate: '2024-02-14T08:30:00Z'
+      createdDate: '2024-02-14T08:30:00Z',
+      services: ['Tax', 'Advisory']
     },
     { 
       id: '9', 
@@ -146,7 +154,8 @@ export function ClientManagementView() {
       group: 'Trial',
       assignedTo: 'Sarah Johnson',
       tags: ['Individual', 'Trial'],
-      createdDate: '2024-09-12T15:20:00Z'
+      createdDate: '2024-09-12T15:20:00Z',
+      services: ['Tax', 'Bookkeeping']
     },
     { 
       id: '10', 
@@ -159,7 +168,8 @@ export function ClientManagementView() {
       group: 'Premium',
       assignedTo: 'Emily Davis',
       tags: ['Individual', 'Premium'],
-      createdDate: '2024-07-08T12:00:00Z'
+      createdDate: '2024-07-08T12:00:00Z',
+      services: ['Tax', 'Bookkeeping', 'Payroll']
     },
   ]);
 

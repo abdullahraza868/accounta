@@ -85,7 +85,6 @@ export function EmailSettingsDialog({ open, onOpenChange }: EmailSettingsDialogP
 
   // Notification settings
   const [notifyNewEmail, setNotifyNewEmail] = useState(true);
-  const [notifyEmailFailed, setNotifyEmailFailed] = useState(true);
 
 
   const handleSaveSettings = () => {
@@ -601,22 +600,6 @@ export function EmailSettingsDialog({ open, onOpenChange }: EmailSettingsDialogP
                   id="notify-new"
                   checked={notifyNewEmail}
                   onCheckedChange={setNotifyNewEmail}
-                />
-              </div>
-
-              <Separator />
-
-              <div className="flex items-center justify-between">
-                <div>
-                  <Label htmlFor="notify-failed" className="text-sm font-medium">Email Failed to Deliver</Label>
-                  <p className="text-xs text-gray-500 dark:text-gray-400">
-                    Notify me when an email fails to deliver
-                  </p>
-                </div>
-                <Switch
-                  id="notify-failed"
-                  checked={notifyEmailFailed}
-                  onCheckedChange={setNotifyEmailFailed}
                 />
               </div>
             </Card>

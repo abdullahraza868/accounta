@@ -82,7 +82,8 @@ export function Header({ clients: propClients, onToggleSidebar }: HeaderProps) {
       group: 'Personal',
       assignedTo: 'Matthew Dua',
       tags: ['VIP', 'Tax'],
-      createdDate: '2024-01-15'
+      createdDate: '2024-01-15',
+      services: ['Tax', 'Bookkeeping']
     },
     {
       id: '2',
@@ -95,7 +96,8 @@ export function Header({ clients: propClients, onToggleSidebar }: HeaderProps) {
       group: 'Personal',
       assignedTo: 'Matthew Dua',
       tags: ['Tax'],
-      createdDate: '2024-01-20'
+      createdDate: '2024-01-20',
+      services: ['Tax']
     },
     {
       id: '3',
@@ -108,7 +110,8 @@ export function Header({ clients: propClients, onToggleSidebar }: HeaderProps) {
       group: 'Corporate',
       assignedTo: 'Matthew Dua',
       tags: ['Business', 'Quarterly'],
-      createdDate: '2024-02-01'
+      createdDate: '2024-02-01',
+      services: ['Tax', 'Bookkeeping', 'Payroll']
     },
     {
       id: '4',
@@ -121,7 +124,8 @@ export function Header({ clients: propClients, onToggleSidebar }: HeaderProps) {
       group: 'Personal',
       assignedTo: 'Matthew Dua',
       tags: ['Tax', 'Audit'],
-      createdDate: '2024-02-15'
+      createdDate: '2024-02-15',
+      services: ['Tax', 'Advisory']
     },
     {
       id: '5',
@@ -134,7 +138,8 @@ export function Header({ clients: propClients, onToggleSidebar }: HeaderProps) {
       group: 'Corporate',
       assignedTo: 'Matthew Dua',
       tags: ['Business', 'Annual'],
-      createdDate: '2024-03-01'
+      createdDate: '2024-03-01',
+      services: ['Tax', 'Bookkeeping', 'Advisory', 'Payroll']
     }
   ];
 

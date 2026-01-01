@@ -53,6 +53,7 @@ import {
 import { Button } from './ui/button';
 import { Input } from './ui/input';
 import { Badge } from './ui/badge';
+import { ClientDetailsSummary } from './ClientDetailsSummary';
 import { useState, useRef, useEffect } from 'react';
 
 type ClientFolderProps = {
@@ -448,6 +449,9 @@ export function ClientFolder({ client, activeTab, onTabChange, communicationSubT
           ))}
         </div>
       </div>
+
+      {/* Client Details Summary - Always visible across all tabs */}
+      <ClientDetailsSummary client={client} />
 
       {/* Submenu Bar - Actions for current tab */}
       {renderSubmenuActions() && (

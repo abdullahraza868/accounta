@@ -29,6 +29,7 @@ import {
   ListTodo,
   Zap,
   Plus,
+  Eye,
   EyeOff,
   Pencil,
   Trash2,
@@ -39,11 +40,30 @@ import {
   Download,
   Upload,
   Search,
+  StickyNote,
 } from "lucide-react";
 import { ActivityLog } from "../ActivityLog";
 import { TimeTracker } from "../TimeTracker";
 import { EmailTemplateSelector } from "../EmailTemplateSelector";
+import { AddNoteDialog } from "../AddNoteDialog";
 import { Separator } from "../ui/separator";
+import { ProjectsDocumentsTab } from "../folder-tabs/ProjectsDocumentsTab";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "../ui/dropdown-menu";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from "../ui/dialog";
+import { Label } from "../ui/label";
+import { Checkbox } from "../ui/checkbox";
+import { RadioGroup, RadioGroupItem } from "../ui/radio-group";
 
 interface ProjectDetailsPageProps {
   project: {
@@ -70,6 +90,89 @@ export function ProjectDetailPage({
 
   // Lead person state
   const [leadPerson, setLeadPerson] = useState("Sarah Miller");
+
+  // Due date editing state
+  const [isEditingDueDate, setIsEditingDueDate] = useState(false);
+  // Convert "Nov 30, 2024" to date input format "2024-11-30"
+  const parseDueDate = (dateStr: string): string => {
+    try {
+      const date = new Date(dateStr);
+      const year = date.getFullYear();
+      const month = String(date.getMonth() + 1).padStart(2, '0');
+      const day = String(date.getDate()).padStart(2, '0');
+      return `${year}-${month}-${day}`;
+    } catch {
+      return '2024-11-30'; // fallback
+    }
+  };
+  const formatDueDate = (dateStr: string): string => {
+    try {
+      const date = new Date(dateStr);
+      return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+    } catch {
+      return dateStr;
+    }
+  };
+  const [projectDueDateInput, setProjectDueDateInput] = useState(parseDueDate(project.dueDate));
+  const [projectDueDateDisplay, setProjectDueDateDisplay] = useState(project.dueDate);
+
+  // Visibility & Permissions state
+  const [projectVisibility, setProjectVisibility] = useState<{
+    level: 'Public' | 'Private' | 'Team';
+    visibleUsers: string[];
+  }>({
+    level: 'Team',
+    visibleUsers: ['JD', 'SM', 'AS', 'MJ']
+  });
+
+  // Team Members Dialog state
+  const [showTeamMembersDialog, setShowTeamMembersDialog] = useState(false);
+
+  // Visibility & Permissions Dialog state
+  const [showVisibilityDialog, setShowVisibilityDialog] = useState(false);
+
+  // Map assignee codes to full names and roles
+  const getTeamMemberDetails = (code: string) => {
+    const members: Record<string, { name: string; role: string; email: string }> = {
+      'JD': { name: 'John Doe', role: 'Senior Designer', email: 'john.doe@example.com' },
+      'SM': { name: 'Sarah Miller', role: 'Project Manager', email: 'sarah.miller@example.com' },
+      'AS': { name: 'Alex Smith', role: 'Developer', email: 'alex.smith@example.com' },
+      'MJ': { name: 'Michael Johnson', role: 'QA Specialist', email: 'michael.j@example.com' },
+    };
+    return members[code] || { name: code, role: 'Team Member', email: '' };
+  };
+
+  // Highlighted Notes state
+  type HighlightedNote = {
+    id: number;
+    content: string;
+    date: string;
+    author: string;
+    highlighted?: boolean;
+  };
+
+  const [highlightedNotes, setHighlightedNotes] = useState<HighlightedNote[]>([
+    { id: 1, content: 'Design phase requires client approval before proceeding to development', date: '2024-10-15', author: 'Sarah Miller', highlighted: true },
+    { id: 2, content: 'Client requested violet color scheme - update all mockups accordingly', date: '2024-10-12', author: 'John Doe', highlighted: true },
+    { id: 3, content: 'Project deadline extended to Nov 30 - adjust timeline for remaining tasks', date: '2024-10-10', author: 'Alex Smith', highlighted: true },
+    { id: 4, content: 'Mobile-first approach confirmed - prioritize responsive design in wireframes', date: '2024-10-08', author: 'Sarah Miller', highlighted: true }
+  ]);
+  const [showAddNoteDialog, setShowAddNoteDialog] = useState(false);
+
+  const handleAddNote = (note: { content: string; highlighted: boolean }) => {
+    const newNote: HighlightedNote = {
+      id: Math.max(...highlightedNotes.map((n: HighlightedNote) => n.id), 0) + 1,
+      content: note.content,
+      date: new Date().toISOString().split('T')[0],
+      author: 'Current User',
+      highlighted: note.highlighted
+    };
+    setHighlightedNotes([newNote, ...highlightedNotes]);
+  };
+
+  const handleDeleteNote = (id: number) => {
+    setHighlightedNotes((highlightedNotes: HighlightedNote[]) => highlightedNotes.filter((note: HighlightedNote) => note.id !== id));
+  };
 
   // Action items state
   const [actionItems, setActionItems] = useState([
@@ -105,178 +208,6 @@ export function ProjectDetailPage({
   const [newActionItem, setNewActionItem] = useState("");
   const [hideCompleted, setHideCompleted] = useState(false);
 
-  // Documents state
-  const [documents, setDocuments] = useState([
-    {
-      id: "1",
-      client: "Abacus 360",
-      owner: "Client",
-      document: "W9B_Misc_2024.pdf",
-      type: "W9B-MISC",
-      year: 2024,
-      received: "10/15/2024 11:02 AM",
-      method: "Email",
-      status: "Approved",
-    },
-    {
-      id: "2",
-      client: "Abacus 360",
-      owner: "Client",
-      document: "Quarterly_Tax_Return_Q3.pdf",
-      type: "Tax Return",
-      year: 2024,
-      received: "10/13/2024 08:20 AM",
-      method: "Email",
-      status: "Approved",
-    },
-    {
-      id: "3",
-      client: "Abacus 360",
-      owner: "Spouse",
-      document: "Bank_Statement_October.pdf",
-      type: "Bank Statement",
-      year: 2024,
-      received: "10/14/2024 02:30 PM",
-      method: "Upload",
-      status: "Approved",
-    },
-    {
-      id: "4",
-      client: "Abacus 360",
-      owner: "Client",
-      document: "Payroll_Summary_Oct.xlsx",
-      type: "Payroll",
-      year: 2024,
-      received: "10/16/2024 05:44 PM",
-      method: "Email",
-      status: "Rejected",
-    },
-    {
-      id: "5",
-      client: "Abacus 360",
-      owner: "Spouse",
-      document: "Receipt_Office_Supplies.pdf",
-      type: "Receipt",
-      year: 2024,
-      received: "10/16/2024 10:15 AM",
-      method: "Text Message",
-      status: "Approved",
-    },
-    {
-      id: "6",
-      client: "Abacus 360",
-      owner: "Client",
-      document: "Invoice_Client_Services_Oct.pdf",
-      type: "Invoice",
-      year: 2024,
-      received: "10/17/2024 03:00 PM",
-      method: "Email",
-      status: "Approved",
-    },
-  ]);
-
-  // Master list for next year
-  const [masterList, setMasterList] = useState([
-    {
-      id: "1",
-      category: "Tax Documents",
-      required: true,
-      items: [
-        "W2 Forms",
-        "1099 Forms",
-        "W9B-MISC",
-        "1098 Forms",
-      ],
-    },
-    {
-      id: "2",
-      category: "Financial Statements",
-      required: true,
-      items: [
-        "Bank Statements (All Accounts)",
-        "Credit Card Statements",
-        "Investment Statements",
-      ],
-    },
-    {
-      id: "3",
-      category: "Business Documents",
-      required: false,
-      items: [
-        "Business Invoices",
-        "Business Receipts",
-        "Payroll Summaries",
-        "Quarterly Tax Returns",
-      ],
-    },
-    {
-      id: "4",
-      category: "Personal Documents",
-      required: false,
-      items: [
-        "Mortgage Statements",
-        "Property Tax Bills",
-        "Insurance Documents",
-        "Medical Expenses",
-      ],
-    },
-    {
-      id: "5",
-      category: "Deductions & Credits",
-      required: false,
-      items: [
-        "Charitable Contributions",
-        "Education Expenses",
-        "Childcare Expenses",
-        "Home Office Expenses",
-      ],
-    },
-  ]);
-
-  const [documentsView, setDocumentsView] = useState<
-    "current" | "master"
-  >("current");
-
-  const [searchQuery, setSearchQuery] = useState("");
-  const [yearFilter, setYearFilter] = useState<string>("all");
-  const [ownerFilter, setOwnerFilter] = useState<string>("all");
-
-  const filteredDocuments = documents.filter((doc) => {
-    const matchesSearch =
-      doc.document
-        .toLowerCase()
-        .includes(searchQuery.toLowerCase()) ||
-      doc.type
-        .toLowerCase()
-        .includes(searchQuery.toLowerCase());
-    const matchesYear =
-      yearFilter === "all" ||
-      doc.year.toString() === yearFilter;
-    const matchesOwner =
-      ownerFilter === "all" || doc.owner === ownerFilter;
-    return matchesSearch && matchesYear && matchesOwner;
-  });
-
-  const getMethodBadgeStyle = (method: string) => {
-    switch (method) {
-      case "Email":
-        return "bg-blue-100 text-blue-700 hover:bg-blue-100";
-      case "Text Message":
-        return "bg-green-100 text-green-700 hover:bg-green-100";
-      case "Upload":
-        return "bg-violet-100 text-violet-700 hover:bg-violet-100";
-      default:
-        return "bg-slate-100 text-slate-700 hover:bg-slate-100";
-    }
-  };
-
-  const getStatusIcon = (status: string) => {
-    return status === "Approved" ? (
-      <Check className="w-4 h-4 text-green-600" />
-    ) : (
-      <X className="w-4 h-4 text-red-600" />
-    );
-  };
 
   // Notes with comments system
   const [noteComments, setNoteComments] = useState([
@@ -444,15 +375,86 @@ export function ProjectDetailPage({
             <p className="text-slate-500 mt-1">
               {project.template}
             </p>
-            {/* Account Manager */}
-            <div className="flex items-center gap-2 mt-2 p-2 bg-amber-50 border border-amber-200 rounded-lg inline-flex">
-              <Star className="w-4 h-4 text-amber-600" />
-              <span className="text-sm">
-                <span className="text-amber-700 font-medium">
-                  Account Manager:
-                </span>{" "}
-                {leadPerson}
-              </span>
+            {/* Project Team Info - Three Cards */}
+            <div className="flex items-center gap-3 mt-3 flex-wrap">
+              {/* Account Manager Card */}
+              <div className="flex items-center gap-2 p-2 bg-amber-50 border border-amber-200 rounded-lg">
+                <Star className="w-4 h-4 text-amber-600" />
+                <span className="text-sm">
+                  <span className="text-amber-700 font-medium">
+                    Account Manager:
+                  </span>{" "}
+                  {leadPerson}
+                </span>
+              </div>
+
+              {/* Team Members Card */}
+              <button
+                onClick={() => setShowTeamMembersDialog(true)}
+                className="flex items-center gap-2 p-2 bg-blue-50 border border-blue-200 rounded-lg hover:bg-blue-100 transition-colors cursor-pointer"
+              >
+                <User className="w-4 h-4 text-blue-600" />
+                <div className="flex items-center gap-1">
+                  <span className="text-sm text-blue-700 font-medium">Team Members:</span>
+                  <div className="flex items-center -space-x-2">
+                    {project.assignees.slice(0, 3).map((assignee, idx) => (
+                      <Avatar key={idx} className="w-6 h-6 border-2 border-white">
+                        <AvatarFallback className="bg-blue-100 text-blue-700 text-[10px]">
+                          {assignee}
+                        </AvatarFallback>
+                      </Avatar>
+                    ))}
+                  </div>
+                  {project.assignees.length > 3 && (
+                    <span className="text-xs text-blue-600 ml-1">
+                      +{project.assignees.length - 3}
+                    </span>
+                  )}
+                </div>
+              </button>
+
+              {/* Visibility & Permissions Card */}
+              <div className="flex items-center gap-2 p-2 bg-green-50 border border-green-200 rounded-lg">
+                <div className="flex items-center gap-2">
+                  <Eye className="w-4 h-4 text-green-600" />
+                  <span className="text-sm text-green-700 font-medium">Visibility:</span>
+                  <Badge 
+                    variant="outline"
+                    className={`text-xs ${
+                      projectVisibility.level === 'Public' 
+                        ? 'bg-green-100 text-green-700 border-green-300'
+                        : projectVisibility.level === 'Private'
+                        ? 'bg-red-100 text-red-700 border-red-300'
+                        : 'bg-blue-100 text-blue-700 border-blue-300'
+                    }`}
+                  >
+                    {projectVisibility.level}
+                  </Badge>
+                  <div className="flex items-center -space-x-2">
+                    {projectVisibility.visibleUsers.slice(0, 3).map((user, idx) => (
+                      <Avatar key={idx} className="w-6 h-6 border-2 border-white">
+                        <AvatarFallback className="bg-green-100 text-green-700 text-[10px]">
+                          {user}
+                        </AvatarFallback>
+                      </Avatar>
+                    ))}
+                  </div>
+                  {projectVisibility.visibleUsers.length > 3 && (
+                    <span className="text-xs text-green-600">
+                      +{projectVisibility.visibleUsers.length - 3}
+                    </span>
+                  )}
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-6 px-2 text-xs hover:bg-green-100"
+                    onClick={() => setShowVisibilityDialog(true)}
+                  >
+                    <Pencil className="w-3 h-3 mr-1" />
+                    Edit
+                  </Button>
+                </div>
+              </div>
             </div>
           </div>
         </div>
@@ -463,12 +465,40 @@ export function ProjectDetailPage({
             className="gap-2"
           >
             <FileText className="w-4 h-4" />
-            Full Activity Log
+            Activity log
           </Button>
           <Button className="gap-2 bg-violet-600 hover:bg-violet-700">
             <Mail className="w-4 h-4" />
             Send Update
           </Button>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline" className="gap-2">
+                <Zap className="w-4 h-4" />
+                Quick Actions
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-48">
+              <DropdownMenuItem
+                onClick={() => setActiveTab("communication")}
+                className="gap-2"
+              >
+                <Mail className="w-4 h-4" />
+                Send Email
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                onClick={() => setActiveTab("time")}
+                className="gap-2"
+              >
+                <Clock className="w-4 h-4" />
+                Log Time
+              </DropdownMenuItem>
+              <DropdownMenuItem className="gap-2">
+                <DollarSign className="w-4 h-4" />
+                Generate Invoice
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
       </div>
 
@@ -517,9 +547,45 @@ export function ProjectDetailPage({
         </Card>
         <Card className="p-4">
           <div className="flex items-center justify-between">
-            <div>
+            <div className="flex-1">
               <p className="text-sm text-slate-500">Due Date</p>
-              <p className="text-lg mt-1">{project.dueDate}</p>
+              {isEditingDueDate ? (
+                <div className="flex items-center gap-2 mt-1">
+                  <input
+                    type="date"
+                    value={projectDueDateInput}
+                    onChange={(e) => setProjectDueDateInput(e.target.value)}
+                    onBlur={() => {
+                      setProjectDueDateDisplay(formatDueDate(projectDueDateInput));
+                      setIsEditingDueDate(false);
+                    }}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        setProjectDueDateDisplay(formatDueDate(projectDueDateInput));
+                        setIsEditingDueDate(false);
+                      } else if (e.key === 'Escape') {
+                        setProjectDueDateInput(parseDueDate(project.dueDate));
+                        setProjectDueDateDisplay(project.dueDate);
+                        setIsEditingDueDate(false);
+                      }
+                    }}
+                    className="text-lg border border-slate-300 rounded px-2 py-1 focus:outline-none focus:ring-2 focus:ring-violet-500"
+                    autoFocus
+                  />
+                </div>
+              ) : (
+                <div className="flex items-center gap-2 mt-1">
+                  <p className="text-lg">{projectDueDateDisplay}</p>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-6 w-6 p-0 hover:bg-slate-100"
+                    onClick={() => setIsEditingDueDate(true)}
+                  >
+                    <Pencil className="w-3 h-3 text-slate-500" />
+                  </Button>
+                </div>
+              )}
             </div>
             <Calendar className="w-8 h-8 text-slate-300" />
           </div>
@@ -542,7 +608,7 @@ export function ProjectDetailPage({
         <TabsList className="w-full justify-start">
           <TabsTrigger value="overview">Overview</TabsTrigger>
           <TabsTrigger value="documents">Documents</TabsTrigger>
-          <TabsTrigger value="notes">Notes</TabsTrigger>
+          {/* <TabsTrigger value="notes">Notes</TabsTrigger> */}
           <TabsTrigger value="time">Utilization</TabsTrigger>
           <TabsTrigger value="activity">Activity</TabsTrigger>
           <TabsTrigger value="communication">
@@ -780,6 +846,50 @@ export function ProjectDetailPage({
 
             {/* Right Column - Team & Files */}
             <div className="space-y-6">
+              {/* Highlighted Notes */}
+              <Card className="p-5 border border-gray-200/60 shadow-sm flex flex-col overflow-hidden">
+                <div className="flex items-center justify-between mb-4 flex-shrink-0 pl-8">
+                  <div className="flex items-center gap-2">
+                    <StickyNote className="w-5 h-5 text-yellow-600" />
+                    <h3 className="font-semibold text-gray-900">Highlighted Notes</h3>
+                  </div>
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    className="h-8 text-xs"
+                    onClick={() => setShowAddNoteDialog(true)}
+                  >
+                    <Plus className="w-3 h-3 mr-1" />
+                    Add Note
+                  </Button>
+                </div>
+                <div className="flex-1 overflow-y-auto space-y-3 min-h-0">
+                  {highlightedNotes.filter((n: HighlightedNote) => n.highlighted).map((note: HighlightedNote) => (
+                    <div key={note.id} className="p-3 bg-yellow-50 border border-yellow-200/60 rounded-lg relative group">
+                      <p className="text-sm text-gray-900 pr-6">{note.content}</p>
+                      <div className="flex items-center justify-between mt-2">
+                        <p className="text-xs text-gray-500">{note.author}</p>
+                        <p className="text-xs text-gray-500">{new Date(note.date).toLocaleDateString()}</p>
+                      </div>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="absolute top-2 right-2 h-6 w-6 p-0 opacity-0 group-hover:opacity-100 transition-opacity text-red-600 hover:text-red-700"
+                        onClick={() => handleDeleteNote(note.id)}
+                      >
+                        <Trash2 className="w-3 h-3" />
+                      </Button>
+                    </div>
+                  ))}
+                  {highlightedNotes.filter((n: HighlightedNote) => n.highlighted).length === 0 && (
+                    <div className="text-center py-6 text-gray-500">
+                      <StickyNote className="w-10 h-10 mx-auto mb-2 text-gray-300" />
+                      <p className="text-sm">No highlighted notes yet</p>
+                    </div>
+                  )}
+                </div>
+              </Card>
+
               {/* Action Items */}
               <Card className="p-6">
                 {/* Header */}
@@ -874,468 +984,13 @@ export function ProjectDetailPage({
                 </div>
               </Card>
 
-              {/* Team Members */}
-              <Card className="p-6">
-                <h3 className="text-slate-900 mb-4">
-                  Team Members
-                </h3>
-                <div className="space-y-3">
-                  {project.assignees.map((assignee, idx) => (
-                    <div
-                      key={idx}
-                      className="flex items-center gap-3"
-                    >
-                      <Avatar className="w-10 h-10">
-                        <AvatarFallback className="bg-violet-100 text-violet-700">
-                          {assignee}
-                        </AvatarFallback>
-                      </Avatar>
-                      <div className="flex-1">
-                        <p className="text-sm">
-                          {assignee === "JD"
-                            ? "John Doe"
-                            : assignee === "SM"
-                              ? "Sarah Miller"
-                              : "Alex Smith"}
-                        </p>
-                        <p className="text-xs text-slate-500">
-                          Designer
-                        </p>
-                      </div>
-                      <Badge
-                        variant="secondary"
-                        className="text-xs"
-                      >
-                        Active
-                      </Badge>
-                    </div>
-                  ))}
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="w-full mt-2"
-                  >
-                    Add Member
-                  </Button>
-                </div>
-              </Card>
-
-              {/* Files & Attachments */}
-              <Card className="p-6">
-                <div className="flex items-center justify-between mb-4">
-                  <h3 className="text-slate-900">Files</h3>
-                  <Badge variant="secondary">
-                    {project.attachments}
-                  </Badge>
-                </div>
-                <div className="space-y-2">
-                  <div className="flex items-center gap-2 p-2 rounded hover:bg-slate-50 cursor-pointer">
-                    <FileText className="w-4 h-4 text-blue-500" />
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm text-slate-900 truncate">
-                        requirements.pdf
-                      </p>
-                      <p className="text-xs text-slate-500">
-                        2.3 MB
-                      </p>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-2 p-2 rounded hover:bg-slate-50 cursor-pointer">
-                    <FileText className="w-4 h-4 text-green-500" />
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm text-slate-900 truncate">
-                        mockup-v1.fig
-                      </p>
-                      <p className="text-xs text-slate-500">
-                        5.7 MB
-                      </p>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-2 p-2 rounded hover:bg-slate-50 cursor-pointer">
-                    <FileText className="w-4 h-4 text-violet-500" />
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm text-slate-900 truncate">
-                        client-feedback.docx
-                      </p>
-                      <p className="text-xs text-slate-500">
-                        1.1 MB
-                      </p>
-                    </div>
-                  </div>
-                </div>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="w-full mt-3"
-                >
-                  Upload File
-                </Button>
-              </Card>
-
-              {/* Quick Actions */}
-              <Card className="p-6">
-                <h3 className="text-slate-900 mb-4">
-                  Quick Actions
-                </h3>
-                <div className="space-y-2">
-                  <Button
-                    variant="outline"
-                    className="w-full justify-start gap-2"
-                    onClick={() =>
-                      setActiveTab("communication")
-                    }
-                  >
-                    <Mail className="w-4 h-4" />
-                    Send Email
-                  </Button>
-                  <Button
-                    variant="outline"
-                    className="w-full justify-start gap-2"
-                    onClick={() => setActiveTab("time")}
-                  >
-                    <Clock className="w-4 h-4" />
-                    Log Time
-                  </Button>
-                  <Button
-                    variant="outline"
-                    className="w-full justify-start gap-2"
-                  >
-                    <DollarSign className="w-4 h-4" />
-                    Generate Invoice
-                  </Button>
-                </div>
-              </Card>
             </div>
           </div>
         </TabsContent>
 
         {/* Documents Tab */}
         <TabsContent value="documents" className="space-y-4">
-          <Card className="p-6">
-            {/* Sub-navigation */}
-            <div className="flex items-center justify-between mb-6">
-              <div className="flex gap-2">
-                <Button
-                  variant={
-                    documentsView === "current"
-                      ? "default"
-                      : "outline"
-                  }
-                  size="sm"
-                  onClick={() => setDocumentsView("current")}
-                  className={
-                    documentsView === "current"
-                      ? "bg-violet-600 hover:bg-violet-700"
-                      : ""
-                  }
-                >
-                  Current Year Documents
-                </Button>
-                <Button
-                  variant={
-                    documentsView === "master"
-                      ? "default"
-                      : "outline"
-                  }
-                  size="sm"
-                  onClick={() => setDocumentsView("master")}
-                  className={
-                    documentsView === "master"
-                      ? "bg-violet-600 hover:bg-violet-700"
-                      : ""
-                  }
-                >
-                  Master List (2025)
-                </Button>
-              </div>
-              {documentsView === "current" && (
-                <Button
-                  size="sm"
-                  className="gap-2 bg-violet-600 hover:bg-violet-700"
-                >
-                  <Upload className="w-4 h-4" />
-                  Upload Document
-                </Button>
-              )}
-            </div>
-
-            {/* Current Year Documents View */}
-            {documentsView === "current" && (
-              <>
-                {/* Filters */}
-                <div className="flex items-center gap-3 mb-4 pb-4 border-b">
-                  <div className="flex items-center gap-2">
-                    <label className="text-sm text-slate-600">
-                      Owner:
-                    </label>
-                    <select
-                      value={ownerFilter}
-                      onChange={(e) =>
-                        setOwnerFilter(e.target.value)
-                      }
-                      className="text-sm border rounded px-2 py-1"
-                    >
-                      <option value="all">All</option>
-                      <option value="Client">
-                        Client Only
-                      </option>
-                      <option value="Spouse">
-                        Spouse Only
-                      </option>
-                    </select>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <label className="text-sm text-slate-600">
-                      Year:
-                    </label>
-                    <select
-                      value={yearFilter}
-                      onChange={(e) =>
-                        setYearFilter(e.target.value)
-                      }
-                      className="text-sm border rounded px-2 py-1"
-                    >
-                      <option value="all">All Years</option>
-                      <option value="2024">2024</option>
-                      <option value="2023">2023</option>
-                    </select>
-                  </div>
-                  <div className="flex-1 flex items-center gap-2 ml-auto">
-                    <Search className="w-4 h-4 text-slate-400" />
-                    <input
-                      type="text"
-                      placeholder="Search documents..."
-                      value={searchQuery}
-                      onChange={(e) =>
-                        setSearchQuery(e.target.value)
-                      }
-                      className="text-sm border rounded px-3 py-1 flex-1 max-w-xs"
-                    />
-                  </div>
-                </div>
-
-                {/* Table Header */}
-                <div className="grid grid-cols-12 gap-3 px-3 py-2 bg-slate-50 rounded-t border-b border-slate-200">
-                  <div className="col-span-2 text-xs font-medium text-slate-600">
-                    CLIENT
-                  </div>
-                  <div className="col-span-1 text-xs font-medium text-slate-600">
-                    OWNER
-                  </div>
-                  <div className="col-span-2 text-xs font-medium text-slate-600">
-                    DOCUMENT
-                  </div>
-                  <div className="col-span-2 text-xs font-medium text-slate-600">
-                    TYPE
-                  </div>
-                  <div className="col-span-1 text-xs font-medium text-slate-600">
-                    YEAR
-                  </div>
-                  <div className="col-span-2 text-xs font-medium text-slate-600">
-                    RECEIVED
-                  </div>
-                  <div className="col-span-1 text-xs font-medium text-slate-600">
-                    METHOD
-                  </div>
-                  <div className="col-span-1 text-xs font-medium text-slate-600 text-right">
-                    ACTIONS
-                  </div>
-                </div>
-
-                {/* Table Body */}
-                <div className="divide-y divide-slate-200">
-                  {filteredDocuments.map((doc) => (
-                    <div
-                      key={doc.id}
-                      className={`grid grid-cols-12 gap-3 px-3 py-3 hover:bg-slate-50 ${
-                        doc.owner === "Spouse"
-                          ? "bg-purple-50/30"
-                          : ""
-                      }`}
-                    >
-                      <div className="col-span-2 text-sm text-slate-900 truncate">
-                        {doc.client}
-                      </div>
-                      <div className="col-span-1">
-                        <Badge
-                          variant="outline"
-                          className={`text-xs ${
-                            doc.owner === "Client"
-                              ? "bg-blue-50 text-blue-700 border-blue-200"
-                              : "bg-purple-50 text-purple-700 border-purple-200"
-                          }`}
-                        >
-                          {doc.owner}
-                        </Badge>
-                      </div>
-                      <div className="col-span-2 flex items-center gap-2">
-                        <FileText className="w-4 h-4 text-slate-400 flex-shrink-0" />
-                        <span className="text-sm text-slate-900 truncate">
-                          {doc.document}
-                        </span>
-                      </div>
-                      <div className="col-span-2 text-sm text-slate-600 truncate">
-                        {doc.type}
-                      </div>
-                      <div className="col-span-1 text-sm text-slate-600">
-                        {doc.year}
-                      </div>
-                      <div className="col-span-2 text-sm text-slate-600">
-                        {doc.received}
-                      </div>
-                      <div className="col-span-1">
-                        <Badge
-                          className={`text-xs ${getMethodBadgeStyle(doc.method)}`}
-                        >
-                          {doc.method === "Email"
-                            ? "Email"
-                            : doc.method === "Upload"
-                              ? "Upload"
-                              : "Text"}
-                        </Badge>
-                      </div>
-                      <div className="col-span-1 flex items-center justify-end gap-1">
-                        {getStatusIcon(doc.status)}
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="h-7 w-7 p-0 hover:bg-slate-200"
-                        >
-                          <Download className="w-3.5 h-3.5 text-slate-600" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="h-7 w-7 p-0 hover:bg-slate-200"
-                        >
-                          <Pencil className="w-3.5 h-3.5 text-slate-600" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="h-7 w-7 p-0 hover:bg-red-100"
-                        >
-                          <Trash2 className="w-3.5 h-3.5 text-red-600" />
-                        </Button>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-
-                {filteredDocuments.length === 0 && (
-                  <div className="py-12 text-center">
-                    <FileText className="w-12 h-12 text-slate-300 mx-auto mb-3" />
-                    <p className="text-sm text-slate-500">
-                      No documents found
-                    </p>
-                  </div>
-                )}
-              </>
-            )}
-
-            {/* Master List View */}
-            {documentsView === "master" && (
-              <>
-                {/* Header */}
-                <div className="flex items-center justify-between mb-4">
-                  <div className="flex items-center gap-2">
-                    <ListTodo className="w-5 h-5 text-violet-600" />
-                    <h3 className="text-slate-900">
-                      Master Document List for 2025
-                    </h3>
-                  </div>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="gap-2"
-                  >
-                    <Plus className="w-4 h-4" />
-                    Add Category
-                  </Button>
-                </div>
-
-                <p className="text-sm text-slate-600 mb-4">
-                  Required documents for next tax year. Use this
-                  list to track what needs to be collected from
-                  the client.
-                </p>
-
-                {/* Master List Categories */}
-                <div className="space-y-4">
-                  {masterList.map((category) => (
-                    <div
-                      key={category.id}
-                      className={`p-4 rounded-lg border ${
-                        category.required
-                          ? "bg-amber-50 border-amber-200"
-                          : "bg-slate-50 border-slate-200"
-                      }`}
-                    >
-                      <div className="flex items-start justify-between mb-3">
-                        <div className="flex items-center gap-2">
-                          <h4 className="text-sm font-medium text-slate-900">
-                            {category.category}
-                          </h4>
-                          {category.required && (
-                            <Badge className="text-xs bg-amber-600 hover:bg-amber-700">
-                              Required
-                            </Badge>
-                          )}
-                        </div>
-                        <div className="flex gap-1">
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            className="h-7 w-7 p-0"
-                          >
-                            <Pencil className="w-3.5 h-3.5 text-slate-600" />
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            className="h-7 w-7 p-0 hover:bg-red-100"
-                          >
-                            <Trash2 className="w-3.5 h-3.5 text-red-600" />
-                          </Button>
-                        </div>
-                      </div>
-                      <div className="space-y-2">
-                        {category.items.map((item, idx) => (
-                          <div
-                            key={idx}
-                            className="flex items-center gap-2 p-2 rounded bg-white border border-slate-200"
-                          >
-                            <input
-                              type="checkbox"
-                              className="w-4 h-4 accent-violet-600"
-                            />
-                            <span className="text-sm text-slate-700 flex-1">
-                              {item}
-                            </span>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              className="h-6 w-6 p-0"
-                            >
-                              <X className="w-3.5 h-3.5 text-slate-400" />
-                            </Button>
-                          </div>
-                        ))}
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="w-full text-xs text-violet-600 hover:text-violet-700 hover:bg-violet-50 mt-2"
-                        >
-                          <Plus className="w-3.5 h-3.5 mr-1" />
-                          Add Item
-                        </Button>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </>
-            )}
-          </Card>
+          <ProjectsDocumentsTab project={project} />
         </TabsContent>
 
         {/* Notes Tab */}
@@ -1507,6 +1162,184 @@ export function ProjectDetailPage({
           </Card>
         </TabsContent>
       </Tabs>
+
+      {/* Team Members Dialog */}
+      <Dialog open={showTeamMembersDialog} onOpenChange={setShowTeamMembersDialog}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <User className="w-5 h-5 text-blue-600" />
+              Team Members
+            </DialogTitle>
+            <DialogDescription>
+              View team members working on this project
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3 mt-4">
+            {project.assignees.map((assignee, idx) => {
+              const member = getTeamMemberDetails(assignee);
+              return (
+                <div
+                  key={idx}
+                  className="flex items-center gap-3 p-3 rounded-lg border border-slate-200 hover:bg-slate-50"
+                >
+                  <Avatar className="w-10 h-10">
+                    <AvatarFallback className="bg-blue-100 text-blue-700">
+                      {assignee}
+                    </AvatarFallback>
+                  </Avatar>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium text-slate-900">
+                      {member.name}
+                    </p>
+                    <p className="text-xs text-slate-500">
+                      {member.role}
+                    </p>
+                    {member.email && (
+                      <p className="text-xs text-slate-400 mt-0.5">
+                        {member.email}
+                      </p>
+                    )}
+                  </div>
+                  <Badge variant="secondary" className="text-xs">
+                    Active
+                  </Badge>
+                </div>
+              );
+            })}
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Visibility & Permissions Dialog */}
+      <Dialog open={showVisibilityDialog} onOpenChange={setShowVisibilityDialog}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <EyeOff className="w-5 h-5 text-green-600" />
+              Visibility & Permissions
+            </DialogTitle>
+            <DialogDescription>
+              Manage who can view and access this project
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 mt-4">
+            {/* Visibility Level */}
+            <div className="space-y-2">
+              <Label className="text-sm font-medium">Visibility Level</Label>
+              <RadioGroup
+                value={projectVisibility.level}
+                onValueChange={(value: 'Public' | 'Private' | 'Team') => {
+                  setProjectVisibility(prev => ({ ...prev, level: value }));
+                }}
+                className="space-y-2"
+              >
+                <div className="flex items-center space-x-2 p-2 rounded-lg border border-slate-200 hover:bg-slate-50">
+                  <RadioGroupItem value="Public" id="public" />
+                  <Label htmlFor="public" className="flex-1 cursor-pointer">
+                    <div>
+                      <span className="font-medium">Public</span>
+                      <p className="text-xs text-slate-500">Visible to all team members</p>
+                    </div>
+                  </Label>
+                </div>
+                <div className="flex items-center space-x-2 p-2 rounded-lg border border-slate-200 hover:bg-slate-50">
+                  <RadioGroupItem value="Team" id="team" />
+                  <Label htmlFor="team" className="flex-1 cursor-pointer">
+                    <div>
+                      <span className="font-medium">Team</span>
+                      <p className="text-xs text-slate-500">Visible to selected team members</p>
+                    </div>
+                  </Label>
+                </div>
+                <div className="flex items-center space-x-2 p-2 rounded-lg border border-slate-200 hover:bg-slate-50">
+                  <RadioGroupItem value="Private" id="private" />
+                  <Label htmlFor="private" className="flex-1 cursor-pointer">
+                    <div>
+                      <span className="font-medium">Private</span>
+                      <p className="text-xs text-slate-500">Only visible to you</p>
+                    </div>
+                  </Label>
+                </div>
+              </RadioGroup>
+            </div>
+
+            {/* Visible Users (only show if Team is selected) */}
+            {projectVisibility.level === 'Team' && (
+              <div className="space-y-2">
+                <Label className="text-sm font-medium">Visible To</Label>
+                <div className="space-y-2 max-h-48 overflow-y-auto border border-slate-200 rounded-lg p-3">
+                  {['JD', 'SM', 'AS', 'MJ', 'RW', 'AB'].map((userCode) => {
+                    const member = getTeamMemberDetails(userCode);
+                    const isSelected = projectVisibility.visibleUsers.includes(userCode);
+                    return (
+                      <div
+                        key={userCode}
+                        className="flex items-center space-x-3 p-2 rounded-lg hover:bg-slate-50"
+                      >
+                        <Checkbox
+                          id={userCode}
+                          checked={isSelected}
+                          onCheckedChange={(checked) => {
+                            if (checked) {
+                              setProjectVisibility(prev => ({
+                                ...prev,
+                                visibleUsers: [...prev.visibleUsers, userCode]
+                              }));
+                            } else {
+                              setProjectVisibility(prev => ({
+                                ...prev,
+                                visibleUsers: prev.visibleUsers.filter(u => u !== userCode)
+                              }));
+                            }
+                          }}
+                        />
+                        <Avatar className="w-8 h-8">
+                          <AvatarFallback className="bg-green-100 text-green-700 text-xs">
+                            {userCode}
+                          </AvatarFallback>
+                        </Avatar>
+                        <Label htmlFor={userCode} className="flex-1 cursor-pointer">
+                          <div>
+                            <p className="text-sm font-medium">{member.name}</p>
+                            <p className="text-xs text-slate-500">{member.role}</p>
+                          </div>
+                        </Label>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
+            {/* Action Buttons */}
+            <div className="flex justify-end gap-2 pt-4 border-t">
+              <Button
+                variant="outline"
+                onClick={() => setShowVisibilityDialog(false)}
+              >
+                Cancel
+              </Button>
+              <Button
+                onClick={() => {
+                  setShowVisibilityDialog(false);
+                  // In a real app, you would save the changes here
+                }}
+              >
+                Save Changes
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Add Note Dialog */}
+      <AddNoteDialog
+        open={showAddNoteDialog}
+        onOpenChange={setShowAddNoteDialog}
+        onSave={handleAddNote}
+        clientName={project.name}
+      />
     </div>
   );
 }
