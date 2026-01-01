@@ -44,13 +44,13 @@ import {
   MessageCircle,
   Smartphone,
 } from "lucide-react";
-import { ActivityLog } from "../ActivityLog";
 import { TimeTracker } from "../TimeTracker";
 import { EmailTemplateSelector } from "../EmailTemplateSelector";
 import { AddNoteDialog } from "../AddNoteDialog";
 import { Separator } from "../ui/separator";
 import { ProjectsDocumentsTab } from "../folder-tabs/ProjectsDocumentsTab";
 import { ProjectsCommunicationTab } from "../folder-tabs/ProjectsCommunicationTab";
+import { ProjectsActivityLogView } from "./ProjectsActivityLogView";
 import { cn } from "../ui/utils";
 import {
   DropdownMenu,
@@ -632,7 +632,7 @@ export function ProjectDetailPage({
           <TabsTrigger value="overview">Overview</TabsTrigger>
           <TabsTrigger value="documents">Documents</TabsTrigger>
           {/* <TabsTrigger value="notes">Notes</TabsTrigger> */}
-          <TabsTrigger value="time">Utilization</TabsTrigger>
+          <TabsTrigger value="time">Time Log / Budget</TabsTrigger>
           <TabsTrigger value="activity">Activity</TabsTrigger>
           <TabsTrigger value="communication">
             Communication
@@ -1116,16 +1116,8 @@ export function ProjectDetailPage({
         </TabsContent>
 
         {/* Activity Tab */}
-        <TabsContent value="activity">
-          <Card className="p-6">
-            <h3 className="text-slate-900 mb-4">
-              Project Activity Log
-            </h3>
-            <ActivityLog
-              clientId={project.id}
-              compact={false}
-            />
-          </Card>
+        <TabsContent value="activity" className="p-0">
+          <ProjectsActivityLogView project={project} />
         </TabsContent>
 
         {/* Communication Tab */}

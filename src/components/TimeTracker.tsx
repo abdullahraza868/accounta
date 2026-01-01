@@ -9,7 +9,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { Label } from './ui/label';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from './ui/table';
 import { Progress } from './ui/progress';
-import { Clock, Play, Pause, Plus, Edit2, Trash2, Check, X, DollarSign, TrendingUp, AlertCircle, Receipt, Upload } from 'lucide-react';
+import { Clock, Play, Pause, Plus, Edit2, Trash2, Check, X, DollarSign, TrendingUp, AlertCircle, Receipt, Upload, Users, BarChart3, Calendar as CalendarIcon, Target, ChevronDown, ChevronUp, CheckCircle } from 'lucide-react';
 import { Separator } from './ui/separator';
 
 interface TimeEntry {
@@ -118,6 +118,88 @@ export function TimeTracker({ projectId, projectName }: TimeTrackerProps) {
     .reduce((sum, e) => sum + calculateTotal(e), 0);
 
   const totalHours = entries.reduce((sum, e) => sum + e.duration, 0);
+  
+  // Calculate billable and non-billable hours
+  const billableHours = entries
+    .filter(e => e.billable)
+    .reduce((sum, e) => sum + e.duration, 0);
+  
+  const nonBillableHours = entries
+    .filter(e => !e.billable)
+    .reduce((sum, e) => sum + e.duration, 0);
+  
+  // Calculate average hourly rate
+  const billableEntries = entries.filter(e => e.billable);
+  const averageRate = billableEntries.length > 0
+    ? billableEntries.reduce((sum, e) => sum + e.hourlyRate, 0) / billableEntries.length
+    : 0;
+  
+  // Calculate billable percentage
+  const billablePercentage = totalHours > 0 ? (billableHours / totalHours) * 100 : 0;
+  
+  // Calculate total expenses (billable and non-billable)
+  const totalBillableExpenses = expenses
+    .filter(e => e.billable)
+    .reduce((sum, e) => sum + e.amount, 0);
+  
+  const totalNonBillableExpenses = expenses
+    .filter(e => !e.billable)
+    .reduce((sum, e) => sum + e.amount, 0);
+  
+  const totalAllExpenses = expenses.reduce((sum, e) => sum + e.amount, 0);
+  
+  // Calculate total project cost (time + expenses)
+  const totalProjectCost = totalBillable + totalBillableExpenses;
+  
+  // Budget calculations
+  const budgetWithExpenses = projectBudget ? projectBudget : null;
+  const budgetPercentageWithExpenses = budgetWithExpenses 
+    ? ((totalProjectCost / budgetWithExpenses) * 100) 
+    : 0;
+  const budgetRemainingWithExpenses = budgetWithExpenses 
+    ? budgetWithExpenses - totalProjectCost 
+    : 0;
+  const isBudgetOverrunWithExpenses = budgetWithExpenses 
+    ? totalProjectCost > budgetWithExpenses 
+    : false;
+  
+  // Time breakdown by task
+  const timeByTask = entries.reduce((acc, entry) => {
+    if (!acc[entry.taskName]) {
+      acc[entry.taskName] = {
+        taskName: entry.taskName,
+        totalDuration: 0,
+        billableDuration: 0,
+        nonBillableDuration: 0,
+        totalAmount: 0,
+        entries: []
+      };
+    }
+    acc[entry.taskName].totalDuration += entry.duration;
+    if (entry.billable) {
+      acc[entry.taskName].billableDuration += entry.duration;
+      acc[entry.taskName].totalAmount += calculateTotal(entry);
+    } else {
+      acc[entry.taskName].nonBillableDuration += entry.duration;
+    }
+    acc[entry.taskName].entries.push(entry);
+    return acc;
+  }, {} as Record<string, {
+    taskName: string;
+    totalDuration: number;
+    billableDuration: number;
+    nonBillableDuration: number;
+    totalAmount: number;
+    entries: TimeEntry[];
+  }>);
+  
+  // Time breakdown by user (mock - in real app, entries would have user info)
+  // For now, we'll create a mock breakdown
+  const timeByUser = [
+    { userName: 'Sarah Johnson', billableHours: billableHours * 0.4, nonBillableHours: nonBillableHours * 0.3, totalAmount: totalBillable * 0.4 },
+    { userName: 'Mike Brown', billableHours: billableHours * 0.35, nonBillableHours: nonBillableHours * 0.4, totalAmount: totalBillable * 0.35 },
+    { userName: 'You', billableHours: billableHours * 0.25, nonBillableHours: nonBillableHours * 0.3, totalAmount: totalBillable * 0.25 },
+  ];
 
   const startEdit = (entry: TimeEntry) => {
     setEditingId(entry.id);
@@ -215,66 +297,114 @@ export function TimeTracker({ projectId, projectName }: TimeTrackerProps) {
     setNewExpenseOpen(false);
   };
 
+  const [showTimeBreakdowns, setShowTimeBreakdowns] = useState(true);
+  const [showTaskBreakdown, setShowTaskBreakdown] = useState(true);
+  const [showUserBreakdown, setShowUserBreakdown] = useState(true);
+
   return (
-    <div className="space-y-4">
-      {/* Summary Cards */}
-      <div className="grid grid-cols-3 gap-4">
-        <Card className="p-4">
-          <div className="flex items-center justify-between">
+    <div className="space-y-6">
+      {/* Enhanced Summary Dashboard */}
             <div>
-              <p className="text-sm text-slate-500">Total Hours</p>
-              <p className="text-2xl mt-1">{formatDuration(totalHours)}</p>
+        <h2 className="text-lg font-semibold text-slate-900 mb-4 flex items-center gap-2">
+          <BarChart3 className="w-5 h-5 text-violet-600" />
+          Summary Dashboard
+        </h2>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          {/* Total Billable Time */}
+          <Card className="p-5 border-l-4 border-l-green-500 hover:shadow-md transition-shadow">
+            <div className="flex items-center justify-between mb-2">
+              <p className="text-sm font-medium text-slate-600">Total Billable Time</p>
+              <Clock className="w-5 h-5 text-green-600" />
             </div>
-            <Clock className="w-8 h-8 text-slate-300" />
+            <p className="text-3xl font-bold text-green-700">{formatDuration(billableHours)}</p>
+            <p className="text-xs text-slate-500 mt-1">
+              {billablePercentage.toFixed(1)}% of total time
+            </p>
+          </Card>
+
+          {/* Total Non-Billable Time */}
+          <Card className="p-5 border-l-4 border-l-blue-500 hover:shadow-md transition-shadow">
+            <div className="flex items-center justify-between mb-2">
+              <p className="text-sm font-medium text-slate-600">Total Non-Billable Time</p>
+              <Clock className="w-5 h-5 text-blue-600" />
           </div>
+            <p className="text-3xl font-bold text-blue-700">{formatDuration(nonBillableHours)}</p>
+            <p className="text-xs text-slate-500 mt-1">
+              {((100 - billablePercentage).toFixed(1))}% of total time
+            </p>
         </Card>
-        <Card className="p-4">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm text-slate-500">Billable Amount</p>
-              <p className="text-2xl mt-1">${totalBillable.toFixed(2)}</p>
+
+          {/* Total Billable Amount */}
+          <Card className="p-5 border-l-4 border-l-violet-500 hover:shadow-md transition-shadow">
+            <div className="flex items-center justify-between mb-2">
+              <p className="text-sm font-medium text-slate-600">Total Billable Amount</p>
+              <DollarSign className="w-5 h-5 text-violet-600" />
             </div>
-            <DollarSign className="w-8 h-8 text-slate-300" />
-          </div>
+            <p className="text-3xl font-bold text-violet-700">${totalBillable.toFixed(2)}</p>
+            <p className="text-xs text-slate-500 mt-1">
+              Avg rate: ${averageRate.toFixed(2)}/hr
+            </p>
         </Card>
-        <Card className="p-4">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm text-slate-500">Entries</p>
-              <p className="text-2xl mt-1">{entries.length}</p>
+
+          {/* Total Expenses */}
+          <Card className="p-5 border-l-4 border-l-amber-500 hover:shadow-md transition-shadow">
+            <div className="flex items-center justify-between mb-2">
+              <p className="text-sm font-medium text-slate-600">Total Expenses</p>
+              <Receipt className="w-5 h-5 text-amber-600" />
             </div>
-            <div className="w-8 h-8 rounded bg-violet-100 flex items-center justify-center text-violet-600">
-              {entries.length}
-            </div>
-          </div>
+            <p className="text-3xl font-bold text-amber-700">${totalAllExpenses.toFixed(2)}</p>
+            <p className="text-xs text-slate-500 mt-1">
+              {expenses.length} expense{expenses.length !== 1 ? 's' : ''}
+            </p>
         </Card>
+        </div>
       </div>
 
-      {/* Budget Tracking (Optional) */}
+      {/* Enhanced Budget Tracking Section */}
       {(projectBudget !== null || isEditingBudget) && (
-        <Card className={`p-6 ${ 
-          isBudgetOverrun ? 'border-red-300 bg-red-50' : 
-          budgetPercentage > 80 ? 'border-amber-300 bg-amber-50' : 
-          'border-green-300 bg-green-50'
-        }`}>
-          <div className="flex items-start justify-between mb-4">
-            <div className="flex items-center gap-2">
-              <TrendingUp className={`w-5 h-5 ${ 
-                isBudgetOverrun ? 'text-red-600' : 
-                budgetPercentage > 80 ? 'text-amber-600' : 
+        <div>
+          <h2 className="text-lg font-semibold text-slate-900 mb-4 flex items-center gap-2">
+            <Target className="w-5 h-5 text-violet-600" />
+            Budget Overview
+          </h2>
+          <Card className={`p-6 border-2 ${
+            isBudgetOverrunWithExpenses ? 'border-red-400 bg-red-50/50 shadow-lg' : 
+            budgetPercentageWithExpenses > 80 ? 'border-amber-400 bg-amber-50/50 shadow-md' : 
+            'border-green-400 bg-green-50/50'
+          }`}>
+            <div className="flex items-start justify-between mb-6">
+              <div className="flex items-center gap-3">
+                <div className={`w-12 h-12 rounded-lg flex items-center justify-center ${
+                  isBudgetOverrunWithExpenses ? 'bg-red-100' : 
+                  budgetPercentageWithExpenses > 80 ? 'bg-amber-100' : 
+                  'bg-green-100'
+                }`}>
+                  <TrendingUp className={`w-6 h-6 ${
+                    isBudgetOverrunWithExpenses ? 'text-red-600' : 
+                    budgetPercentageWithExpenses > 80 ? 'text-amber-600' : 
                 'text-green-600'
               }`} />
-              <h3 className="text-slate-900">Project Budget</h3>
-              {isBudgetOverrun && (
-                <Badge className="bg-red-600 hover:bg-red-700">
+                </div>
+                <div>
+                  <h3 className="text-xl font-semibold text-slate-900">Project Budget</h3>
+                  <p className="text-sm text-slate-600">Time + Expenses tracking</p>
+                </div>
+                {isBudgetOverrunWithExpenses && (
+                  <Badge className="bg-red-600 hover:bg-red-700 text-white">
                   <AlertCircle className="w-3 h-3 mr-1" />
                   Over Budget
                 </Badge>
               )}
-              {!isBudgetOverrun && budgetPercentage > 80 && (
-                <Badge className="bg-amber-600 hover:bg-amber-700">
+                {!isBudgetOverrunWithExpenses && budgetPercentageWithExpenses > 80 && (
+                  <Badge className="bg-amber-600 hover:bg-amber-700 text-white">
                   <AlertCircle className="w-3 h-3 mr-1" />
                   Approaching Limit
+                </Badge>
+              )}
+                {!isBudgetOverrunWithExpenses && budgetPercentageWithExpenses <= 80 && (
+                  <Badge className="bg-green-600 hover:bg-green-700 text-white">
+                    <CheckCircle className="w-3 h-3 mr-1" />
+                    On Track
                 </Badge>
               )}
             </div>
@@ -336,74 +466,291 @@ export function TimeTracker({ projectId, projectName }: TimeTrackerProps) {
               </Button>
             </div>
           ) : (
-            <div className="space-y-3">
-              <div className="grid grid-cols-3 gap-4">
-                <div>
-                  <p className="text-sm text-slate-600">Budget</p>
-                  <p className="text-2xl mt-1">${projectBudget?.toFixed(2)}</p>
+              <div className="space-y-6">
+                {/* Budget Breakdown */}
+                <div className="grid grid-cols-4 gap-4">
+                  <div className="p-4 bg-white rounded-lg border border-slate-200">
+                    <p className="text-xs font-medium text-slate-500 uppercase mb-1">Total Budget</p>
+                    <p className="text-2xl font-bold text-slate-900">${budgetWithExpenses?.toFixed(2)}</p>
                 </div>
-                <div>
-                  <p className="text-sm text-slate-600">Spent</p>
-                  <p className="text-2xl mt-1">${totalBillable.toFixed(2)}</p>
+                  <div className="p-4 bg-white rounded-lg border border-slate-200">
+                    <p className="text-xs font-medium text-slate-500 uppercase mb-1">Time Spent</p>
+                    <p className="text-2xl font-bold text-violet-700">${totalBillable.toFixed(2)}</p>
+                    <p className="text-xs text-slate-500 mt-1">{formatDuration(billableHours)}</p>
                 </div>
-                <div>
-                  <p className="text-sm text-slate-600">Remaining</p>
-                  <p className={`text-2xl mt-1 ${isBudgetOverrun ? 'text-red-600' : ''}`}>
-                    ${budgetRemaining.toFixed(2)}
-                  </p>
+                  <div className="p-4 bg-white rounded-lg border border-slate-200">
+                    <p className="text-xs font-medium text-slate-500 uppercase mb-1">Expenses</p>
+                    <p className="text-2xl font-bold text-amber-700">${totalBillableExpenses.toFixed(2)}</p>
+                    <p className="text-xs text-slate-500 mt-1">{expenses.filter(e => e.billable).length} items</p>
+                  </div>
+                  <div className={`p-4 rounded-lg border-2 ${
+                    isBudgetOverrunWithExpenses 
+                      ? 'bg-red-50 border-red-300' 
+                      : 'bg-white border-slate-200'
+                  }`}>
+                    <p className="text-xs font-medium text-slate-500 uppercase mb-1">Remaining</p>
+                    <p className={`text-2xl font-bold ${
+                      isBudgetOverrunWithExpenses ? 'text-red-600' : 'text-green-700'
+                    }`}>
+                      ${Math.abs(budgetRemainingWithExpenses).toFixed(2)}
+                    </p>
+                    {isBudgetOverrunWithExpenses && (
+                      <p className="text-xs text-red-600 mt-1">Over by ${Math.abs(budgetRemainingWithExpenses).toFixed(2)}</p>
+                    )}
                 </div>
               </div>
               
+                {/* Budget Progress Bar */}
               <div>
-                <div className="flex items-center justify-between mb-2">
-                  <span className="text-sm text-slate-600">Budget Used</span>
-                  <span className={`text-sm font-medium ${
-                    isBudgetOverrun ? 'text-red-600' : 
-                    budgetPercentage > 80 ? 'text-amber-600' : 
-                    'text-green-600'
-                  }`}>
-                    {budgetPercentage.toFixed(1)}%
+                  <div className="flex items-center justify-between mb-3">
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm font-semibold text-slate-700">Budget Utilization</span>
+                      <Badge className={
+                        isBudgetOverrunWithExpenses 
+                          ? 'bg-red-100 text-red-700 border-red-300' 
+                          : budgetPercentageWithExpenses > 80 
+                          ? 'bg-amber-100 text-amber-700 border-amber-300' 
+                          : 'bg-green-100 text-green-700 border-green-300'
+                      }>
+                        {budgetPercentageWithExpenses.toFixed(1)}%
+                      </Badge>
+                    </div>
+                    <span className="text-xs text-slate-500">
+                      ${totalProjectCost.toFixed(2)} of ${budgetWithExpenses?.toFixed(2)}
                   </span>
                 </div>
                 <Progress 
-                  value={Math.min(budgetPercentage, 100)} 
-                  className={`h-3 ${
-                    isBudgetOverrun ? '[&>div]:bg-red-600' : 
-                    budgetPercentage > 80 ? '[&>div]:bg-amber-600' : 
+                    value={Math.min(budgetPercentageWithExpenses, 100)} 
+                    className={`h-4 ${
+                      isBudgetOverrunWithExpenses ? '[&>div]:bg-red-600' : 
+                      budgetPercentageWithExpenses > 80 ? '[&>div]:bg-amber-600' : 
                     '[&>div]:bg-green-600'
                   }`}
                 />
+                  <div className="flex items-center justify-between mt-2 text-xs text-slate-500">
+                    <span>Time: ${totalBillable.toFixed(2)}</span>
+                    <span>•</span>
+                    <span>Expenses: ${totalBillableExpenses.toFixed(2)}</span>
+                    <span>•</span>
+                    <span>Total: ${totalProjectCost.toFixed(2)}</span>
+                  </div>
               </div>
             </div>
           )}
         </Card>
+        </div>
       )}
       
       {/* Add Budget Button (when no budget set) */}
       {projectBudget === null && !isEditingBudget && (
-        <Card className="p-4 border-dashed border-2 border-slate-300 bg-slate-50/50">
+        <div>
+          <h2 className="text-lg font-semibold text-slate-900 mb-4 flex items-center gap-2">
+            <Target className="w-5 h-5 text-violet-600" />
+            Budget Overview
+          </h2>
+          <Card className="p-6 border-dashed border-2 border-slate-300 bg-slate-50/50 hover:border-violet-400 transition-colors">
           <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <TrendingUp className="w-5 h-5 text-slate-400" />
-              <p className="text-sm text-slate-600">Track your project against a budget (optional)</p>
+              <div className="flex items-center gap-3">
+                <div className="w-12 h-12 rounded-lg bg-violet-100 flex items-center justify-center">
+                  <TrendingUp className="w-6 h-6 text-violet-600" />
+                </div>
+                <div>
+                  <p className="text-sm font-medium text-slate-900">Track your project against a budget</p>
+                  <p className="text-xs text-slate-500 mt-0.5">Monitor spending and stay on track (optional)</p>
+                </div>
             </div>
             <Button
               variant="outline"
               size="sm"
               onClick={() => setIsEditingBudget(true)}
-              className="gap-2"
+                className="gap-2 border-violet-300 text-violet-700 hover:bg-violet-50"
             >
               <Plus className="w-4 h-4" />
               Set Budget
             </Button>
           </div>
         </Card>
+        </div>
       )}
 
-      {/* Actions */}
-      <div className="flex items-center justify-between">
-        <h3 className="text-slate-900">Time Entries</h3>
-        
+      {/* Time Breakdowns Section */}
+      {entries.length > 0 && (
+        <div>
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-lg font-semibold text-slate-900 flex items-center gap-2">
+              <BarChart3 className="w-5 h-5 text-violet-600" />
+              Time Breakdowns
+            </h2>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setShowTimeBreakdowns(!showTimeBreakdowns)}
+              className="gap-2"
+            >
+              {showTimeBreakdowns ? (
+                <>
+                  <ChevronUp className="w-4 h-4" />
+                  Hide Breakdowns
+                </>
+              ) : (
+                <>
+                  <ChevronDown className="w-4 h-4" />
+                  Show Breakdowns
+                </>
+              )}
+            </Button>
+          </div>
+
+          {showTimeBreakdowns && (
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              {/* By User/Team Member */}
+              <Card className="p-5">
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="text-base font-semibold text-slate-900 flex items-center gap-2">
+                    <Users className="w-4 h-4 text-blue-600" />
+                    By Team Member
+                  </h3>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setShowUserBreakdown(!showUserBreakdown)}
+                    className="h-6 w-6 p-0"
+                  >
+                    {showUserBreakdown ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
+                  </Button>
+                </div>
+                {showUserBreakdown && (
+                  <div className="space-y-3">
+                    {timeByUser.map((user, idx) => {
+                      const userTotalHours = user.billableHours + user.nonBillableHours;
+                      const userBillablePercentage = userTotalHours > 0 
+                        ? (user.billableHours / userTotalHours) * 100 
+                        : 0;
+                      return (
+                        <div key={idx} className="p-3 bg-slate-50 rounded-lg border border-slate-200">
+                          <div className="flex items-center justify-between mb-2">
+                            <span className="text-sm font-medium text-slate-900">{user.userName}</span>
+                            <span className="text-sm font-semibold text-violet-700">
+                              ${user.totalAmount.toFixed(2)}
+                            </span>
+                          </div>
+                          <div className="space-y-1.5">
+                            <div className="flex items-center justify-between text-xs">
+                              <span className="text-slate-600">Billable:</span>
+                              <span className="font-medium text-green-700">
+                                {formatDuration(user.billableHours)}
+                              </span>
+                            </div>
+                            <div className="flex items-center justify-between text-xs">
+                              <span className="text-slate-600">Non-billable:</span>
+                              <span className="font-medium text-blue-700">
+                                {formatDuration(user.nonBillableHours)}
+                              </span>
+                            </div>
+                            <div className="mt-2">
+                              <div className="flex items-center justify-between mb-1">
+                                <span className="text-xs text-slate-500">Billable %</span>
+                                <span className="text-xs font-medium text-slate-700">
+                                  {userBillablePercentage.toFixed(1)}%
+                                </span>
+                              </div>
+                              <div className="w-full bg-slate-200 rounded-full h-1.5">
+                                <div
+                                  className="bg-green-600 h-1.5 rounded-full transition-all"
+                                  style={{ width: `${userBillablePercentage}%` }}
+                                />
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </Card>
+
+              {/* By Task */}
+              <Card className="p-5">
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="text-base font-semibold text-slate-900 flex items-center gap-2">
+                    <BarChart3 className="w-4 h-4 text-purple-600" />
+                    By Task
+                  </h3>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setShowTaskBreakdown(!showTaskBreakdown)}
+                    className="h-6 w-6 p-0"
+                  >
+                    {showTaskBreakdown ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
+                  </Button>
+                </div>
+                {showTaskBreakdown && (
+                  <div className="space-y-3 max-h-96 overflow-y-auto">
+                    {Object.values(timeByTask).map((task, idx) => {
+                      const taskBillablePercentage = task.totalDuration > 0
+                        ? (task.billableDuration / task.totalDuration) * 100
+                        : 0;
+                      return (
+                        <div key={idx} className="p-3 bg-slate-50 rounded-lg border border-slate-200">
+                          <div className="flex items-center justify-between mb-2">
+                            <span className="text-sm font-medium text-slate-900">{task.taskName}</span>
+                            <span className="text-sm font-semibold text-violet-700">
+                              ${task.totalAmount.toFixed(2)}
+                            </span>
+                          </div>
+                          <div className="space-y-1.5">
+                            <div className="flex items-center justify-between text-xs">
+                              <span className="text-slate-600">Total Time:</span>
+                              <span className="font-medium text-slate-700">
+                                {formatDuration(task.totalDuration)}
+                              </span>
+                            </div>
+                            <div className="flex items-center justify-between text-xs">
+                              <span className="text-slate-600">Billable:</span>
+                              <span className="font-medium text-green-700">
+                                {formatDuration(task.billableDuration)}
+                              </span>
+                            </div>
+                            <div className="flex items-center justify-between text-xs">
+                              <span className="text-slate-600">Non-billable:</span>
+                              <span className="font-medium text-blue-700">
+                                {formatDuration(task.nonBillableDuration)}
+                              </span>
+                            </div>
+                            <div className="mt-2">
+                              <div className="flex items-center justify-between mb-1">
+                                <span className="text-xs text-slate-500">Billable %</span>
+                                <span className="text-xs font-medium text-slate-700">
+                                  {taskBillablePercentage.toFixed(1)}%
+                                </span>
+                              </div>
+                              <div className="w-full bg-slate-200 rounded-full h-1.5">
+                                <div
+                                  className="bg-green-600 h-1.5 rounded-full transition-all"
+                                  style={{ width: `${taskBillablePercentage}%` }}
+                                />
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </Card>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Time Entries Section */}
+      <div>
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-lg font-semibold text-slate-900 flex items-center gap-2">
+            <Clock className="w-5 h-5 text-violet-600" />
+            Time Entries
+          </h2>
         <div className="flex gap-2">
           <Button
             variant="outline"
@@ -432,10 +779,10 @@ export function TimeTracker({ projectId, projectName }: TimeTrackerProps) {
       </div>
 
       {/* Time Entries Table */}
-      <Card>
+        <Card className="overflow-hidden">
         <Table>
           <TableHeader>
-            <TableRow>
+              <TableRow className="bg-slate-50">
               <TableHead>Date</TableHead>
               <TableHead>Task</TableHead>
               <TableHead>Description</TableHead>
@@ -561,16 +908,50 @@ export function TimeTracker({ projectId, projectName }: TimeTrackerProps) {
               </TableRow>
             ))}
           </TableBody>
+            {/* Totals Row */}
+            <tfoot>
+              <TableRow className="bg-violet-50/50 border-t-2 border-violet-200 font-semibold">
+                <TableCell colSpan={3} className="text-sm font-semibold text-slate-900">
+                  Totals
+                </TableCell>
+                <TableCell className="text-sm font-semibold text-slate-900">
+                  {formatDuration(totalHours)}
+                  <div className="text-xs font-normal text-slate-600 mt-0.5">
+                    Billable: {formatDuration(billableHours)} • Non-billable: {formatDuration(nonBillableHours)}
+                  </div>
+                </TableCell>
+                <TableCell className="text-sm font-semibold text-slate-900">
+                  ${averageRate.toFixed(2)}/hr
+                  <div className="text-xs font-normal text-slate-600 mt-0.5">Average</div>
+                </TableCell>
+                <TableCell className="text-sm font-semibold text-violet-700">
+                  ${totalBillable.toFixed(2)}
+                </TableCell>
+                <TableCell>
+                  <div className="flex flex-col gap-1">
+                    <Badge className="bg-green-100 text-green-700 hover:bg-green-100 text-xs w-fit">
+                      {entries.filter(e => e.billable).length} Billable
+                    </Badge>
+                    <Badge variant="secondary" className="text-xs w-fit">
+                      {entries.filter(e => !e.billable).length} Non-billable
+                    </Badge>
+                  </div>
+                </TableCell>
+                <TableCell></TableCell>
+              </TableRow>
+            </tfoot>
         </Table>
       </Card>
+      </div>
       
-      {/* Divider */}
-      <Separator className="my-8" />
-      
-      {/* Other Expenses Section */}
-      <div className="flex items-center justify-between">
+      {/* Expenses Section */}
         <div>
-          <h3 className="text-slate-900">Other Expenses/Reimbursements</h3>
+        <div className="flex items-center justify-between mb-4">
+          <div>
+            <h2 className="text-lg font-semibold text-slate-900 flex items-center gap-2">
+              <Receipt className="w-5 h-5 text-violet-600" />
+              Expenses & Reimbursements
+            </h2>
           <p className="text-sm text-slate-500 mt-1">Track additional project expenses for invoicing</p>
         </div>
         <Dialog open={newExpenseOpen} onOpenChange={setNewExpenseOpen}>
@@ -590,11 +971,11 @@ export function TimeTracker({ projectId, projectName }: TimeTrackerProps) {
         </Dialog>
       </div>
 
-      {/*  Expenses Table */}
-      <Card>
+        {/* Expenses Table */}
+        <Card className="overflow-hidden">
         <Table>
           <TableHeader>
-            <TableRow>
+              <TableRow className="bg-slate-50">
               <TableHead>Date</TableHead>
               <TableHead>Description</TableHead>
               <TableHead>Category</TableHead>
@@ -747,21 +1128,37 @@ export function TimeTracker({ projectId, projectName }: TimeTrackerProps) {
               ))
             )}
           </TableBody>
-        </Table>
-      </Card>
-      
-      {/* Expenses Summary */}
+            {/* Expenses Totals Row */}
       {expenses.length > 0 && (
-        <Card className="p-4 bg-slate-50">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <Receipt className="w-5 h-5 text-slate-600" />
-              <span className="text-sm text-slate-600">Total Billable Expenses:</span>
+              <tfoot>
+                <TableRow className="bg-amber-50/50 border-t-2 border-amber-200 font-semibold">
+                  <TableCell colSpan={3} className="text-sm font-semibold text-slate-900">
+                    Totals
+                  </TableCell>
+                  <TableCell className="text-sm font-semibold text-slate-900">
+                    ${totalAllExpenses.toFixed(2)}
+                    <div className="text-xs font-normal text-slate-600 mt-0.5">
+                      Billable: ${totalBillableExpenses.toFixed(2)} • Non-billable: ${totalNonBillableExpenses.toFixed(2)}
             </div>
-            <span className="text-lg font-medium text-slate-900">${totalExpenses.toFixed(2)}</span>
+                  </TableCell>
+                  <TableCell>
+                    <div className="flex flex-col gap-1">
+                      <Badge className="bg-green-100 text-green-700 hover:bg-green-100 text-xs w-fit">
+                        {expenses.filter(e => e.billable).length} Billable
+                      </Badge>
+                      <Badge variant="secondary" className="text-xs w-fit">
+                        {expenses.filter(e => !e.billable).length} Non-billable
+                      </Badge>
           </div>
+                  </TableCell>
+                  <TableCell></TableCell>
+                  <TableCell></TableCell>
+                </TableRow>
+              </tfoot>
+            )}
+          </Table>
         </Card>
-      )}
+      </div>
     </div>
   );
 }
