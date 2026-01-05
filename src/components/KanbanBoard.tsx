@@ -869,6 +869,9 @@ export function KanbanBoard({ viewMode = 'kanban', onViewModeChange, onProjectCl
                                 <div className="flex items-center gap-3 w-full">
                                   <Checkbox
                                     checked={isSelected}
+                                    onCheckedChange={(checked) => {
+                                      toggleTeamMember(member.name);
+                                    }}
                                     onClick={(e) => {
                                       e.stopPropagation(); // Prevent event bubbling
                                     }}

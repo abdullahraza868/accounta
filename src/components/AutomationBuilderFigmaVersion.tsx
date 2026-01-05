@@ -8,7 +8,7 @@ import { Badge } from './ui/badge';
 import { Switch } from './ui/switch';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from './ui/alert-dialog';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from './ui/dialog';
-import { Plus, Trash2, Clock, Zap, FileCheck, CreditCard, Calendar, Edit2, ChevronDown, Info, Play, Loader2, CheckCircle, XCircle, AlertTriangle, Power } from 'lucide-react';
+import { Plus, Trash2, Clock, Zap, FileCheck, CreditCard, Calendar, Edit2, ChevronDown, Info, Play, Loader2, CheckCircle, XCircle, AlertTriangle, Power, Filter } from 'lucide-react';
 import { Textarea } from './ui/textarea';
 import { toast } from 'sonner';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from './ui/collapsible';
@@ -1571,6 +1571,534 @@ function fromStructuredAction(action: ActionStructured): { value: string; config
   };
 }
 
+// ==================== FORMATTING HELPER FUNCTIONS ====================
+
+// Format trigger for human-readable display
+function formatTriggerDisplay(triggerObj: TriggerStructured | null, triggerConfig?: Record<string, any>): string {
+  if (!triggerObj) return '(No trigger)';
+  
+  const config = triggerConfig || triggerObj.config || {};
+  const triggerName = triggerObj.name;
+  
+  // Handle different trigger categories with their configurations
+  if (triggerObj.category === 'Client') {
+    if (triggerName === 'When Client Created') {
+      return 'Client created';
+    }
+    if (triggerName === 'When Client Status Changed') {
+      return `Client status changed${config.status ? ` to ${config.status}` : ''}`;
+    }
+    if (triggerName === "Client Hasn't Responded in X Days") {
+      return `Client hasn't responded in ${config.days || 'X'} days`;
+    }
+    if (triggerName === 'When Document Received') {
+      return `Document received${config.documentType ? ` (${config.documentType})` : ''}`;
+    }
+    if (triggerName === 'When Document Signed') {
+      return `Document signed${config.documentType ? ` (${config.documentType})` : ''}`;
+    }
+    if (triggerName === 'When Form / Organizer Sent') {
+      return `Form/Organizer sent${config.formType ? ` (${config.formType})` : ''}`;
+    }
+    if (triggerName === 'When Form / Organizer Submitted') {
+      return `Form/Organizer submitted${config.formType ? ` (${config.formType})` : ''}`;
+    }
+    if (triggerName === 'When Meeting is Scheduled') {
+      return `Meeting scheduled${config.meetingType ? ` (${config.meetingType})` : ''}`;
+    }
+    if (triggerName === 'When Client Created via API') {
+      return 'Client created via API';
+    }
+    if (triggerName === 'When Client Created via Facebook') {
+      return 'Client created via Facebook';
+    }
+    if (triggerName === 'When Client Created via Calendly') {
+      return 'Client created via Calendly';
+    }
+    if (triggerName === 'When Custom Field Value Changed') {
+      return `Custom field changed${config.fieldName ? ` (${config.fieldName})` : ''}`;
+    }
+  }
+  
+  if (triggerObj.category === 'Financial') {
+    if (triggerName === 'When Invoice Sent') {
+      return 'Invoice sent';
+    }
+    if (triggerName === 'When Payment Received') {
+      return 'Payment received';
+    }
+    if (triggerName === 'When Payment Overdue') {
+      return 'Payment overdue';
+    }
+    if (triggerName === 'When Subscription Payment Failed') {
+      return 'Subscription payment failed';
+    }
+  }
+  
+  if (triggerObj.category === 'Task') {
+    if (triggerName === 'When Any Task Completed') {
+      return 'Any task completed';
+    }
+    if (triggerName === 'When Specific Task Completed') {
+      const taskName = config.taskName || config.taskId;
+      return taskName ? `Task "${taskName}" completed` : 'Specific task completed';
+    }
+    if (triggerName === 'When Task is Assigned') {
+      return 'Task assigned';
+    }
+    if (triggerName === 'When Task is Commented') {
+      return 'Task commented';
+    }
+  }
+  
+  if (triggerObj.category === 'Stage') {
+    if (triggerName === 'When Stage is Entered') {
+      const stageName = config.stageName || config.stageId;
+      return stageName ? `Stage "${stageName}" entered` : 'Stage entered';
+    }
+    if (triggerName === 'When Stage is Completed') {
+      const stageName = config.stageName || config.stageId;
+      return stageName ? `Stage "${stageName}" completed` : 'Stage completed';
+    }
+    if (triggerName === 'When Stage is Reopened') {
+      const stageName = config.stageName || config.stageId;
+      return stageName ? `Stage "${stageName}" reopened` : 'Stage reopened';
+    }
+  }
+  
+  if (triggerObj.category === 'Time') {
+    if (triggerName === 'Time After Stage Entered') {
+      return `After ${config.days || 'X'} days from stage entry`;
+    }
+    if (triggerName === 'Time After Task Completed') {
+      return `After ${config.days || 'X'} days from task completion`;
+    }
+    if (triggerName === 'X Days Before Deadline') {
+      return `${config.days || 'X'} days before deadline`;
+    }
+    if (triggerName === 'When Deadline Passed') {
+      return 'Deadline passed';
+    }
+    if (triggerName === 'Scheduled (Daily / Weekly / Monthly)') {
+      const frequency = config.frequency || 'daily';
+      const time = config.time || '';
+      return `Scheduled ${frequency}${time ? ` at ${time}` : ''}`;
+    }
+  }
+  
+  if (triggerObj.category === 'Communication') {
+    if (triggerName === 'When Email Replied') {
+      return 'Email replied';
+    }
+    if (triggerName === 'When SMS Replied') {
+      return 'SMS replied';
+    }
+    if (triggerName === 'When Incoming Email Received') {
+      return 'Incoming email received';
+    }
+    if (triggerName === 'When Incoming SMS Received') {
+      return 'Incoming SMS received';
+    }
+    if (triggerName === 'When Incoming Email or SMS Received') {
+      return 'Incoming email or SMS received';
+    }
+    if (triggerName === 'When Outgoing SMS Error Occurs') {
+      return 'Outgoing SMS error occurred';
+    }
+  }
+  
+  // Fallback to trigger name
+  return triggerName || 'Event occurs';
+}
+
+// Format condition for human-readable display
+function formatConditionDisplay(condition: Condition): string {
+  if (!condition.field || !condition.operator) {
+    return '(Incomplete condition)';
+  }
+  
+  // Find field definition
+  const fieldDef = CONDITION_FIELDS.find(f => f.value === condition.field);
+  const fieldLabel = fieldDef?.label || condition.field;
+  
+  // Find operator label
+  const fieldType = fieldDef?.type || 'text';
+  const operators = OPERATORS_BY_TYPE[fieldType] || OPERATORS_BY_TYPE.text || [];
+  const operatorDef = operators.find(op => op.value === condition.operator);
+  const operatorLabel = operatorDef?.label || condition.operator;
+  
+  // Format value
+  let valueDisplay = String(condition.value || '');
+  
+  // Handle enum values
+  if (fieldDef?.type === 'enum' && fieldDef.enumOptions) {
+    const enumOption = fieldDef.enumOptions.find(opt => opt.value === condition.value);
+    if (enumOption) {
+      valueDisplay = enumOption.label;
+    }
+  }
+  
+  // Capitalize first letter of field label
+  const capitalizedField = fieldLabel.charAt(0).toUpperCase() + fieldLabel.slice(1);
+  
+  return `${capitalizedField} ${operatorLabel} ${valueDisplay}`;
+}
+
+// Format action for human-readable display with configurations
+function formatActionDisplay(actionObj: ActionStructured): { name: string; configs: string[] } {
+  if (!actionObj) {
+    return { name: '(No action)', configs: [] };
+  }
+  
+  const config = actionObj.config || {};
+  const configs: string[] = [];
+  
+  // Extract ALL relevant configuration based on action type - comprehensive extraction
+  if (actionObj.category === 'Communication') {
+    if (actionObj.name === 'Send Email to Client' || actionObj.name === 'Send Email to Team Member') {
+      // Look up template from MOCK_EMAIL_TEMPLATES using templateId
+      if (config.templateId) {
+        const template = MOCK_EMAIL_TEMPLATES.find(t => t.value === config.templateId);
+        if (template) {
+          configs.push(`Template: ${template.label}`);
+        } else if (config.templateName || config.template) {
+          configs.push(`Template: ${config.templateName || config.template}`);
+        }
+      } else if (config.templateName || config.template) {
+        configs.push(`Template: ${config.templateName || config.template}`);
+      }
+      // Look up email account from MOCK_EMAIL_ACCOUNTS using emailAccountId
+      if (config.emailAccountId) {
+        const account = MOCK_EMAIL_ACCOUNTS.find(a => a.value === config.emailAccountId);
+        if (account) {
+          configs.push(`Email Account: ${account.label}`);
+        } else if (config.emailAccount || config.account || config.fromAccount) {
+          configs.push(`Email Account: ${config.emailAccount || config.account || config.fromAccount}`);
+        }
+      } else if (config.emailAccount || config.account || config.fromAccount) {
+        configs.push(`Email Account: ${config.emailAccount || config.account || config.fromAccount}`);
+      }
+      if (config.subject) {
+        configs.push(`Subject: ${config.subject}`);
+      }
+      if (config.toEmail || config.recipient || config.to) {
+        configs.push(`To: ${config.toEmail || config.recipient || config.to}`);
+      }
+      // For team member emails, show assignee
+      if (config.assigneeId) {
+        const assignee = MOCK_TEAM_MEMBERS.find(m => m.value === config.assigneeId);
+        if (assignee) {
+          configs.push(`Team Member: ${assignee.label.split(' (')[0]}`);
+        }
+      }
+    }
+    if (actionObj.name === 'Start Email Sequence') {
+      // Look up sequence from MOCK_EMAIL_SEQUENCES using emailSequenceTemplateId
+      if (config.emailSequenceTemplateId) {
+        const sequence = MOCK_EMAIL_SEQUENCES.find(s => s.value === config.emailSequenceTemplateId);
+        if (sequence) {
+          configs.push(`Sequence: ${sequence.label}`);
+        } else if (config.sequenceName || config.sequence) {
+          configs.push(`Sequence: ${config.sequenceName || config.sequence}`);
+        }
+      } else if (config.sequenceName || config.sequence) {
+        configs.push(`Sequence: ${config.sequenceName || config.sequence}`);
+      }
+      // Look up email account from MOCK_EMAIL_ACCOUNTS using emailAccountId
+      if (config.emailAccountId) {
+        const account = MOCK_EMAIL_ACCOUNTS.find(a => a.value === config.emailAccountId);
+        if (account) {
+          configs.push(`Email Account: ${account.label}`);
+        } else if (config.emailAccount || config.account || config.fromAccount) {
+          configs.push(`Email Account: ${config.emailAccount || config.account || config.fromAccount}`);
+        }
+      } else if (config.emailAccount || config.account || config.fromAccount) {
+        configs.push(`Email Account: ${config.emailAccount || config.account || config.fromAccount}`);
+      }
+      // Also check for template if present
+      if (config.templateId) {
+        const template = MOCK_EMAIL_TEMPLATES.find(t => t.value === config.templateId);
+        if (template) {
+          configs.push(`Template: ${template.label}`);
+        } else if (config.templateName || config.template) {
+          configs.push(`Template: ${config.templateName || config.template}`);
+        }
+      } else if (config.templateName || config.template) {
+        configs.push(`Template: ${config.templateName || config.template}`);
+      }
+    }
+    if (actionObj.name === 'Start SMS Sequence') {
+      // Look up sequence from MOCK_SMS_SEQUENCES using smsSequenceTemplateId
+      if (config.smsSequenceTemplateId) {
+        const sequence = MOCK_SMS_SEQUENCES.find(s => s.value === config.smsSequenceTemplateId);
+        if (sequence) {
+          configs.push(`Sequence: ${sequence.label}`);
+        } else if (config.sequenceName || config.sequence) {
+          configs.push(`Sequence: ${config.sequenceName || config.sequence}`);
+        }
+      } else if (config.sequenceName || config.sequence) {
+        configs.push(`Sequence: ${config.sequenceName || config.sequence}`);
+      }
+      // Look up phone account from MOCK_PHONE_ACCOUNTS using phoneAccountId
+      if (config.phoneAccountId) {
+        const account = MOCK_PHONE_ACCOUNTS.find(a => a.value === config.phoneAccountId);
+        if (account) {
+          configs.push(`Phone Account: ${account.label}`);
+        }
+      }
+      if (config.templateName || config.template) {
+        configs.push(`Template: ${config.templateName || config.template}`);
+      }
+    }
+    if (actionObj.name === 'Send SMS Reminder') {
+      if (config.message) {
+        configs.push(`Message: ${config.message.substring(0, 50)}${config.message.length > 50 ? '...' : ''}`);
+      }
+      if (config.phoneNumber || config.to) {
+        configs.push(`To: ${config.phoneNumber || config.to}`);
+      }
+    }
+    if (actionObj.name === 'Send Slack / Teams Message') {
+      if (config.channel) {
+        configs.push(`Channel: ${config.channel}`);
+      }
+      if (config.message) {
+        configs.push(`Message: ${config.message.substring(0, 50)}${config.message.length > 50 ? '...' : ''}`);
+      }
+      if (config.workspace || config.team) {
+        configs.push(`Workspace: ${config.workspace || config.team}`);
+      }
+    }
+    if (actionObj.name === 'Send Client Details via Email') {
+      // Look up template from MOCK_EMAIL_TEMPLATES using templateId
+      if (config.templateId) {
+        const template = MOCK_EMAIL_TEMPLATES.find(t => t.value === config.templateId);
+        if (template) {
+          configs.push(`Template: ${template.label}`);
+        } else if (config.templateName || config.template) {
+          configs.push(`Template: ${config.templateName || config.template}`);
+        }
+      } else if (config.templateName || config.template) {
+        configs.push(`Template: ${config.templateName || config.template}`);
+      }
+      // Look up email account from MOCK_EMAIL_ACCOUNTS using emailAccountId
+      if (config.emailAccountId) {
+        const account = MOCK_EMAIL_ACCOUNTS.find(a => a.value === config.emailAccountId);
+        if (account) {
+          configs.push(`Email Account: ${account.label}`);
+        } else if (config.emailAccount || config.account || config.fromAccount) {
+          configs.push(`Email Account: ${config.emailAccount || config.account || config.fromAccount}`);
+        }
+      } else if (config.emailAccount || config.account || config.fromAccount) {
+        configs.push(`Email Account: ${config.emailAccount || config.account || config.fromAccount}`);
+      }
+      if (config.recipientEmail) {
+        configs.push(`Recipient: ${config.recipientEmail}`);
+      }
+    }
+  }
+  
+  if (actionObj.category === 'Task Management') {
+    if (actionObj.name === 'Create Follow-up Task') {
+      if (config.taskName || config.task) {
+        configs.push(`Task: ${config.taskName || config.task}`);
+      }
+      if (config.assignee || config.assignedTo) {
+        configs.push(`Assignee: ${config.assignee || config.assignedTo}`);
+      }
+      if (config.dueDate || config.dueDateDays) {
+        configs.push(`Due: ${config.dueDate || `${config.dueDateDays} days`}`);
+      }
+      if (config.priority) {
+        configs.push(`Priority: ${config.priority}`);
+      }
+    }
+    if (actionObj.name === 'Assign Task to Team Member') {
+      if (config.taskName || config.task) {
+        configs.push(`Task: ${config.taskName || config.task}`);
+      }
+      if (config.teamMember || config.assignee) {
+        configs.push(`Team Member: ${config.teamMember || config.assignee}`);
+      }
+    }
+    if (actionObj.name === 'Auto-Complete Task') {
+      if (config.taskName || config.task) {
+        configs.push(`Task: ${config.taskName || config.task}`);
+      }
+    }
+    if (actionObj.name === 'Escalate to Manager / Partner') {
+      if (config.taskName || config.task) {
+        configs.push(`Task: ${config.taskName || config.task}`);
+      }
+      if (config.escalateTo) {
+        configs.push(`Escalate To: ${config.escalateTo}`);
+      }
+    }
+  }
+  
+  if (actionObj.category === 'Workflow') {
+    if (actionObj.name === 'Move to Next Stage' || actionObj.name === 'Move Back to Stage') {
+      if (config.stageName || config.stage) {
+        configs.push(`Stage: ${config.stageName || config.stage}`);
+      }
+      if (config.direction) {
+        configs.push(`Direction: ${config.direction}`);
+      }
+    }
+    if (actionObj.name === 'Archive Completed Work') {
+      if (config.archiveAfterDays) {
+        configs.push(`Archive After: ${config.archiveAfterDays} days`);
+      }
+    }
+  }
+  
+  if (actionObj.category === 'Client Portal') {
+    if (actionObj.name === 'Send Form / Organizer') {
+      if (config.formType || config.form) {
+        configs.push(`Form Type: ${config.formType || config.form}`);
+      }
+      if (config.recipient) {
+        configs.push(`Recipient: ${config.recipient}`);
+      }
+      if (config.formName) {
+        configs.push(`Form: ${config.formName}`);
+      }
+    }
+    if (actionObj.name === 'Request Documents from Client') {
+      if (config.documentTypes) {
+        const docTypes = Array.isArray(config.documentTypes) 
+          ? config.documentTypes.join(', ')
+          : config.documentTypes;
+        configs.push(`Documents: ${docTypes}`);
+      }
+      if (config.deadline) {
+        configs.push(`Deadline: ${config.deadline}`);
+      }
+    }
+    if (actionObj.name === 'Update Client Portal Status') {
+      if (config.status) {
+        configs.push(`Status: ${config.status}`);
+      }
+    }
+  }
+  
+  if (actionObj.category === 'Sales / Engagement') {
+    if (actionObj.name === 'Send Proposal / Quote') {
+      if (config.templateName || config.template) {
+        configs.push(`Template: ${config.templateName || config.template}`);
+      }
+      if (config.amount) {
+        configs.push(`Amount: $${config.amount}`);
+      }
+    }
+    if (actionObj.name === 'Send Engagement Letter') {
+      if (config.templateName || config.template) {
+        configs.push(`Template: ${config.templateName || config.template}`);
+      }
+    }
+    if (actionObj.name === 'Request E-Signature') {
+      if (config.documentName || config.document) {
+        configs.push(`Document: ${config.documentName || config.document}`);
+      }
+      if (config.signers) {
+        const signers = Array.isArray(config.signers) 
+          ? config.signers.join(', ')
+          : config.signers;
+        configs.push(`Signers: ${signers}`);
+      }
+    }
+  }
+  
+  if (actionObj.category === 'Scheduling') {
+    if (actionObj.name === 'Create Calendar Event / Meeting') {
+      if (config.meetingType || config.type) {
+        configs.push(`Meeting Type: ${config.meetingType || config.type}`);
+      }
+      if (config.duration) {
+        configs.push(`Duration: ${config.duration} minutes`);
+      }
+      if (config.attendees) {
+        const attendees = Array.isArray(config.attendees) 
+          ? config.attendees.join(', ')
+          : config.attendees;
+        configs.push(`Attendees: ${attendees}`);
+      }
+      if (config.location) {
+        configs.push(`Location: ${config.location}`);
+      }
+    }
+  }
+  
+  if (actionObj.category === 'Reports') {
+    if (actionObj.name === 'Generate & Send Report') {
+      if (config.reportType || config.report) {
+        configs.push(`Report Type: ${config.reportType || config.report}`);
+      }
+      if (config.recipient) {
+        configs.push(`Recipient: ${config.recipient}`);
+      }
+      if (config.frequency) {
+        configs.push(`Frequency: ${config.frequency}`);
+      }
+    }
+  }
+  
+  if (actionObj.category === 'Integrations') {
+    if (actionObj.name === 'Update QuickBooks / Xero') {
+      if (config.system) {
+        configs.push(`System: ${config.system}`);
+      }
+      if (config.action) {
+        configs.push(`Action: ${config.action}`);
+      }
+      if (config.category) {
+        configs.push(`Category: ${config.category}`);
+      }
+    }
+    if (actionObj.name === 'Send Webhook to External System') {
+      if (config.webhookUrl || config.url) {
+        configs.push(`URL: ${config.webhookUrl || config.url}`);
+      }
+      if (config.method) {
+        configs.push(`Method: ${config.method}`);
+      }
+    }
+  }
+  
+  if (actionObj.category === 'Client Management') {
+    if (actionObj.name === 'Assign Client to Team Member') {
+      if (config.teamMember || config.assignee) {
+        configs.push(`Team Member: ${config.teamMember || config.assignee}`);
+      }
+    }
+  }
+  
+  if (actionObj.category === 'Utility') {
+    if (actionObj.name === 'Wait / Delay') {
+      if (config.duration || config.days || config.hours) {
+        const duration = config.duration || (config.days ? `${config.days} days` : `${config.hours} hours`);
+        configs.push(`Duration: ${duration}`);
+      }
+    }
+    if (actionObj.name === 'Notify Team (In-App)') {
+      if (config.message) {
+        configs.push(`Message: ${config.message.substring(0, 50)}${config.message.length > 50 ? '...' : ''}`);
+      }
+      if (config.teamMembers) {
+        const members = Array.isArray(config.teamMembers) 
+          ? config.teamMembers.join(', ')
+          : config.teamMembers;
+        configs.push(`Team: ${members}`);
+      }
+    }
+  }
+  
+  return {
+    name: actionObj.name,
+    configs: configs,
+  };
+}
+
 // ==================== CONFIG FIELD RENDERER ====================
 function ConfigFieldRenderer({
   field,
@@ -2758,7 +3286,7 @@ export function AutomationBuilder({
                 <div className="flex items-center gap-1.5 mt-1.5">
                   <Info className="w-3 h-3 text-blue-500 flex-shrink-0" />
                   <p className="text-xs text-blue-600">
-                    Skip this step unless you need to restrict when the automation runs
+                    Skip this step unless you need to program conditional logic
                   </p>
                 </div>
               )}
@@ -3293,7 +3821,7 @@ export function AutomationBuilder({
         )}
 
           {/* Automation Cards */}
-        {displayedAutomations.map((automation) => {
+        {displayedAutomations.map((automation, automationIndex) => {
           // Convert automation data to structured format for preview
           const triggerObj = automation.triggerObj || toStructuredTrigger(automation.trigger, automation.triggerObj?.config);
           const conditions = (automation.conditions || []).map(c => {
@@ -3372,6 +3900,7 @@ export function AutomationBuilder({
 
                         {/* Name */}
                         <h3 className="text-base font-semibold text-slate-900 truncate flex-1">
+                          {displayedAutomations.length > 1 && `${automationIndex + 1}. `}
                           {automation.name}
                         </h3>
                       </div>
@@ -3405,121 +3934,239 @@ export function AutomationBuilder({
                       </div>
                     </div>
 
-                    {/* Row 2: Preview Section */}
-                    {triggerObj && actionObjs.length > 0 && (
-                      <div className="bg-violet-50/50 border border-violet-100 rounded-lg p-2.5">
-                        <p className="text-xs font-semibold text-slate-800 mb-2">Automation Preview</p>
-                        <div className="text-xs text-slate-600 space-y-1">
-                          <div>
-                            <span className="font-semibold text-slate-700">When</span>{' '}
-                            <span className="text-slate-600">
+                    {/* Row 2: Two-Column Layout - Preview (Left) + Detailed Breakdown (Right) */}
+                    <div className="grid grid-cols-1 lg:grid-cols-[55%_45%] gap-4">
+                      {/* Left Column: Detailed Breakdown - Trigger, Condition, Action */}
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        {/* Column 1: Trigger */}
+                        <div className="space-y-2">
+                          <div className="flex items-center gap-2">
+                            <Zap className="w-4 h-4 text-blue-600 flex-shrink-0" />
+                            <span className="text-xs font-semibold text-blue-700">Trigger</span>
+                          </div>
+                          {triggerObj ? (
+                            <div className="space-y-1">
+                              <p className="text-sm font-medium text-slate-900">
+                                {formatTriggerDisplay(triggerObj, automation.triggerConfig || automation.triggerObj?.config)}
+                              </p>
+                              {/* Trigger Configuration Details - Comprehensive Display */}
                               {(() => {
-                                const trigger = triggerObj;
-                                if (!trigger) return '(No trigger)';
+                                const config = automation.triggerConfig || triggerObj.config || {};
+                                const configs: string[] = [];
                                 
-                                if (trigger.category === 'Invoice') {
-                                  if (trigger.name === 'invoice_created') return 'an invoice is created';
-                                  if (trigger.name === 'invoice_sent') return 'an invoice is sent';
-                                  if (trigger.name === 'invoice_paid') return 'an invoice is paid';
-                                  if (trigger.name === 'invoice_overdue') return 'an invoice becomes overdue';
-                                }
-                                if (trigger.category === 'Payment') {
-                                  if (trigger.name === 'payment_received') return 'a payment is received';
-                                  if (trigger.name === 'payment_failed') return 'a payment fails';
-                                }
-                                if (trigger.category === 'Client') {
-                                  if (trigger.name === 'client_created') return 'a client is created';
-                                }
-                                if (trigger.category === 'Time') {
-                                  const config = trigger.config as any;
-                                  if (trigger.name === 'scheduled') {
-                                    return `at ${config?.time || 'scheduled time'} ${config?.frequency || 'daily'}`;
+                                // Task triggers
+                                if (triggerObj.category === 'Task') {
+                                  if (config.taskName) {
+                                    configs.push(`Task: ${config.taskName}`);
+                                  } else if (config.taskId) {
+                                    configs.push(`Task ID: ${config.taskId}`);
+                                  }
+                                  if (config.status) {
+                                    configs.push(`Status: ${config.status}`);
                                   }
                                 }
-                                return trigger.name || 'event occurs';
-                              })()}
-                            </span>
-                          </div>
-
-                          {conditions.length > 0 && (
-                            <div>
-                              <span className="font-semibold text-slate-700">And</span>{' '}
-                              {conditions.map((condition, index) => (
-                                <span key={condition.id}>
-                                  {index > 0 && ` ${automation.logicOperator || 'AND'} `}
-                                  <span className="text-slate-600">
-                                    {(() => {
-                                      const fieldLabels: Record<string, string> = {
-                                        'invoice_amount': 'invoice amount',
-                                        'invoice_status': 'invoice status',
-                                        'client_type': 'client type',
-                                        'payment_method': 'payment method',
-                                        'days_overdue': 'days overdue',
-                                      };
-                                      const operatorLabels: Record<string, string> = {
-                                        'equals': 'is',
-                                        'not_equals': 'is not',
-                                        'greater_than': 'is greater than',
-                                        'less_than': 'is less than',
-                                        'contains': 'contains',
-                                      };
-                                      const field = fieldLabels[condition.field] || condition.field;
-                                      const op = operatorLabels[condition.operator] || condition.operator;
-                                      return `${field} ${op} ${condition.value}`;
-                                    })()}
-                                  </span>
-                                </span>
-                              ))}
-                            </div>
-                          )}
-
-                          <div>
-                            <span className="font-semibold text-slate-700">Then</span>{' '}
-                            {actionObjs.length > 0 ? (
-                              <div className="mt-0.5 space-y-0.5">
-                                {actionObjs.map((action, index) => (
-                                  <div key={`${action.id}-${index}`} className="ml-3">
-                                    <span className="text-slate-500">{index + 1}.</span>{' '}
-                                    <span className="text-slate-600">
-                                      {(() => {
-                                        const config = action.config as any;
-                                        if (action.category === 'Email') {
-                                          if (action.name === 'send_client_email') {
-                                            return `Send email to client${config?.subject ? `: "${config.subject}"` : ''}`;
-                                          }
-                                          if (action.name === 'send_team_email') {
-                                            return `Send email to team${config?.subject ? `: "${config.subject}"` : ''}`;
-                                          }
-                                        }
-                                        if (action.category === 'Invoice') {
-                                          if (action.name === 'update_invoice_status') {
-                                            return `Update invoice status to ${config?.status || 'new status'}`;
-                                          }
-                                          if (action.name === 'apply_late_fee') {
-                                            return `Apply late fee of ${config?.amount || 'specified amount'}`;
-                                          }
-                                        }
-                                        if (action.category === 'Notification') {
-                                          if (action.name === 'send_slack_notification') {
-                                            return `Send Slack notification${config?.message ? `: "${config.message}"` : ''}`;
-                                          }
-                                        }
-                                        return action.name || 'Perform action';
-                                      })()}
-                                    </span>
+                                
+                                // Stage triggers
+                                if (triggerObj.category === 'Stage') {
+                                  if (config.stageName) {
+                                    configs.push(`Stage: ${config.stageName}`);
+                                  } else if (config.stageId) {
+                                    configs.push(`Stage ID: ${config.stageId}`);
+                                  }
+                                }
+                                
+                                // Client triggers
+                                if (triggerObj.category === 'Client') {
+                                  if (config.documentType) {
+                                    configs.push(`Document Type: ${config.documentType}`);
+                                  }
+                                  if (config.formType) {
+                                    configs.push(`Form Type: ${config.formType}`);
+                                  }
+                                  if (config.meetingType) {
+                                    configs.push(`Meeting Type: ${config.meetingType}`);
+                                  }
+                                  if (config.status) {
+                                    configs.push(`Status: ${config.status}`);
+                                  }
+                                  if (config.clientType) {
+                                    configs.push(`Client Type: ${config.clientType}`);
+                                  }
+                                  if (config.days) {
+                                    configs.push(`Days: ${config.days}`);
+                                  }
+                                }
+                                
+                                // Time triggers
+                                if (triggerObj.category === 'Time') {
+                                  if (config.frequency) {
+                                    configs.push(`Frequency: ${config.frequency}`);
+                                  }
+                                  if (config.time) {
+                                    configs.push(`Time: ${config.time}`);
+                                  }
+                                  if (config.days) {
+                                    configs.push(`Days: ${config.days}`);
+                                  }
+                                  if (config.hours) {
+                                    configs.push(`Hours: ${config.hours}`);
+                                  }
+                                  if (config.dayOfWeek) {
+                                    configs.push(`Day of Week: ${config.dayOfWeek}`);
+                                  }
+                                }
+                                
+                                // Invoice triggers
+                                if (triggerObj.category === 'Invoice') {
+                                  if (config.invoiceStatus) {
+                                    configs.push(`Invoice Status: ${config.invoiceStatus}`);
+                                  }
+                                  if (config.amount) {
+                                    configs.push(`Amount: $${config.amount}`);
+                                  }
+                                }
+                                
+                                // Payment triggers
+                                if (triggerObj.category === 'Payment') {
+                                  if (config.paymentMethod) {
+                                    configs.push(`Payment Method: ${config.paymentMethod}`);
+                                  }
+                                  if (config.amount) {
+                                    configs.push(`Amount: $${config.amount}`);
+                                  }
+                                }
+                                
+                                // Email triggers
+                                if (triggerObj.category === 'Email') {
+                                  if (config.fromEmail) {
+                                    configs.push(`From: ${config.fromEmail}`);
+                                  }
+                                  if (config.subject) {
+                                    configs.push(`Subject: ${config.subject}`);
+                                  }
+                                  if (config.textMatching) {
+                                    configs.push(`Text Matching: ${config.textMatching}`);
+                                  }
+                                }
+                                
+                                // SMS triggers
+                                if (triggerObj.category === 'SMS') {
+                                  if (config.fromNumber) {
+                                    configs.push(`From: ${config.fromNumber}`);
+                                  }
+                                  if (config.textMatching) {
+                                    configs.push(`Text Matching: ${config.textMatching}`);
+                                  }
+                                }
+                                
+                                // Error triggers
+                                if (triggerObj.category === 'Error') {
+                                  if (config.errorCodes && Array.isArray(config.errorCodes)) {
+                                    configs.push(`Error Codes: ${config.errorCodes.join(', ')}`);
+                                  } else if (config.errorCode) {
+                                    configs.push(`Error Code: ${config.errorCode}`);
+                                  }
+                                }
+                                
+                                return configs.length > 0 ? (
+                                  <div className="ml-3 space-y-0.5 pt-1">
+                                    {configs.map((cfg, idx) => (
+                                      <p key={idx} className="text-xs text-slate-500">
+                                        {configs.length > 1 ? `${idx + 1}. ` : '• '}
+                                        {cfg}
+                                      </p>
+                                    ))}
                                   </div>
-                                ))}
-                              </div>
-                            ) : (
-                              <span className="text-slate-400">(No actions)</span>
+                                ) : null;
+                              })()}
+                            </div>
+                          ) : (
+                            <p className="text-sm text-slate-400">(No trigger configured)</p>
+                          )}
+                        </div>
+
+                        {/* Column 2: Condition */}
+                        <div className="space-y-2">
+                          <div className="flex items-center gap-2">
+                            <Filter className="w-4 h-4 text-amber-600 flex-shrink-0" />
+                            <span className="text-xs font-semibold text-amber-700">Condition</span>
+                            {conditions.length > 1 && (
+                              <Badge variant="outline" className="text-[10px] px-1.5 py-0 h-4 bg-amber-50 text-amber-700 border-amber-200">
+                                {automation.logicOperator || 'AND'}
+                              </Badge>
                             )}
                           </div>
+                          {conditions.length > 0 ? (
+                            <div className="space-y-1">
+                              {conditions.map((condition, index) => (
+                                <div key={condition.id} className="space-y-0.5">
+                                  {index > 0 && (
+                                    <p className="text-xs font-medium text-amber-600 mb-1">
+                                      {automation.logicOperator || 'AND'}
+                                    </p>
+                                  )}
+                                  <p className="text-sm text-slate-700">
+                                    {conditions.length > 1 && `${index + 1}. `}
+                                    {formatConditionDisplay(condition)}
+                                  </p>
+                                </div>
+                              ))}
+                            </div>
+                          ) : (
+                            <p className="text-sm text-slate-400">(No conditions)</p>
+                          )}
+                        </div>
+
+                        {/* Column 3: Action */}
+                        <div className="space-y-2">
+                          <div className="flex items-center gap-2">
+                            <Play className="w-4 h-4 text-green-600 flex-shrink-0" />
+                            <span className="text-xs font-semibold text-green-700">Action</span>
+                          </div>
+                          {actionObjs.length > 0 ? (
+                            <div className="space-y-2">
+                              {actionObjs.map((action, index) => {
+                                const actionDisplay = formatActionDisplay(action);
+                                return (
+                                  <div key={`${action.id}-${index}`} className="space-y-1">
+                                    <p className="text-sm font-medium text-slate-900">
+                                      {actionObjs.length > 1 && `${index + 1}. `}
+                                      {actionDisplay.name}
+                                    </p>
+                                    {/* Action Configuration Details */}
+                                    {actionDisplay.configs.length > 0 && (
+                                      <div className="ml-3 space-y-0.5">
+                                        {actionDisplay.configs.map((config, configIdx) => (
+                                          <p key={configIdx} className="text-xs text-slate-500">
+                                            {actionDisplay.configs.length > 1 ? `${configIdx + 1}. ` : '• '}
+                                            {config}
+                                          </p>
+                                        ))}
+                                      </div>
+                                    )}
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          ) : (
+                            <p className="text-sm text-slate-400">(No actions configured)</p>
+                          )}
                         </div>
                       </div>
-                    )}
+                      {/* Left Column: Automation Preview */}
+                      <div>
+                        <AutomationPreview
+                          trigger={triggerObj}
+                          conditions={conditions}
+                          actions={actionObjs}
+                          logicOperator={automation.logicOperator}
+                          compact={true}
+                        />
+                      </div>
+                    </div>
 
                     {/* Row 3: Badges */}
-                    <div className="flex items-center gap-2 flex-wrap">
+                    {/* <div className="flex items-center gap-2 flex-wrap">
                       <Badge variant="outline" className="text-xs bg-blue-50 text-blue-700 border-blue-200">
                         {triggerTypes.find((t) => t.value === automation.trigger)?.label}
                       </Badge>
@@ -3557,13 +4204,12 @@ export function AutomationBuilder({
                         );
                       })
                       }
-                      {/* Fallback to actions array if actionDetails not available */}
                       {(!automation.actionDetails || automation.actionDetails.length === 0) && automation.actions.map((action, idx) => (
                         <Badge key={idx} variant="outline" className="text-xs bg-violet-50 text-violet-700 border-violet-200">
                           {action}
                         </Badge>
                       ))}
-                    </div>
+                    </div> */}
 
                     {/* Click to edit hint */}
                     <div className="pt-1 border-t border-slate-100">
