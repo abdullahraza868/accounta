@@ -6,6 +6,7 @@ import {
   MoreVertical, X, Save, AlertCircle, CheckCircle2, XCircle
 } from 'lucide-react';
 import { Button } from '../ui/button';
+import { forwardRef, useImperativeHandle } from 'react';
 import { Card } from '../ui/card';
 import { Badge } from '../ui/badge';
 import { Input } from '../ui/input';
@@ -20,6 +21,10 @@ import { toast } from 'sonner@2.0.3';
 
 type OrganizersTabProps = {
   client: Client;
+};
+
+export type OrganizersTabRef = {
+  triggerCreateOrganizer: () => void;
 };
 
 type OrganizerType = 'tax' | 'business' | 'checklist' | 'custom';
@@ -61,7 +66,7 @@ type Organizer = {
   notes?: string;
 };
 
-export function OrganizersTab({ client }: OrganizersTabProps) {
+export const OrganizersTab = forwardRef<OrganizersTabRef, OrganizersTabProps>(({ client }, ref) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedTypes, setSelectedTypes] = useState<OrganizerType[]>([]);
   const [selectedStatuses, setSelectedStatuses] = useState<OrganizerStatus[]>([]);
@@ -70,6 +75,12 @@ export function OrganizersTab({ client }: OrganizersTabProps) {
   const [viewMode, setViewMode] = useState<'list' | 'details'>('list');
   const [selectedOrganizer, setSelectedOrganizer] = useState<Organizer | null>(null);
   const [showCreateDialog, setShowCreateDialog] = useState(false);
+
+  useImperativeHandle(ref, () => ({
+    triggerCreateOrganizer: () => {
+      setShowCreateDialog(true);
+    }
+  }));
   const [showDeleteDialog, setShowDeleteDialog] = useState<string | null>(null);
   const [expandedSections, setExpandedSections] = useState<Set<string>>(new Set());
   
@@ -378,28 +389,10 @@ export function OrganizersTab({ client }: OrganizersTabProps) {
   return (
     <div className="flex-1 flex flex-col overflow-hidden">
       {/* Toolbar */}
-      <div className="px-6 py-4 border-b bg-white dark:bg-gray-900" style={{ borderColor: 'var(--stokeColor)' }}>
+      <div className="px-6 py-6 border-b bg-white dark:bg-gray-900" style={{ borderColor: 'var(--stokeColor)' }}>
         <div className="flex items-center justify-between gap-4">
-          <div className="flex items-center gap-3 flex-1">
-            {/* Search */}
-            <div className="relative flex-1 max-w-md">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-              <Input
-                placeholder="Search organizers..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-9"
-              />
-              {searchTerm && (
-                <button
-                  onClick={() => setSearchTerm('')}
-                  className="absolute right-2 top-1/2 -translate-y-1/2 p-1 hover:bg-gray-100 dark:hover:bg-gray-800 rounded"
-                >
-                  <X className="w-3.5 h-3.5 text-gray-400" />
-                </button>
-              )}
-            </div>
-
+          {/* Filters - Left Side */}
+          <div className="flex items-center gap-3">
             {/* Type Filter */}
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
@@ -526,15 +519,24 @@ export function OrganizersTab({ client }: OrganizersTabProps) {
             )}
           </div>
 
-          {/* Actions */}
-          <Button 
-            onClick={() => setShowCreateDialog(true)}
-            className="gap-2"
-            style={{ backgroundColor: 'var(--primaryColor)', color: 'white' }}
-          >
-            <Plus className="w-4 h-4" />
-            New Organizer
-          </Button>
+          {/* Search - Right Side */}
+          <div className="relative w-64 flex-shrink-0">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400" />
+            <Input
+              placeholder="Search organizers..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="pl-9 pr-9 h-8 text-sm"
+            />
+            {searchTerm && (
+              <button
+                onClick={() => setSearchTerm('')}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+              >
+                <X className="w-3.5 h-3.5" />
+              </button>
+            )}
+          </div>
         </div>
       </div>
 
@@ -564,7 +566,7 @@ export function OrganizersTab({ client }: OrganizersTabProps) {
                       style={{ backgroundColor: 'var(--primaryColor)', color: 'white' }}
                     >
                       <Plus className="w-4 h-4 mr-2" />
-                      Create Organizer
+                      New Organizer
                     </Button>
                   )}
                 </Card>
@@ -1204,4 +1206,4 @@ export function OrganizersTab({ client }: OrganizersTabProps) {
       </Dialog>
     </div>
   );
-}
+});

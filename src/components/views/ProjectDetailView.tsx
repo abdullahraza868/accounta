@@ -435,49 +435,6 @@ export function ProjectDetailPage({
                   )}
                 </div>
               </button>
-
-              {/* Visibility & Permissions Card */}
-              <div className="flex items-center gap-2 p-2 bg-green-50 border border-green-200 rounded-lg">
-                <div className="flex items-center gap-2">
-                  <Eye className="w-4 h-4 text-green-600" />
-                  <span className="text-sm text-green-700 font-medium">Visibility:</span>
-                  <Badge 
-                    variant="outline"
-                    className={`text-xs ${
-                      projectVisibility.level === 'Public' 
-                        ? 'bg-green-100 text-green-700 border-green-300'
-                        : projectVisibility.level === 'Private'
-                        ? 'bg-red-100 text-red-700 border-red-300'
-                        : 'bg-blue-100 text-blue-700 border-blue-300'
-                    }`}
-                  >
-                    {projectVisibility.level}
-                  </Badge>
-                  <div className="flex items-center -space-x-2">
-                    {projectVisibility.visibleUsers.slice(0, 3).map((user, idx) => (
-                      <Avatar key={idx} className="w-6 h-6 border-2 border-white">
-                        <AvatarFallback className="bg-green-100 text-green-700 text-[10px]">
-                          {user}
-                        </AvatarFallback>
-                      </Avatar>
-                    ))}
-                  </div>
-                  {projectVisibility.visibleUsers.length > 3 && (
-                    <span className="text-xs text-green-600">
-                      +{projectVisibility.visibleUsers.length - 3}
-                    </span>
-                  )}
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="h-6 px-2 text-xs hover:bg-green-100"
-                    onClick={() => setShowVisibilityDialog(true)}
-                  >
-                    <Pencil className="w-3 h-3 mr-1" />
-                    Edit
-                  </Button>
-                </div>
-              </div>
             </div>
           </div>
         </div>
@@ -1230,7 +1187,7 @@ export function ProjectDetailPage({
               Team Members
             </DialogTitle>
             <DialogDescription>
-              View team members working on this project
+              View team members working on this project and manage visibility settings
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-3 mt-4">
@@ -1262,9 +1219,22 @@ export function ProjectDetailPage({
                   <Badge variant="secondary" className="text-xs">
                     Active
                   </Badge>
-    </div>
-  );
+                </div>
+              );
             })}
+          </div>
+          <div className="mt-6 pt-4 border-t border-slate-200">
+            <Button
+              variant="outline"
+              className="w-full gap-2"
+              onClick={() => {
+                setShowTeamMembersDialog(false);
+                setShowVisibilityDialog(true);
+              }}
+            >
+              <Eye className="w-4 h-4" />
+              View & Edit Visibility
+            </Button>
           </div>
         </DialogContent>
       </Dialog>

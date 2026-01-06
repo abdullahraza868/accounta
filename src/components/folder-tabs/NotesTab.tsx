@@ -9,7 +9,8 @@ import {
   Trash2, 
   Star,
   Pin,
-  Search
+  Search,
+  X
 } from 'lucide-react';
 import { cn } from '../ui/utils';
 import { Input } from '../ui/input';
@@ -94,15 +95,25 @@ export function NotesTab({ client }: NotesTabProps) {
   return (
     <div className="p-6 space-y-6">
 
-      {/* Search */}
-      <div className="relative">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-        <Input
-          placeholder="Search notes..."
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-          className="pl-10"
-        />
+      {/* Search - Right Side */}
+      <div className="flex items-center justify-end">
+        <div className="relative w-64 flex-shrink-0">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400" />
+          <Input
+            placeholder="Search notes..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="pl-9 pr-9 h-8 text-sm"
+          />
+          {searchTerm && (
+            <button
+              onClick={() => setSearchTerm('')}
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+            >
+              <X className="w-3.5 h-3.5" />
+            </button>
+          )}
+        </div>
       </div>
 
       {/* Pinned Notes */}

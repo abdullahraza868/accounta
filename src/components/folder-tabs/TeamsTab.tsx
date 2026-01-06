@@ -24,7 +24,8 @@ import {
   Send,
   ArrowUpDown,
   ArrowUp,
-  ArrowDown
+  ArrowDown,
+  X
 } from 'lucide-react';
 import { cn } from '../ui/utils';
 import { useState, useRef, useEffect, forwardRef, useImperativeHandle } from 'react';
@@ -427,6 +428,119 @@ export const TeamsTab = forwardRef<TeamsTabRef, TeamsTabProps>(({ client }, ref)
   return (
     <div className="p-6 space-y-6">
 
+      {/* Search and Filters */}
+      <div className="flex items-center justify-between gap-4">
+        {/* Filters - Left Side */}
+        <div className="flex items-center gap-2">
+          {/* Status Filter */}
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline" className="gap-2">
+                <Filter className="w-4 h-4" />
+                Status
+                {selectedStatus.length > 0 && selectedStatus.length < 2 && (
+                  <Badge variant="secondary" className="ml-1 text-xs">
+                    {selectedStatus.length}
+                  </Badge>
+                )}
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-56">
+              <div className="px-2 py-1.5 text-xs font-semibold text-gray-500">
+                Filter by Status
+              </div>
+              <DropdownMenuSeparator />
+              <DropdownMenuCheckboxItem
+                checked={selectedStatus.includes('Active')}
+                onCheckedChange={() => toggleStatusFilter('Active')}
+              >
+                <span>Active</span>
+                <span className="ml-auto text-xs text-gray-500">
+                  ({activeCount})
+                </span>
+              </DropdownMenuCheckboxItem>
+              <DropdownMenuCheckboxItem
+                checked={selectedStatus.includes('Inactive')}
+                onCheckedChange={() => toggleStatusFilter('Inactive')}
+              >
+                <span>Inactive</span>
+                <span className="ml-auto text-xs text-gray-500">
+                  ({inactiveCount})
+                </span>
+              </DropdownMenuCheckboxItem>
+              {selectedStatus.length > 0 && (
+                <>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem onClick={() => setSelectedStatus(['Active'])}>
+                    Clear Filters
+                  </DropdownMenuItem>
+                </>
+              )}
+            </DropdownMenuContent>
+          </DropdownMenu>
+
+          {/* Relationship Filter */}
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline" className="gap-2">
+                <Filter className="w-4 h-4" />
+                Relationship
+                {selectedRelationships.length > 0 && (
+                  <Badge variant="secondary" className="ml-1 text-xs">
+                    {selectedRelationships.length}
+                  </Badge>
+                )}
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-56">
+              <div className="px-2 py-1.5 text-xs font-semibold text-gray-500">
+                Filter by Relationship
+              </div>
+              <DropdownMenuSeparator />
+              {relationshipTypes.map((type) => (
+                <DropdownMenuCheckboxItem
+                  key={type}
+                  checked={selectedRelationships.includes(type)}
+                  onCheckedChange={() => toggleRelationshipFilter(type)}
+                >
+                  <span>{type}</span>
+                  <span className="ml-auto text-xs text-gray-500">
+                    ({relationshipCounts[type] || 0})
+                  </span>
+                </DropdownMenuCheckboxItem>
+              ))}
+              {selectedRelationships.length > 0 && (
+                <>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem onClick={() => setSelectedRelationships([])}>
+                    Clear Filters
+                  </DropdownMenuItem>
+                </>
+              )}
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
+
+        {/* Search - Right Side */}
+        <div className="relative w-64 flex-shrink-0">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400" />
+          <Input
+            placeholder="Search team members..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="pl-9 pr-9 h-8 text-sm"
+          />
+          {searchTerm && (
+            <button
+              onClick={() => setSearchTerm('')}
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+            >
+              <X className="w-3.5 h-3.5" />
+            </button>
+          )}
+        </div>
+      </div>
+
       {/* Stats Cards - Clickable Filters */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <Card 
@@ -504,107 +618,6 @@ export const TeamsTab = forwardRef<TeamsTabRef, TeamsTabProps>(({ client }, ref)
             </div>
           </div>
         </Card>
-      </div>
-
-      {/* Search and Filters */}
-      <div className="flex items-center gap-3">
-        <div className="relative flex-1">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-          <Input
-            placeholder="Search team members..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="pl-10"
-          />
-        </div>
-
-        {/* Status Filter */}
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button variant="outline" className="gap-2">
-              <Filter className="w-4 h-4" />
-              Status
-              {selectedStatus.length > 0 && selectedStatus.length < 2 && (
-                <Badge variant="secondary" className="ml-1 text-xs">
-                  {selectedStatus.length}
-                </Badge>
-              )}
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="w-56">
-            <div className="px-2 py-1.5 text-xs font-semibold text-gray-500">
-              Filter by Status
-            </div>
-            <DropdownMenuSeparator />
-            <DropdownMenuCheckboxItem
-              checked={selectedStatus.includes('Active')}
-              onCheckedChange={() => toggleStatusFilter('Active')}
-            >
-              <span>Active</span>
-              <span className="ml-auto text-xs text-gray-500">
-                ({activeCount})
-              </span>
-            </DropdownMenuCheckboxItem>
-            <DropdownMenuCheckboxItem
-              checked={selectedStatus.includes('Inactive')}
-              onCheckedChange={() => toggleStatusFilter('Inactive')}
-            >
-              <span>Inactive</span>
-              <span className="ml-auto text-xs text-gray-500">
-                ({inactiveCount})
-              </span>
-            </DropdownMenuCheckboxItem>
-            {selectedStatus.length > 0 && (
-              <>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem onClick={() => setSelectedStatus(['Active'])}>
-                  Clear Filters
-                </DropdownMenuItem>
-              </>
-            )}
-          </DropdownMenuContent>
-        </DropdownMenu>
-
-        {/* Relationship Filter */}
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button variant="outline" className="gap-2">
-              <Filter className="w-4 h-4" />
-              Relationship
-              {selectedRelationships.length > 0 && (
-                <Badge variant="secondary" className="ml-1 text-xs">
-                  {selectedRelationships.length}
-                </Badge>
-              )}
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="w-56">
-            <div className="px-2 py-1.5 text-xs font-semibold text-gray-500">
-              Filter by Relationship
-            </div>
-            <DropdownMenuSeparator />
-            {relationshipTypes.map((type) => (
-              <DropdownMenuCheckboxItem
-                key={type}
-                checked={selectedRelationships.includes(type)}
-                onCheckedChange={() => toggleRelationshipFilter(type)}
-              >
-                <span>{type}</span>
-                <span className="ml-auto text-xs text-gray-500">
-                  ({relationshipCounts[type] || 0})
-                </span>
-              </DropdownMenuCheckboxItem>
-            ))}
-            {selectedRelationships.length > 0 && (
-              <>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem onClick={() => setSelectedRelationships([])}>
-                  Clear Filters
-                </DropdownMenuItem>
-              </>
-            )}
-          </DropdownMenuContent>
-        </DropdownMenu>
       </div>
 
       {/* Bulk Actions Bar */}

@@ -1,5 +1,5 @@
 // Workflow Tasks View with Visual Filters and Include/Exclude functionality
-import { useState, Fragment, useEffect } from 'react';
+import { useState, Fragment, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Card } from '../ui/card';
 import { Badge } from '../ui/badge';
@@ -10,7 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '.
 import { Popover, PopoverContent, PopoverTrigger } from '../ui/popover';
 import { Calendar } from '../ui/calendar';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '../ui/tooltip';
-import { Clock, AlertCircle, CheckCircle2, Calendar as CalendarIcon, CheckSquare, X, Flag, MessageSquare, Paperclip, ListTodo, Users, Building2, Minus, ChevronDown, ChevronUp, GripVertical, Play, Square, MoreVertical, Edit2, Trash2, ArrowLeft } from 'lucide-react';
+import { Clock, AlertCircle, CheckCircle2, Calendar as CalendarIcon, CheckSquare, X, Flag, MessageSquare, Paperclip, ListTodo, Users, Building2, Minus, ChevronDown, ChevronUp, GripVertical, Play, Square, MoreVertical, Edit2, Trash2, ArrowLeft, User } from 'lucide-react';
 import { ProjectTask, Workflow, Project, useWorkflowContext } from '../WorkflowContext';
 import { toast } from 'sonner@2.0.3';
 import { TaskDetailDialog } from '../TaskDetailDialog';
@@ -222,6 +222,28 @@ export function WorkflowTasksView({ workflowTasks, projects, onTaskUpdate, filte
   const [taskLists] = useState<TaskList[]>([]);
   const [taskListAssignments] = useState<Record<string, string>>({});
   const showListColumn = false; // Hide list column for workflow context
+
+  // Split view mode state (similar to Documents Center)
+  const [splitViewMode, setSplitViewMode] = useState<'table' | 'split'>(() => {
+    const saved = localStorage.getItem('workflowTasksViewMode');
+    return (saved === 'split' || saved === 'table') ? saved : 'table';
+  });
+
+  // Persist view mode preference
+  useEffect(() => {
+    localStorage.setItem('workflowTasksViewMode', splitViewMode);
+  }, [splitViewMode]);
+
+  // Auto-switch to split view when multiple assignees are selected
+  useEffect(() => {
+    if (includedAssignees.length > 1 && splitViewMode === 'table') {
+      setSplitViewMode('split');
+    } else if (includedAssignees.length <= 1 && splitViewMode === 'split') {
+      // Optionally switch back to table when only one assignee
+      // Commented out to preserve user preference
+      // setSplitViewMode('table');
+    }
+  }, [includedAssignees.length, splitViewMode]);
 
   // Get unique assignees and clients from tasks
   const allAssignees = Array.from(new Set(workflowTasks.map(t => t.assignee)));
@@ -510,6 +532,27 @@ export function WorkflowTasksView({ workflowTasks, projects, onTaskUpdate, filte
     
     return sortDirection === 'asc' ? comparison : -comparison;
   });
+
+  // Group tasks by assignee for split view (similar to accountGroups in Documents Center)
+  const userGroups = useMemo(() => {
+    if (splitViewMode !== 'split') return [];
+    
+    const groups = new Map<string, { userId: string; userName: string; tasks: ProjectTask[] }>();
+    
+    sortedTasks.forEach((task: ProjectTask) => {
+      const assignee = task.assignee || 'Unassigned';
+      if (!groups.has(assignee)) {
+        groups.set(assignee, {
+          userId: assignee,
+          userName: assignee,
+          tasks: []
+        });
+      }
+      groups.get(assignee)!.tasks.push(task);
+    });
+    
+    return Array.from(groups.values());
+  }, [sortedTasks, splitViewMode]);
 
   const getClientName = (projectId: string) => {
     const project = projects.find(p => p.id === projectId);
@@ -1087,8 +1130,8 @@ export function WorkflowTasksView({ workflowTasks, projects, onTaskUpdate, filte
       {/* Tasks List or Kanban View */}
       {viewMode === 'list' ? (
       <Card className="border-slate-200 overflow-hidden">
-        {/* Table Header */}
-        {sortedTasks.length > 0 && (
+        {/* Table Header - Only show in table view, not in split view */}
+        {splitViewMode === 'table' && sortedTasks.length > 0 && (
           <div className="bg-slate-50 border-b border-slate-200 px-6 py-2 overflow-x-auto min-w-0">
           <div className="flex items-center gap-4">
               <div className="w-12 flex-shrink-0">
@@ -1205,17 +1248,18 @@ export function WorkflowTasksView({ workflowTasks, projects, onTaskUpdate, filte
         </div>
         )}
 
-        {/* Task Rows */}
-        <div className="divide-y divide-slate-100 overflow-x-auto min-w-0">
-          {sortedTasks.length === 0 ? (
-            <div className="p-12 text-center">
-              <div className="w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                <CheckSquare className="w-8 h-8 text-slate-400" />
-                </div>
-              <p className="text-slate-500">No tasks found</p>
-            </div>
-          ) : (
-            sortedTasks.map((task) => {
+        {/* Task Rows - Table View or Split View */}
+        {splitViewMode === 'table' ? (
+          <div className="divide-y divide-slate-100 overflow-x-auto min-w-0">
+            {sortedTasks.length === 0 ? (
+              <div className="p-12 text-center">
+                <div className="w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <CheckSquare className="w-8 h-8 text-slate-400" />
+                  </div>
+                <p className="text-slate-500">No tasks found</p>
+              </div>
+            ) : (
+              sortedTasks.map((task) => {
               const priorityStyle = getPriorityStyle(task.priority);
               const statusStyle = getStatusStyle(task.status);
               const isSelected = selectedTaskIds.includes(task.id);
@@ -1815,7 +1859,587 @@ export function WorkflowTasksView({ workflowTasks, projects, onTaskUpdate, filte
               );
             })
           )}
-        </div>
+          </div>
+        ) : splitViewMode === 'split' && userGroups.length > 0 ? (
+          // Split View - Group by User
+          <div className="space-y-6">
+            {userGroups.map((userGroup) => {
+              const userTasks = userGroup.tasks;
+              
+              return (
+                <div key={userGroup.userId} className="space-y-3">
+                  {/* User Header */}
+                  <div className="flex items-center justify-between bg-gray-50 dark:bg-gray-800/50 border border-gray-200 dark:border-gray-700 rounded-lg px-4 py-3">
+                    <div className="flex items-center gap-3">
+                      <User className="w-5 h-5 text-purple-600 dark:text-purple-400" />
+                      <div>
+                        <h3 className="font-semibold text-gray-900 dark:text-gray-100">{userGroup.userName}</h3>
+                        <p className="text-xs text-gray-500 dark:text-gray-400">Team Member</p>
+                      </div>
+                      <Badge variant="outline" className="bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-400 border-blue-300 dark:border-blue-700">
+                        {userTasks.length} task{userTasks.length !== 1 ? 's' : ''}
+                      </Badge>
+                    </div>
+                  </div>
+
+                  {/* User's Tasks Table */}
+                  <Card className="border-slate-200 overflow-hidden">
+                    {/* Table Header */}
+                    {userTasks.length > 0 && (
+                      <div className="bg-slate-50 border-b border-slate-200 px-6 py-2 overflow-x-auto min-w-0">
+                        <div className="flex items-center gap-4">
+                          <div className="w-12 flex-shrink-0">
+                            <TooltipProvider>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <div className={`flex items-center justify-center transition-all duration-200 ${!isMultiSelectMode ? 'scale-110 opacity-100' : 'scale-100 opacity-80'}`}>
+                                    <Checkbox
+                                      checked={isMultiSelectMode && userTasks.length > 0 && userTasks.every(t => selectedTaskIds.includes(t.id))}
+                                      onCheckedChange={() => {
+                                        if (isMultiSelectMode) {
+                                          const allSelected = userTasks.every(t => selectedTaskIds.includes(t.id));
+                                          if (allSelected) {
+                                            setSelectedTaskIds(selectedTaskIds.filter(id => !userTasks.some(t => t.id === id)));
+                                          } else {
+                                            setSelectedTaskIds([...selectedTaskIds, ...userTasks.map(t => t.id).filter(id => !selectedTaskIds.includes(id))]);
+                                          }
+                                        } else {
+                                          setIsMultiSelectMode(true);
+                                        }
+                                      }}
+                                      className={`${!isMultiSelectMode ? 'shadow-md border-violet-400 data-[state=unchecked]:border-violet-400' : ''}`}
+                                    />
+                                  </div>
+                                </TooltipTrigger>
+                                <TooltipContent side="right">
+                                  <p className="text-xs">
+                                    {isMultiSelectMode 
+                                      ? 'Select/deselect all tasks' 
+                                        : 'Click to enable multi-select mode'}
+                                  </p>
+                                </TooltipContent>
+                              </Tooltip>
+                            </TooltipProvider>
+                          </div>
+                          <div className="w-8 flex-shrink-0">
+                            <span className="text-xs text-slate-500 uppercase tracking-wide">Drag</span>
+                          </div>
+                          <div className="w-10 flex-shrink-0">
+                            {/* Timer column header */}
+                          </div>
+                          <div className="w-20 flex-shrink-0">
+                            <button
+                              onClick={() => handleSort('assignee')}
+                              className="flex items-center gap-1 text-xs text-slate-500 uppercase tracking-wide hover:text-slate-700 transition-colors"
+                            >
+                              Assignee
+                              {sortColumn === 'assignee' && (
+                                sortDirection === 'asc' ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />
+                              )}
+                            </button>
+                          </div>
+                          <div className={showListColumn ? "flex-1 min-w-[250px]" : "flex-1 min-w-[300px]"}>
+                            <button
+                              onClick={() => handleSort('task')}
+                              className="flex items-center gap-1 text-xs text-slate-500 uppercase tracking-wide hover:text-slate-700 transition-colors"
+                            >
+                              Task
+                              {sortColumn === 'task' && (
+                                sortDirection === 'asc' ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />
+                              )}
+                            </button>
+                          </div>
+                          {showListColumn && (
+                            <div className="w-32 flex-shrink-0">
+                              <button
+                                onClick={() => handleSort('list')}
+                                className="flex items-center gap-1 text-xs text-slate-500 uppercase tracking-wide hover:text-slate-700 transition-colors"
+                              >
+                                List
+                                {sortColumn === 'list' && (
+                                  sortDirection === 'asc' ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />
+                                )}
+                              </button>
+                            </div>
+                          )}
+                          <div className="w-40 flex-shrink-0">
+                            <button
+                              onClick={() => handleSort('client')}
+                              className="flex items-center gap-1 text-xs text-slate-500 uppercase tracking-wide hover:text-slate-700 transition-colors"
+                            >
+                              Client
+                              {sortColumn === 'client' && (
+                                sortDirection === 'asc' ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />
+                              )}
+                            </button>
+                          </div>
+                          <div className="w-32 flex-shrink-0">
+                            <button
+                              onClick={() => handleSort('status')}
+                              className="flex items-center gap-1 text-xs text-slate-500 uppercase tracking-wide hover:text-slate-700 transition-colors"
+                            >
+                              Status
+                              {sortColumn === 'status' && (
+                                sortDirection === 'asc' ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />
+                              )}
+                            </button>
+                          </div>
+                          <div className="w-28 flex-shrink-0">
+                            <button
+                              onClick={() => handleSort('priority')}
+                              className="flex items-center gap-1 text-xs text-slate-500 uppercase tracking-wide hover:text-slate-700 transition-colors"
+                            >
+                              Priority
+                              {sortColumn === 'priority' && (
+                                sortDirection === 'asc' ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />
+                              )}
+                            </button>
+                          </div>
+                          <div className="w-32 flex-shrink-0">
+                            <button
+                              onClick={() => handleSort('dueDate')}
+                              className="flex items-center gap-1 text-xs text-slate-500 uppercase tracking-wide hover:text-slate-700 transition-colors"
+                            >
+                              Due Date
+                              {sortColumn === 'dueDate' && (
+                                sortDirection === 'asc' ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />
+                              )}
+                            </button>
+                          </div>
+                          <div className="w-12 flex-shrink-0">
+                            {/* Actions column header */}
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* User's Task Rows */}
+                    <div className="divide-y divide-slate-100 overflow-x-auto min-w-0">
+                      {userTasks.length === 0 ? (
+                        <div className="p-12 text-center">
+                          <div className="w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                            <CheckSquare className="w-8 h-8 text-slate-400" />
+                          </div>
+                          <p className="text-slate-500">No tasks found</p>
+                        </div>
+                      ) : (
+                        userTasks.map((task) => {
+                          const priorityStyle = getPriorityStyle(task.priority);
+                          const statusStyle = getStatusStyle(task.status);
+                          const isSelected = selectedTaskIds.includes(task.id);
+                          const indicators = getTaskIndicators(task);
+                          const isExpanded = expandedTaskId === task.id;
+                          const hasSubtasks = indicators.subtasks.total > 0;
+                          
+                          return (
+                            <Fragment key={task.id}>
+                              <DraggableTaskRow
+                                task={task}
+                                isSelected={isSelected}
+                                onClick={() => handleTaskRowClick(task)}
+                                onDragStart={() => {}}
+                                onDrop={handleTaskReorder}
+                                selectedTaskIds={selectedTaskIds}
+                                isMultiSelectMode={isMultiSelectMode}
+                                isExpanded={isExpanded}
+                                isTimerActive={activeTimer?.taskId === task.id}
+                                completedDisplayMode="inline"
+                              >
+                                {/* Reuse the same task row content from table view */}
+                                {/* Checkbox */}
+                                <div className="w-12 flex-shrink-0 flex items-center justify-center">
+                                  {isMultiSelectMode ? (
+                                    <Checkbox
+                                      checked={isSelected}
+                                      onCheckedChange={() => toggleSelectTask(task.id)}
+                                    />
+                                  ) : (
+                                    <Checkbox
+                                      checked={task.status === 'completed'}
+                                      onCheckedChange={(checked) => {
+                                        onTaskUpdate({
+                                          ...task,
+                                          status: checked ? ('completed' as const) : ('todo' as const),
+                                          completedAt: checked ? new Date().toISOString() : undefined
+                                        });
+                                      }}
+                                    />
+                                  )}
+                                </div>
+
+                                {/* Drag Handle */}
+                                <div className="w-8 flex-shrink-0 flex items-center justify-center cursor-move">
+                                  <GripVertical className="w-4 h-4 text-slate-300 hover:text-slate-500" />
+                                </div>
+
+                                {/* Timer Button */}
+                                <div className="flex-shrink-0 flex items-center justify-center" onClick={(e) => e.stopPropagation()}>
+                                  <TooltipProvider>
+                                    <Tooltip>
+                                      <TooltipTrigger asChild>
+                                        <Button
+                                          variant="ghost"
+                                          size="sm"
+                                          onClick={(e) => handleToggleTimer(task, e)}
+                                          className={`h-9 w-9 p-0 rounded-full relative transition-all duration-200 ${
+                                            activeTimer?.taskId === task.id
+                                              ? 'bg-gradient-to-br from-violet-500 to-indigo-600 text-white hover:from-violet-600 hover:to-indigo-700 shadow-md animate-pulse'
+                                              : 'text-slate-500 hover:text-white hover:bg-gradient-to-br hover:from-violet-500 hover:to-indigo-600 hover:shadow-sm border border-slate-200 hover:border-transparent'
+                                          }`}
+                                        >
+                                          {activeTimer?.taskId === task.id ? (
+                                            <Square className="w-4 h-4 fill-current" />
+                                          ) : (
+                                            <Play className="w-4 h-4 fill-current ml-0.5" />
+                                          )}
+                                        </Button>
+                                      </TooltipTrigger>
+                                      <TooltipContent side="top">
+                                        <p className="text-xs font-medium">
+                                          {activeTimer?.taskId === task.id ? (
+                                            <>Stop timer • {Math.floor(getTimerElapsed() / 60)}m {getTimerElapsed() % 60}s</>
+                                          ) : (
+                                            'Start timer'
+                                          )}
+                                        </p>
+                                      </TooltipContent>
+                                    </Tooltip>
+                                  </TooltipProvider>
+                                  
+                                  {activeTimer?.taskId === task.id && (
+                                    <div className="ml-2 flex items-center gap-1.5 text-xs font-medium text-violet-600 bg-violet-50 px-2 py-1 rounded-md border border-violet-200">
+                                      <Clock className="w-3 h-3" />
+                                      <span>{Math.floor(getTimerElapsed() / 60)}:{String(getTimerElapsed() % 60).padStart(2, '0')}</span>
+                                    </div>
+                                  )}
+                                </div>
+
+                                {/* Assignee */}
+                                {activeTimer?.taskId !== task.id && (
+                                  <div className="w-20 flex-shrink-0" onClick={(e) => e.stopPropagation()}>
+                                    {editingTaskId === task.id && editingField === 'assignee' ? (
+                                      <Select
+                                        value={task.assignee}
+                                        onValueChange={(value) => {
+                                          saveInlineEdit(task.id, 'assignee', value);
+                                        }}
+                                        onOpenChange={(open) => {
+                                          if (!open) cancelEditing();
+                                        }}
+                                        open={true}
+                                      >
+                                        <SelectTrigger className="w-full h-8">
+                                          <SelectValue />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                          {allAssignees.map((assignee) => (
+                                            <SelectItem key={assignee} value={assignee}>
+                                              <div className="flex items-center gap-2">
+                                                <Avatar className="w-5 h-5">
+                                                  <AvatarFallback className="text-[10px]">{getAssigneeName(assignee)}</AvatarFallback>
+                                                </Avatar>
+                                                {getAssigneeName(assignee)}
+                                              </div>
+                                            </SelectItem>
+                                          ))}
+                                        </SelectContent>
+                                      </Select>
+                                    ) : (
+                                      <button
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          startEditing(task.id, 'assignee', task.assignee);
+                                        }}
+                                        className="hover:bg-slate-100 rounded p-1 transition-colors"
+                                      >
+                                        <TooltipProvider>
+                                          <Tooltip>
+                                            <TooltipTrigger asChild>
+                                              <div>
+                                                <Avatar className="w-8 h-8">
+                                                  <AvatarFallback className="bg-violet-100 text-violet-700 text-xs">
+                                                    {getAssigneeName(task.assignee)}
+                                                  </AvatarFallback>
+                                                </Avatar>
+                                              </div>
+                                            </TooltipTrigger>
+                                            <TooltipContent>
+                                              <p className="text-xs">Click to edit - {getAssigneeName(task.assignee)}</p>
+                                            </TooltipContent>
+                                          </Tooltip>
+                                        </TooltipProvider>
+                                      </button>
+                                    )}
+                                  </div>
+                                )}
+
+                                {/* Task Name */}
+                                <div className={showListColumn ? "flex-1 min-w-[250px]" : "flex-1 min-w-[300px]"}>
+                                  {editingTaskId === task.id && editingField === 'name' ? (
+                                    <input
+                                      type="text"
+                                      defaultValue={task.name}
+                                      onBlur={(e) => {
+                                        saveInlineEdit(task.id, 'name', e.target.value);
+                                      }}
+                                      onKeyDown={(e) => {
+                                        if (e.key === 'Enter') {
+                                          saveInlineEdit(task.id, 'name', (e.target as HTMLInputElement).value);
+                                        } else if (e.key === 'Escape') {
+                                          cancelEditing();
+                                        }
+                                      }}
+                                      autoFocus
+                                      className="w-full px-2 py-1 border border-violet-300 rounded focus:outline-none focus:ring-2 focus:ring-violet-500"
+                                    />
+                                  ) : (
+                                    <button
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        startEditing(task.id, 'name', task.name);
+                                      }}
+                                      className="text-left hover:bg-slate-50 rounded px-2 py-1 transition-colors w-full"
+                                    >
+                                      <span className="font-medium text-slate-900">{task.name}</span>
+                                    </button>
+                                  )}
+                                </div>
+
+                                {/* List Column */}
+                                {showListColumn && (
+                                  <div className="w-32 flex-shrink-0">
+                                    <Badge variant="outline" className="text-xs">
+                                      {getTaskListName(task.id)}
+                                    </Badge>
+                                  </div>
+                                )}
+
+                                {/* Client */}
+                                <div className="w-40 flex-shrink-0">
+                                  <span className="text-sm text-slate-600">{getClientName(task.projectId)}</span>
+                                </div>
+
+                                {/* Status */}
+                                <div className="w-32 flex-shrink-0">
+                                  {editingTaskId === task.id && editingField === 'status' ? (
+                                    <Select
+                                      value={task.status}
+                                      onValueChange={(value) => {
+                                        saveInlineEdit(task.id, 'status', value);
+                                      }}
+                                      onOpenChange={(open) => {
+                                        if (!open) cancelEditing();
+                                      }}
+                                      open={true}
+                                    >
+                                      <SelectTrigger className="w-full h-8">
+                                        <SelectValue />
+                                      </SelectTrigger>
+                                      <SelectContent>
+                                        {customStatuses.map((status) => (
+                                          <SelectItem key={status} value={status}>
+                                            {status === 'completed' ? 'Done' : status === 'in-progress' ? 'In Progress' : status === 'blocked' ? 'Blocked' : 'To Do'}
+                                          </SelectItem>
+                                        ))}
+                                      </SelectContent>
+                                    </Select>
+                                  ) : (
+                                    <button
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        startEditing(task.id, 'status', task.status);
+                                      }}
+                                      className="hover:bg-slate-50 rounded p-1 transition-colors"
+                                    >
+                                      <Badge 
+                                        variant="outline" 
+                                        className={`${statusStyle.bg} ${statusStyle.color} ${statusStyle.border} border text-xs`}
+                                      >
+                                        {statusStyle.icon}
+                                        {statusStyle.label}
+                                      </Badge>
+                                    </button>
+                                  )}
+                                </div>
+
+                                {/* Priority */}
+                                <div className="w-28 flex-shrink-0">
+                                  {editingTaskId === task.id && editingField === 'priority' ? (
+                                    <Select
+                                      value={task.priority || ''}
+                                      onValueChange={(value) => {
+                                        saveInlineEdit(task.id, 'priority', value);
+                                      }}
+                                      onOpenChange={(open) => {
+                                        if (!open) cancelEditing();
+                                      }}
+                                      open={true}
+                                    >
+                                      <SelectTrigger className="w-full h-8">
+                                        <SelectValue />
+                                      </SelectTrigger>
+                                      <SelectContent>
+                                        <SelectItem value="high">🔴 High</SelectItem>
+                                        <SelectItem value="medium">🟡 Medium</SelectItem>
+                                        <SelectItem value="low">🔵 Low</SelectItem>
+                                        <SelectItem value="">None</SelectItem>
+                                      </SelectContent>
+                                    </Select>
+                                  ) : (
+                                    <button
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        startEditing(task.id, 'priority', task.priority || '');
+                                      }}
+                                      className="hover:bg-slate-50 rounded p-1 transition-colors"
+                                    >
+                                      <Badge 
+                                        variant="outline"
+                                        className={`${priorityStyle.bg} ${priorityStyle.color} ${priorityStyle.border} border gap-1 text-xs capitalize`}
+                                      >
+                                        <span>{priorityStyle.icon}</span>
+                                        <span>{task.priority || 'None'}</span>
+                                      </Badge>
+                                    </button>
+                                  )}
+                                </div>
+
+                                {/* Due Date */}
+                                <div className="w-32 flex-shrink-0">
+                                  {editingTaskId === task.id && editingField === 'dueDate' ? (
+                                    <Popover>
+                                      <PopoverTrigger asChild>
+                                        <Button variant="outline" size="sm" className="w-full h-8">
+                                          {task.dueDate ? format(new Date(task.dueDate), 'MMM d, yyyy') : 'Set due date'}
+                                        </Button>
+                                      </PopoverTrigger>
+                                      <PopoverContent className="w-auto p-0" align="start">
+                                        <Calendar
+                                          mode="single"
+                                          selected={task.dueDate ? new Date(task.dueDate) : undefined}
+                                          onSelect={(date) => {
+                                            if (date) {
+                                              saveInlineEdit(task.id, 'dueDate', date.toISOString());
+                                            }
+                                          }}
+                                          initialFocus
+                                        />
+                                      </PopoverContent>
+                                    </Popover>
+                                  ) : (
+                                    <button
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        startEditing(task.id, 'dueDate', task.dueDate || '');
+                                      }}
+                                      className="hover:bg-slate-50 rounded p-1 transition-colors w-full text-left"
+                                    >
+                                      {task.dueDate ? (
+                                        <div className="flex items-center gap-1.5">
+                                          <CalendarIcon className={`w-3.5 h-3.5 ${isOverdue(task.dueDate, task.status) ? 'text-red-500' : isDueSoon(task.dueDate) ? 'text-amber-500' : 'text-slate-400'}`} />
+                                          <span className={`text-sm ${isOverdue(task.dueDate, task.status) ? 'text-red-600 font-medium' : isDueSoon(task.dueDate) ? 'text-amber-600' : 'text-slate-600'}`}>
+                                            {format(new Date(task.dueDate), 'MMM d')}
+                                          </span>
+                                        </div>
+                                      ) : (
+                                        <span className="text-sm text-slate-400">No due date</span>
+                                      )}
+                                    </button>
+                                  )}
+                                </div>
+
+                                {/* Actions */}
+                                <div className="w-12 flex-shrink-0 flex items-center justify-end" onClick={(e) => e.stopPropagation()}>
+                                  <DropdownMenu>
+                                    <DropdownMenuTrigger asChild>
+                                      <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+                                        <MoreVertical className="w-4 h-4" />
+                                      </Button>
+                                    </DropdownMenuTrigger>
+                                    <DropdownMenuContent align="end">
+                                      <DropdownMenuItem onClick={() => handleTaskRowClick(task)}>
+                                        <Edit2 className="w-4 h-4 mr-2" />
+                                        Edit
+                                      </DropdownMenuItem>
+                                      <DropdownMenuSeparator />
+                                      <DropdownMenuItem 
+                                        className="text-red-600"
+                                        onClick={() => {
+                                          // Handle delete
+                                        }}
+                                      >
+                                        <Trash2 className="w-4 h-4 mr-2" />
+                                        Delete
+                                      </DropdownMenuItem>
+                                    </DropdownMenuContent>
+                                  </DropdownMenu>
+                                </div>
+                              </DraggableTaskRow>
+
+                              {/* Subtasks - same as table view */}
+                              {isExpanded && hasSubtasks && (
+                                <div className="bg-slate-50/50 border-l-4 border-l-violet-400">
+                                  <div className="pl-6 pr-6 py-2 space-y-2">
+                                    {indicators.subtasks.items.map((subtask) => {
+                                      const subtaskStatusStyle = getStatusStyle(subtask.status);
+                                      const subtaskPriorityStyle = getPriorityStyle(subtask.priority);
+                                      
+                                      return (
+                                        <div key={subtask.id} className="flex items-center gap-4 pl-8 py-2 border-b border-slate-100 last:border-b-0">
+                                          <div className="w-12 flex-shrink-0"></div>
+                                          <div className="w-8 flex-shrink-0"></div>
+                                          <div className="w-10 flex-shrink-0"></div>
+                                          <div className="w-20 flex-shrink-0"></div>
+                                          <div className={showListColumn ? "flex-1 min-w-[250px]" : "flex-1 min-w-[300px]"}>
+                                            <span className="text-sm text-slate-600">{subtask.name}</span>
+                                          </div>
+                                          {showListColumn && (
+                                            <div className="w-32 flex-shrink-0"></div>
+                                          )}
+                                          <div className="w-40 flex-shrink-0"></div>
+                                          <div className="w-32 flex-shrink-0">
+                                            <Badge 
+                                              variant="outline" 
+                                              className={`${subtaskStatusStyle.bg} ${subtaskStatusStyle.color} ${subtaskStatusStyle.border} border text-xs`}
+                                            >
+                                              {subtask.status === 'completed' ? 'Done' : subtask.status === 'in-progress' ? 'In Progress' : 'To Do'}
+                                            </Badge>
+                                          </div>
+                                          <div className="w-28 flex-shrink-0">
+                                            <Badge 
+                                              variant="outline"
+                                              className={`${subtaskPriorityStyle.bg} ${subtaskPriorityStyle.color} ${subtaskPriorityStyle.border} border gap-1 text-xs capitalize`}
+                                            >
+                                              <span>{subtaskPriorityStyle.icon}</span>
+                                              <span>{subtask.priority}</span>
+                                            </Badge>
+                                          </div>
+                                          <div className="w-32 flex-shrink-0"></div>
+                                          <div className="w-12 flex-shrink-0"></div>
+                                        </div>
+                                      );
+                                    })}
+                                  </div>
+                                </div>
+                              )}
+                            </Fragment>
+                          );
+                        })
+                      )}
+                    </div>
+                  </Card>
+                </div>
+              );
+            })}
+          </div>
+        ) : (
+          <div className="p-12 text-center">
+            <div className="w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center mx-auto mb-4">
+              <CheckSquare className="w-8 h-8 text-slate-400" />
+            </div>
+            <p className="text-slate-500">No tasks found</p>
+          </div>
+        )}
       </Card>
       ) : (
         // Kanban View

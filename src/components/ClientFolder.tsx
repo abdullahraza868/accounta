@@ -55,6 +55,8 @@ import { Input } from './ui/input';
 import { Badge } from './ui/badge';
 import { ClientDetailsSummary } from './ClientDetailsSummary';
 import { useState, useRef, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { Layout } from 'lucide-react';
 
 type ClientFolderProps = {
   client: Client;
@@ -65,7 +67,10 @@ type ClientFolderProps = {
 };
 
 export function ClientFolder({ client, activeTab, onTabChange, communicationSubTab, onCommunicationSubTabChange }: ClientFolderProps) {
+  const navigate = useNavigate();
   const teamsTabRef = useRef<{ triggerAddMember: () => void } | null>(null);
+  const signatureTabRef = useRef<{ triggerNewRequest: () => void } | null>(null);
+  const organizersTabRef = useRef<{ triggerCreateOrganizer: () => void } | null>(null);
   const activityTabRef = useRef<{ 
     searchTerm: string;
     setSearchTerm: (term: string) => void;
@@ -124,39 +129,28 @@ export function ClientFolder({ client, activeTab, onTabChange, communicationSubT
 
   const moreTabs: { label: FolderTab; icon: React.ElementType }[] = [];
 
-  // Render submenu actions based on active tab
-  const renderSubmenuActions = () => {
+  // Get tab-specific action buttons for Client Details
+  const getTabActions = () => {
     switch (activeTab) {
       case 'Snapshot':
         return (
-          <div className="flex-1 flex justify-end gap-2">
-            {/* Preview Button */}
-            <Button 
-              size="sm"
-              onClick={() => window.open('/client-portal', '_blank', 'noopener,noreferrer')}
-              className="btn-primary text-xs md:text-sm h-8"
-            >
-              <ExternalLink className="w-3.5 h-3.5 mr-1.5" />
-              Preview Client View
-            </Button>
-          </div>
+          <Button 
+            size="sm"
+            onClick={() => window.open('/client-portal', '_blank', 'noopener,noreferrer')}
+            className="bg-gradient-to-br from-purple-600 to-purple-700 hover:from-purple-700 hover:to-purple-800"
+          >
+            <ExternalLink className="w-3.5 h-3.5 mr-1.5" />
+            Preview Client View
+          </Button>
         );
       case 'Demographics':
         return (
-          <div className="flex-1 flex justify-end gap-2">
-            <Button 
-              size="sm"
-              className="btn-primary text-xs md:text-sm h-8"
-            >
-              <Edit2 className="w-3.5 h-3.5 mr-1.5" />
-              Edit Details
-            </Button>
+          <>
             <Button 
               size="sm"
               variant="outline"
-              className="border-brand-light text-brand-primary hover-brand text-xs md:text-sm h-8"
+              className="border-brand-light text-brand-primary hover-brand"
               onClick={() => {
-                // Trigger settings panel in DemographicsTab
                 const event = new CustomEvent('toggleDemographicsSettings');
                 window.dispatchEvent(event);
               }}
@@ -164,14 +158,100 @@ export function ClientFolder({ client, activeTab, onTabChange, communicationSubT
               <Settings className="w-3.5 h-3.5 mr-1.5" />
               Customize Fields
             </Button>
-          </div>
+            <Button 
+              size="sm"
+              className="bg-gradient-to-br from-purple-600 to-purple-700 hover:from-purple-700 hover:to-purple-800"
+            >
+              <Edit2 className="w-3.5 h-3.5 mr-1.5" />
+              Edit Details
+            </Button>
+          </>
         );
+      case 'Teams':
+        return (
+          <Button 
+            size="sm"
+            onClick={() => teamsTabRef.current?.triggerAddMember()}
+            className="bg-gradient-to-br from-purple-600 to-purple-700 hover:from-purple-700 hover:to-purple-800"
+          >
+            <UserPlus className="w-3.5 h-3.5 mr-1.5" />
+            Add Team Member
+          </Button>
+        );
+      case 'Invoices':
+        return (
+          <Button 
+            size="sm"
+            className="bg-gradient-to-br from-purple-600 to-purple-700 hover:from-purple-700 hover:to-purple-800"
+          >
+            <Plus className="w-3.5 h-3.5 mr-1.5" />
+            Create Invoice
+          </Button>
+        );
+      case 'Signatures':
+        return (
+          <>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => navigate('/signatures/templates')}
+            >
+              <Layout className="w-3.5 h-3.5 mr-1.5" />
+              Templates
+            </Button>
+            <Button
+              size="sm"
+              onClick={() => signatureTabRef.current?.triggerNewRequest()}
+              className="bg-gradient-to-br from-purple-600 to-purple-700 hover:from-purple-700 hover:to-purple-800"
+            >
+              <Plus className="w-3.5 h-3.5 mr-1.5" />
+              New Signature Request
+            </Button>
+          </>
+        );
+      case 'Notes':
+        return (
+          <Button 
+            size="sm"
+            className="bg-gradient-to-br from-purple-600 to-purple-700 hover:from-purple-700 hover:to-purple-800"
+          >
+            <Plus className="w-3.5 h-3.5 mr-1.5" />
+            Add Note
+          </Button>
+        );
+      case 'Organizer':
+        return (
+          <Button 
+            size="sm"
+            onClick={() => organizersTabRef.current?.triggerCreateOrganizer()}
+            className="bg-gradient-to-br from-purple-600 to-purple-700 hover:from-purple-700 hover:to-purple-800"
+          >
+            <Plus className="w-3.5 h-3.5 mr-1.5" />
+            New Organizer
+          </Button>
+        );
+      default:
+        return null;
+    }
+  };
+
+  // Render submenu actions based on active tab
+  const renderSubmenuActions = () => {
+    switch (activeTab) {
+      case 'Snapshot':
+      case 'Demographics':
+      case 'Teams':
+      case 'Invoices':
+      case 'Signatures':
+      case 'Notes':
+      case 'Organizer':
+        return null; // Actions moved to Client Details
       case 'Activity':
         return (
           <div className="flex-1 flex items-center justify-between gap-4">
             {/* Category Filters */}
-            <div className="flex items-center gap-2 flex-wrap flex-1">
-              <span className="text-xs font-medium text-gray-500 uppercase tracking-wide mr-1">Filters:</span>
+            <div className="flex items-center gap-2 flex-nowrap flex-1 overflow-x-auto">
+              {/* <span className="text-xs font-medium text-gray-500 uppercase tracking-wide mr-1">Filters:</span> */}
               
               {/* All Button */}
               <button
@@ -245,19 +325,6 @@ export function ClientFolder({ client, activeTab, onTabChange, communicationSubT
                 </button>
               )}
             </div>
-          </div>
-        );
-      case 'Teams':
-        return (
-          <div className="flex-1 flex justify-end">
-            <Button 
-              size="sm"
-              onClick={() => teamsTabRef.current?.triggerAddMember()}
-              className="bg-gradient-to-br from-purple-600 to-purple-700 hover:from-purple-700 hover:to-purple-800"
-            >
-              <UserPlus className="w-3.5 h-3.5 mr-1.5" />
-              Add Team Member
-            </Button>
           </div>
         );
       case 'Communication':
@@ -376,44 +443,6 @@ export function ClientFolder({ client, activeTab, onTabChange, communicationSubT
             </div>
           </div>
         );
-      case 'Invoices':
-        return (
-          <div className="flex-1 flex justify-end">
-            <Button 
-              size="sm"
-              className="bg-gradient-to-br from-purple-600 to-purple-700 hover:from-purple-700 hover:to-purple-800"
-            >
-              <Plus className="w-3.5 h-3.5 mr-1.5" />
-              Create Invoice
-            </Button>
-          </div>
-        );
-      case 'Signatures':
-        return null; // Buttons are in the SignatureTab component itself
-      case 'Notes':
-        return (
-          <div className="flex-1 flex justify-end">
-            <Button 
-              size="sm"
-              className="bg-gradient-to-br from-purple-600 to-purple-700 hover:from-purple-700 hover:to-purple-800"
-            >
-              <Plus className="w-3.5 h-3.5 mr-1.5" />
-              Add Note
-            </Button>
-          </div>
-        );
-      case 'Organizer':
-        return (
-          <div className="flex-1 flex justify-end">
-            <Button 
-              size="sm"
-              className="bg-gradient-to-br from-purple-600 to-purple-700 hover:from-purple-700 hover:to-purple-800"
-            >
-              <Plus className="w-3.5 h-3.5 mr-1.5" />
-              Create Organizer
-            </Button>
-          </div>
-        );
       default:
         return null;
     }
@@ -451,12 +480,12 @@ export function ClientFolder({ client, activeTab, onTabChange, communicationSubT
       </div>
 
       {/* Client Details Summary - Always visible across all tabs */}
-      <ClientDetailsSummary client={client} />
+      <ClientDetailsSummary client={client} actions={getTabActions()} />
 
       {/* Submenu Bar - Actions for current tab */}
       {renderSubmenuActions() && (
         <div className={cn(
-          "bg-white dark:bg-gray-900 border-b border-gray-200/50 dark:border-gray-700/50 px-3 md:px-4",
+          "bg-white dark:bg-gray-900 border-b border-gray-200/50 dark:border-gray-700/50 px-3 md:px-4 mt-3",
           activeTab === 'Activity' ? "py-2" : "py-2 flex items-center justify-between gap-2"
         )}>
           {renderSubmenuActions()}
@@ -471,10 +500,10 @@ export function ClientFolder({ client, activeTab, onTabChange, communicationSubT
         {activeTab === 'Activity' && <ActivityTab key={activityKey} ref={activityTabRef} client={client} />}
         {activeTab === 'Communication' && <CommunicationTab key={communicationKey} ref={communicationTabRef} client={client} />}
         {activeTab === 'Invoices' && <InvoicesTab client={client} />}
-        {activeTab === 'Signatures' && <SignatureTab client={client} />}
+        {activeTab === 'Signatures' && <SignatureTab ref={signatureTabRef} client={client} />}
         {activeTab === 'Documents' && <DocumentsTab client={client} />}
         {activeTab === 'Notes' && <NotesTab client={client} />}
-        {activeTab === 'Organizer' && <OrganizersTab client={client} />}
+        {activeTab === 'Organizer' && <OrganizersTab ref={organizersTabRef} client={client} />}
       </div>
     </div>
   );

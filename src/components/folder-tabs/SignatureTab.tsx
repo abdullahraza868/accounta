@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, forwardRef, useImperativeHandle } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { DndProvider, useDrag, useDrop } from 'react-dnd';
 import { HTML5Backend } from 'react-dnd-html5-backend';
@@ -79,6 +79,10 @@ import { useAppSettings } from '../../contexts/AppSettingsContext';
 
 type SignatureTabProps = {
   client: Client;
+};
+
+export type SignatureTabRef = {
+  triggerNewRequest: () => void;
 };
 
 type SignatureStatus = 'completed' | 'partial' | 'sent' | 'viewed' | 'unsigned';
@@ -203,7 +207,7 @@ const DraggableStatCard = ({ config, index, stats, statusFilter, onFilterChange,
   );
 };
 
-export function SignatureTab({ client }: SignatureTabProps) {
+export const SignatureTab = forwardRef<SignatureTabRef, SignatureTabProps>(({ client }, ref) => {
   const navigate = useNavigate();
   const { formatDate, formatDateTime } = useAppSettings();
   const [selectedAuditRequest, setSelectedAuditRequest] = useState<SignatureRequest | null>(null);
@@ -212,6 +216,12 @@ export function SignatureTab({ client }: SignatureTabProps) {
   const [documentNameFilter, setDocumentNameFilter] = useState<string>('all');
   const [expandedRows, setExpandedRows] = useState<Set<string>>(new Set());
   const [showNewRequestDialog, setShowNewRequestDialog] = useState(false);
+
+  useImperativeHandle(ref, () => ({
+    triggerNewRequest: () => {
+      setShowNewRequestDialog(true);
+    }
+  }));
 
   // Card order state
   const [cardOrder, setCardOrder] = useState<StatCardType[]>(() => {
@@ -1130,69 +1140,11 @@ export function SignatureTab({ client }: SignatureTabProps) {
   return (
     <DndProvider backend={HTML5Backend}>
       <div className="p-6">
-        {/* Header Section */}
-        <div className="flex items-center justify-between mb-6">
-          <div>
-            <h2 className="text-gray-900 dark:text-gray-100">Signature Requests</h2>
-            <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-              {filteredRequests.length} signature request{filteredRequests.length !== 1 ? 's' : ''} for {client.name}
-            </p>
-          </div>
-          <div className="flex gap-2">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => navigate('/signatures/templates')}
-              className="gap-2"
-            >
-              <Layout className="w-4 h-4" />
-              Templates
-            </Button>
-            <Button
-              size="sm"
-              className="gap-2"
-              style={{ backgroundColor: 'var(--primaryColor)' }}
-              onClick={() => setShowNewRequestDialog(true)}
-            >
-              <Plus className="w-4 h-4" />
-              New Signature Request
-            </Button>
-          </div>
-        </div>
-
-        {/* Stats Bar - Draggable Cards */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 mb-6">
-          {cardOrder.map((cardId, index) => (
-            <DraggableStatCard
-              key={cardId}
-              config={cardConfigs[cardId]}
-              index={index}
-              stats={stats}
-              statusFilter={statusFilter}
-              onFilterChange={handleFilterChange}
-              moveCard={moveCard}
-            />
-          ))}
-        </div>
-
         {/* Toolbar */}
         <div className="flex flex-col gap-4 mb-4 pb-4 border-b border-gray-200 dark:border-gray-700">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3 flex-1">
-              <div className="flex-1 max-w-md">
-                <div className="relative">
-                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
-                  <Input
-                    type="text"
-                    placeholder="Search signatures..."
-                    value={searchQuery}
-                    onChange={(e) => handleSearchChange(e.target.value)}
-                    className="pl-9"
-                  />
-                </div>
-              </div>
-
-              {/* Document Name Filter */}
+          <div className="flex items-center justify-between gap-4">
+            {/* Document Name Filter - Left Side */}
+            <div className="flex items-center gap-3">
               {uniqueDocumentNames.length > 1 && (
                 <Select
                   value={documentNameFilter}
@@ -1210,6 +1162,26 @@ export function SignatureTab({ client }: SignatureTabProps) {
                     ))}
                   </SelectContent>
                 </Select>
+              )}
+            </div>
+
+            {/* Search - Right Side */}
+            <div className="relative w-64 flex-shrink-0">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400" />
+              <Input
+                type="text"
+                placeholder="Search signatures..."
+                value={searchQuery}
+                onChange={(e) => handleSearchChange(e.target.value)}
+                className="pl-9 pr-9 h-8 text-sm"
+              />
+              {searchQuery && (
+                <button
+                  onClick={() => handleSearchChange('')}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                >
+                  <XIcon className="w-3.5 h-3.5" />
+                </button>
               )}
             </div>
           </div>
@@ -1260,6 +1232,21 @@ export function SignatureTab({ client }: SignatureTabProps) {
               </Button>
             </div>
           )}
+        </div>
+        {/* Stats Bar - Draggable Cards */}
+        
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 mb-6">
+          {cardOrder.map((cardId, index) => (
+            <DraggableStatCard
+              key={cardId}
+              config={cardConfigs[cardId]}
+              index={index}
+              stats={stats}
+              statusFilter={statusFilter}
+              onFilterChange={handleFilterChange}
+              moveCard={moveCard}
+            />
+          ))}
         </div>
 
         {/* Tables - Separated by Status */}
@@ -1359,4 +1346,4 @@ export function SignatureTab({ client }: SignatureTabProps) {
       </div>
     </DndProvider>
   );
-}
+});
