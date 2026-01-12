@@ -602,7 +602,7 @@ export function ProjectDetailPage({
             {/* Left Column - Project Details */}
             <div className="col-span-2 space-y-6">
               {/* Progress Section */}
-              <Card className="p-6">
+              {/* <Card className="p-6">
                 <h3 className="text-slate-900 mb-4">
                   Project Progress
                 </h3>
@@ -641,7 +641,7 @@ export function ProjectDetailPage({
                     </div>
                   </div>
                 </div>
-              </Card>
+              </Card> */}
 
               {/* Current Stage */}
               <Card className="p-6">

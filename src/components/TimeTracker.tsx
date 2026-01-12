@@ -9,8 +9,10 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { Label } from './ui/label';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from './ui/table';
 import { Progress } from './ui/progress';
-import { Clock, Play, Pause, Plus, Edit2, Trash2, Check, X, DollarSign, TrendingUp, AlertCircle, Receipt, Upload, Users, BarChart3, Calendar as CalendarIcon, Target, ChevronDown, ChevronUp, CheckCircle } from 'lucide-react';
+import { Clock, Play, Pause, Plus, Edit2, Trash2, Check, X, DollarSign, TrendingUp, AlertCircle, Receipt, Upload, Users, BarChart3, Calendar as CalendarIcon, Target, ChevronDown, ChevronUp, CheckCircle, User, Settings, FileImage } from 'lucide-react';
 import { Separator } from './ui/separator';
+import { RadioGroup, RadioGroupItem } from './ui/radio-group';
+import { Avatar, AvatarFallback } from './ui/avatar';
 
 interface TimeEntry {
   id: string;
@@ -21,6 +23,7 @@ interface TimeEntry {
   hourlyRate: number;
   billable: boolean;
   isRunning?: boolean;
+  user?: string; // User who logged the time
 }
 
 interface Expense {
@@ -48,6 +51,7 @@ export function TimeTracker({ projectId, projectName }: TimeTrackerProps) {
       duration: 120,
       hourlyRate: 75,
       billable: true,
+      user: 'Sarah Johnson',
     },
     {
       id: '2',
@@ -57,6 +61,7 @@ export function TimeTracker({ projectId, projectName }: TimeTrackerProps) {
       duration: 60,
       hourlyRate: 75,
       billable: true,
+      user: 'Mike Brown',
     },
     {
       id: '3',
@@ -66,6 +71,7 @@ export function TimeTracker({ projectId, projectName }: TimeTrackerProps) {
       duration: 90,
       hourlyRate: 75,
       billable: false,
+      user: 'You',
     },
   ]);
 
@@ -78,6 +84,11 @@ export function TimeTracker({ projectId, projectName }: TimeTrackerProps) {
   const [projectBudget, setProjectBudget] = useState<number | null>(5000); // null means no budget set
   const [isEditingBudget, setIsEditingBudget] = useState(false);
   const [budgetInput, setBudgetInput] = useState<string>('');
+  const [expenseBudgetHandling, setExpenseBudgetHandling] = useState<'include-total' | 'exclude-total'>('include-total');
+  const [showBudgetSettings, setShowBudgetSettings] = useState(false);
+  
+  // Mock team members list
+  const teamMembers = ['Sarah Johnson', 'Mike Brown', 'You', 'Emily Davis', 'Alex Wilson'];
   
   // Expenses tracking
   const [expenses, setExpenses] = useState<Expense[]>([
@@ -104,7 +115,9 @@ export function TimeTracker({ projectId, projectName }: TimeTrackerProps) {
 
   const formatDuration = (minutes: number) => {
     const hours = Math.floor(minutes / 60);
-    const mins = minutes % 60;
+    const mins = Math.round(minutes % 60);
+    if (hours === 0) return `${mins}m`;
+    if (mins === 0) return `${hours}h`;
     return `${hours}h ${mins}m`;
   };
 
@@ -148,8 +161,17 @@ export function TimeTracker({ projectId, projectName }: TimeTrackerProps) {
   
   const totalAllExpenses = expenses.reduce((sum, e) => sum + e.amount, 0);
   
-  // Calculate total project cost (time + expenses)
-  const totalProjectCost = totalBillable + totalBillableExpenses;
+  // Calculate total project cost based on expense handling setting
+  const getTotalProjectCost = () => {
+    if (expenseBudgetHandling === 'include-total') {
+      return totalBillable + totalBillableExpenses;
+    } else {
+      // exclude-total: expenses not included in budget calculations
+      return totalBillable;
+    }
+  };
+  
+  const totalProjectCost = getTotalProjectCost();
   
   // Budget calculations
   const budgetWithExpenses = projectBudget ? projectBudget : null;
@@ -222,6 +244,12 @@ export function TimeTracker({ projectId, projectName }: TimeTrackerProps) {
 
   const deleteEntry = (id: string) => {
     setEntries(entries.filter(e => e.id !== id));
+  };
+  
+  const toggleBillableStatus = (id: string) => {
+    setEntries(entries.map(e => 
+      e.id === id ? { ...e, billable: !e.billable } : e
+    ));
   };
 
   const addNewEntry = (entry: Omit<TimeEntry, 'id'>) => {
@@ -420,6 +448,59 @@ export function TimeTracker({ projectId, projectName }: TimeTrackerProps) {
                     <Edit2 className="w-4 h-4" />
                     Edit Budget
                   </Button>
+                  <Dialog open={showBudgetSettings} onOpenChange={setShowBudgetSettings}>
+                    <DialogTrigger asChild>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="gap-2"
+                      >
+                        <Settings className="w-4 h-4" />
+                        Budget Settings
+                      </Button>
+                    </DialogTrigger>
+                    <DialogContent>
+                      <DialogHeader>
+                        <DialogTitle>Budget Settings</DialogTitle>
+                        <DialogDescription>
+                          Configure how expenses are handled in budget calculations
+                        </DialogDescription>
+                      </DialogHeader>
+                      <div className="space-y-4 py-4">
+                        <RadioGroup value={expenseBudgetHandling} onValueChange={(value) => setExpenseBudgetHandling(value as 'include-total' | 'exclude-total')}>
+                          <div className="space-y-3">
+                            <div className="flex items-start space-x-3 p-3 rounded-lg border border-slate-200 hover:bg-slate-50">
+                              <RadioGroupItem value="include-total" id="include-total" className="mt-1" />
+                              <div className="flex-1">
+                                <Label htmlFor="include-total" className="font-medium cursor-pointer">
+                                  Include in total budget
+                                </Label>
+                                <p className="text-xs text-slate-500 mt-1">
+                                  Expenses are added to total budget, remaining budget, and all budget calculations. Both time and expenses reduce the budget.
+                                </p>
+                              </div>
+                            </div>
+                            <div className="flex items-start space-x-3 p-3 rounded-lg border border-slate-200 hover:bg-slate-50">
+                              <RadioGroupItem value="exclude-total" id="exclude-total" className="mt-1" />
+                              <div className="flex-1">
+                                <Label htmlFor="exclude-total" className="font-medium cursor-pointer">
+                                  Exclude from total budget
+                                </Label>
+                                <p className="text-xs text-slate-500 mt-1">
+                                  Expenses are not included in budget calculations (total budget, remaining budget, etc.). Expenses will still appear in stats cards and expense tables for tracking purposes.
+                                </p>
+                              </div>
+                            </div>
+                          </div>
+                        </RadioGroup>
+                      </div>
+                      <div className="flex justify-end gap-2 pt-4 border-t">
+                        <Button variant="outline" onClick={() => setShowBudgetSettings(false)}>
+                          Close
+                        </Button>
+                      </div>
+                    </DialogContent>
+                  </Dialog>
                   <Button
                     variant="ghost"
                     size="sm"
@@ -480,8 +561,14 @@ export function TimeTracker({ projectId, projectName }: TimeTrackerProps) {
                 </div>
                   <div className="p-4 bg-white rounded-lg border border-slate-200">
                     <p className="text-xs font-medium text-slate-500 uppercase mb-1">Expenses</p>
-                    <p className="text-2xl font-bold text-amber-700">${totalBillableExpenses.toFixed(2)}</p>
-                    <p className="text-xs text-slate-500 mt-1">{expenses.filter(e => e.billable).length} items</p>
+                    <p className="text-2xl font-bold text-amber-700">
+                      ${totalBillableExpenses.toFixed(2)}
+                    </p>
+                    <p className="text-xs text-slate-500 mt-1">
+                      {expenseBudgetHandling === 'exclude-total' 
+                        ? `${expenses.filter(e => e.billable).length} items (excluded from budget)` 
+                        : `${expenses.filter(e => e.billable).length} items`}
+                    </p>
                   </div>
                   <div className={`p-4 rounded-lg border-2 ${
                     isBudgetOverrunWithExpenses 
@@ -529,10 +616,20 @@ export function TimeTracker({ projectId, projectName }: TimeTrackerProps) {
                 />
                   <div className="flex items-center justify-between mt-2 text-xs text-slate-500">
                     <span>Time: ${totalBillable.toFixed(2)}</span>
-                    <span>•</span>
-                    <span>Expenses: ${totalBillableExpenses.toFixed(2)}</span>
+                    {expenseBudgetHandling === 'include-total' && (
+                      <>
+                        <span>•</span>
+                        <span>Expenses: ${totalBillableExpenses.toFixed(2)}</span>
+                      </>
+                    )}
                     <span>•</span>
                     <span>Total: ${totalProjectCost.toFixed(2)}</span>
+                    {expenseBudgetHandling === 'exclude-total' && (
+                      <>
+                        <span>•</span>
+                        <span className="text-amber-600">Expenses: ${totalBillableExpenses.toFixed(2)} (excluded)</span>
+                      </>
+                    )}
                   </div>
               </div>
             </div>
@@ -784,6 +881,7 @@ export function TimeTracker({ projectId, projectName }: TimeTrackerProps) {
           <TableHeader>
               <TableRow className="bg-slate-50">
               <TableHead>Date</TableHead>
+              <TableHead>User</TableHead>
               <TableHead>Task</TableHead>
               <TableHead>Description</TableHead>
               <TableHead>Duration</TableHead>
@@ -807,6 +905,23 @@ export function TimeTracker({ projectId, projectName }: TimeTrackerProps) {
                       />
                     </TableCell>
                     <TableCell>
+                      <Select
+                        value={editForm.user || ''}
+                        onValueChange={(value) => setEditForm({ ...editForm, user: value })}
+                      >
+                        <SelectTrigger className="w-32">
+                          <SelectValue placeholder="User" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {teamMembers.map((member) => (
+                            <SelectItem key={member} value={member}>
+                              {member}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </TableCell>
+                    <TableCell>
                       <Input
                         value={editForm.taskName || ''}
                         onChange={(e) => setEditForm({ ...editForm, taskName: e.target.value })}
@@ -828,7 +943,7 @@ export function TimeTracker({ projectId, projectName }: TimeTrackerProps) {
                         className="w-24"
                       />
                     </TableCell>
-                    <TableCell>
+                    <TableCell className={!editForm.billable ? 'opacity-50 text-slate-400' : ''}>
                       <Input
                         type="number"
                         value={editForm.hourlyRate || 0}
@@ -836,16 +951,32 @@ export function TimeTracker({ projectId, projectName }: TimeTrackerProps) {
                         className="w-24"
                       />
                     </TableCell>
-                    <TableCell>
+                    <TableCell className={!editForm.billable ? 'opacity-50 text-slate-400' : ''}>
                       ${((editForm.duration || 0) / 60 * (editForm.hourlyRate || 0)).toFixed(2)}
                     </TableCell>
                     <TableCell>
-                      <input
-                        type="checkbox"
-                        checked={editForm.billable || false}
-                        onChange={(e) => setEditForm({ ...editForm, billable: e.target.checked })}
-                        className="w-4 h-4"
-                      />
+                      <Select
+                        value={editForm.billable ? 'billable' : 'non-billable'}
+                        onValueChange={(value) => setEditForm({ ...editForm, billable: value === 'billable' })}
+                      >
+                        <SelectTrigger className="w-32">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="billable">
+                            <div className="flex items-center gap-2">
+                              <CheckCircle className="w-4 h-4 text-green-600" />
+                              <span>Billable</span>
+                            </div>
+                          </SelectItem>
+                          <SelectItem value="non-billable">
+                            <div className="flex items-center gap-2">
+                              <X className="w-4 h-4 text-slate-500" />
+                              <span>Non-billable</span>
+                            </div>
+                          </SelectItem>
+                        </SelectContent>
+                      </Select>
                     </TableCell>
                     <TableCell className="text-right">
                       <div className="flex justify-end gap-1">
@@ -871,17 +1002,42 @@ export function TimeTracker({ projectId, projectName }: TimeTrackerProps) {
                 ) : (
                   <>
                     <TableCell className="text-sm text-slate-600">{entry.date}</TableCell>
+                    <TableCell>
+                      <div className="flex items-center gap-2">
+                        <Avatar className="w-6 h-6">
+                          <AvatarFallback className="bg-violet-100 text-violet-700 text-[10px]">
+                            {entry.user ? entry.user.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase() : 'U'}
+                          </AvatarFallback>
+                        </Avatar>
+                        <span className="text-sm text-slate-700">{entry.user || 'Unassigned'}</span>
+                      </div>
+                    </TableCell>
                     <TableCell className="text-sm">{entry.taskName}</TableCell>
                     <TableCell className="text-sm text-slate-600">{entry.description}</TableCell>
                     <TableCell className="text-sm">{formatDuration(entry.duration)}</TableCell>
-                    <TableCell className="text-sm">${entry.hourlyRate}/hr</TableCell>
-                    <TableCell className="text-sm">${calculateTotal(entry).toFixed(2)}</TableCell>
+                    <TableCell className={`text-sm ${!entry.billable ? 'opacity-50 text-slate-400' : ''}`}>
+                      ${entry.hourlyRate}/hr
+                    </TableCell>
+                    <TableCell className={`text-sm ${!entry.billable ? 'opacity-50 text-slate-400' : ''}`}>
+                      ${calculateTotal(entry).toFixed(2)}
+                    </TableCell>
                     <TableCell>
-                      {entry.billable ? (
-                        <Badge className="bg-green-100 text-green-700 hover:bg-green-100">Billable</Badge>
-                      ) : (
-                        <Badge variant="secondary">Non-billable</Badge>
-                      )}
+                      <button
+                        onClick={() => toggleBillableStatus(entry.id)}
+                        className="cursor-pointer"
+                      >
+                        {entry.billable ? (
+                          <Badge className="bg-green-100 text-green-700 hover:bg-green-200 cursor-pointer">
+                            <CheckCircle className="w-3 h-3 mr-1 inline" />
+                            Billable
+                          </Badge>
+                        ) : (
+                          <Badge variant="secondary" className="cursor-pointer hover:bg-slate-200">
+                            <X className="w-3 h-3 mr-1 inline" />
+                            Non-billable
+                          </Badge>
+                        )}
+                      </button>
                     </TableCell>
                     <TableCell className="text-right">
                       <div className="flex justify-end gap-1">
@@ -908,14 +1064,14 @@ export function TimeTracker({ projectId, projectName }: TimeTrackerProps) {
               </TableRow>
             ))}
           </TableBody>
-            {/* Totals Row */}
+            {/* Total Row */}
             <tfoot>
               <TableRow className="bg-violet-50/50 border-t-2 border-violet-200 font-semibold">
-                <TableCell colSpan={3} className="text-sm font-semibold text-slate-900">
-                  Totals
+                <TableCell colSpan={4} className="text-sm font-semibold text-slate-900">
+                  Total
                 </TableCell>
                 <TableCell className="text-sm font-semibold text-slate-900">
-                  {formatDuration(totalHours)}
+                  {formatDuration(billableHours)}
                   <div className="text-xs font-normal text-slate-600 mt-0.5">
                     Billable: {formatDuration(billableHours)} • Non-billable: {formatDuration(nonBillableHours)}
                   </div>
@@ -928,11 +1084,11 @@ export function TimeTracker({ projectId, projectName }: TimeTrackerProps) {
                   ${totalBillable.toFixed(2)}
                 </TableCell>
                 <TableCell>
-                  <div className="flex flex-col gap-1">
-                    <Badge className="bg-green-100 text-green-700 hover:bg-green-100 text-xs w-fit">
+                  <div className="flex flex-row gap-2">
+                    <Badge className="bg-green-100 text-green-700 hover:bg-green-100 text-xs">
                       {entries.filter(e => e.billable).length} Billable
                     </Badge>
-                    <Badge variant="secondary" className="text-xs w-fit">
+                    <Badge variant="secondary" className="text-xs">
                       {entries.filter(e => !e.billable).length} Non-billable
                     </Badge>
                   </div>
@@ -1041,12 +1197,28 @@ export function TimeTracker({ projectId, projectName }: TimeTrackerProps) {
                         />
                       </TableCell>
                       <TableCell>
-                        <input
-                          type="checkbox"
-                          checked={editExpenseForm.billable || false}
-                          onChange={(e) => setEditExpenseForm({ ...editExpenseForm, billable: e.target.checked })}
-                          className="w-4 h-4"
-                        />
+                        <Select
+                          value={editExpenseForm.billable ? 'billable' : 'non-billable'}
+                          onValueChange={(value) => setEditExpenseForm({ ...editExpenseForm, billable: value === 'billable' })}
+                        >
+                          <SelectTrigger className="w-32">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="billable">
+                              <div className="flex items-center gap-2">
+                                <CheckCircle className="w-4 h-4 text-green-600" />
+                                <span>Billable</span>
+                              </div>
+                            </SelectItem>
+                            <SelectItem value="non-billable">
+                              <div className="flex items-center gap-2">
+                                <X className="w-4 h-4 text-slate-500" />
+                                <span>Non-billable</span>
+                              </div>
+                            </SelectItem>
+                          </SelectContent>
+                        </Select>
                       </TableCell>
                       <TableCell>
                         <span className="text-sm text-slate-500">-</span>
@@ -1128,25 +1300,25 @@ export function TimeTracker({ projectId, projectName }: TimeTrackerProps) {
               ))
             )}
           </TableBody>
-            {/* Expenses Totals Row */}
+            {/* Expenses Total Row */}
       {expenses.length > 0 && (
               <tfoot>
                 <TableRow className="bg-amber-50/50 border-t-2 border-amber-200 font-semibold">
                   <TableCell colSpan={3} className="text-sm font-semibold text-slate-900">
-                    Totals
+                    Total
                   </TableCell>
                   <TableCell className="text-sm font-semibold text-slate-900">
-                    ${totalAllExpenses.toFixed(2)}
+                    ${totalBillableExpenses.toFixed(2)}
                     <div className="text-xs font-normal text-slate-600 mt-0.5">
                       Billable: ${totalBillableExpenses.toFixed(2)} • Non-billable: ${totalNonBillableExpenses.toFixed(2)}
             </div>
                   </TableCell>
                   <TableCell>
-                    <div className="flex flex-col gap-1">
-                      <Badge className="bg-green-100 text-green-700 hover:bg-green-100 text-xs w-fit">
+                    <div className="flex flex-row gap-2">
+                      <Badge className="bg-green-100 text-green-700 hover:bg-green-100 text-xs">
                         {expenses.filter(e => e.billable).length} Billable
                       </Badge>
-                      <Badge variant="secondary" className="text-xs w-fit">
+                      <Badge variant="secondary" className="text-xs">
                         {expenses.filter(e => !e.billable).length} Non-billable
                       </Badge>
           </div>
@@ -1164,6 +1336,8 @@ export function TimeTracker({ projectId, projectName }: TimeTrackerProps) {
 }
 
 function NewEntryForm({ onSubmit, onCancel }: { onSubmit: (entry: Omit<TimeEntry, 'id'>) => void; onCancel: () => void }) {
+  const teamMembers = ['Sarah Johnson', 'Mike Brown', 'You', 'Emily Davis', 'Alex Wilson'];
+  
   const [form, setForm] = useState<Omit<TimeEntry, 'id'>>({
     taskName: '',
     description: '',
@@ -1171,6 +1345,7 @@ function NewEntryForm({ onSubmit, onCancel }: { onSubmit: (entry: Omit<TimeEntry
     duration: 60,
     hourlyRate: 75,
     billable: true,
+    user: 'You', // Default to current user
   });
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -1188,6 +1363,24 @@ function NewEntryForm({ onSubmit, onCancel }: { onSubmit: (entry: Omit<TimeEntry
           onChange={(e) => setForm({ ...form, taskName: e.target.value })}
           required
         />
+      </div>
+      <div className="space-y-2">
+        <Label htmlFor="user">User</Label>
+        <Select
+          value={form.user || 'You'}
+          onValueChange={(value) => setForm({ ...form, user: value })}
+        >
+          <SelectTrigger>
+            <SelectValue placeholder="Select user" />
+          </SelectTrigger>
+          <SelectContent>
+            {teamMembers.map((member) => (
+              <SelectItem key={member} value={member}>
+                {member}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
       </div>
       <div className="space-y-2">
         <Label htmlFor="description">Description</Label>
@@ -1267,7 +1460,20 @@ function ExpenseForm({ onSubmit, onCancel }: { onSubmit: (expense: Omit<Expense,
     date: new Date().toISOString().split('T')[0],
     amount: 0,
     billable: true,
+    receipt: undefined,
   });
+  
+  const [receiptFile, setReceiptFile] = useState<File | null>(null);
+  
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setReceiptFile(file);
+      // In a real app, you would upload the file and get a URL
+      // For now, we'll store the filename
+      setForm({ ...form, receipt: file.name });
+    }
+  };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -1342,6 +1548,37 @@ function ExpenseForm({ onSubmit, onCancel }: { onSubmit: (expense: Omit<Expense,
             </label>
           </div>
         </div>
+      </div>
+      <div className="space-y-2">
+        <Label htmlFor="receipt">Receipt</Label>
+        <div className="flex items-center gap-2">
+          <Input
+            id="receipt"
+            type="file"
+            accept="image/*,.pdf"
+            onChange={handleFileChange}
+            className="flex-1"
+          />
+          {receiptFile && (
+            <div className="flex items-center gap-2 text-sm text-slate-600">
+              <FileImage className="w-4 h-4" />
+              <span className="truncate max-w-[150px]">{receiptFile.name}</span>
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                onClick={() => {
+                  setReceiptFile(null);
+                  setForm({ ...form, receipt: undefined });
+                }}
+                className="h-6 w-6 p-0"
+              >
+                <X className="w-3 h-3" />
+              </Button>
+            </div>
+          )}
+        </div>
+        <p className="text-xs text-slate-500">Upload receipt image (JPG, PNG) or PDF</p>
       </div>
       <div className="flex justify-end gap-2 pt-4">
         <Button type="button" variant="outline" onClick={onCancel}>
