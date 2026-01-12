@@ -564,6 +564,22 @@ export function WorkflowTasksView({ workflowTasks, projects, onTaskUpdate, filte
     return assigneeId;
   };
 
+  const getAssigneeInitials = (assigneeId: string): string => {
+    const name = getAssigneeName(assigneeId);
+    // If already 2 characters or less, assume it's already initials
+    if (name.length <= 2) {
+      return name.toUpperCase();
+    }
+    // Extract initials from full name
+    const parts = name.trim().split(/\s+/);
+    if (parts.length >= 2) {
+      // First letter of first name + first letter of last name
+      return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+    }
+    // If only one word, use first two letters
+    return name.substring(0, 2).toUpperCase();
+  };
+
   // Status options for inline editing
   const customStatuses = ['todo', 'in-progress', 'completed', 'blocked'];
   
@@ -1394,7 +1410,7 @@ export function WorkflowTasksView({ workflowTasks, projects, onTaskUpdate, filte
                             <div>
                                     <Avatar className="w-8 h-8">
                                       <AvatarFallback className="bg-violet-100 text-violet-700 text-xs">
-                                        {getAssigneeName(task.assignee)}
+                                        {getAssigneeInitials(task.assignee)}
                                 </AvatarFallback>
                               </Avatar>
                             </div>
@@ -1796,7 +1812,7 @@ export function WorkflowTasksView({ workflowTasks, projects, onTaskUpdate, filte
                                     <div>
                                         <Avatar className="w-7 h-7">
                                           <AvatarFallback className="bg-violet-100 text-violet-700 text-[10px]">
-                                            {subtask.assignee}
+                                            {getAssigneeInitials(subtask.assignee)}
                                         </AvatarFallback>
                                       </Avatar>
                                     </div>
@@ -2158,7 +2174,7 @@ export function WorkflowTasksView({ workflowTasks, projects, onTaskUpdate, filte
                                               <div>
                                                 <Avatar className="w-8 h-8">
                                                   <AvatarFallback className="bg-violet-100 text-violet-700 text-xs">
-                                                    {getAssigneeName(task.assignee)}
+                                                    {getAssigneeInitials(task.assignee)}
                                                   </AvatarFallback>
                                                 </Avatar>
                                               </div>
@@ -2571,7 +2587,7 @@ export function WorkflowTasksView({ workflowTasks, projects, onTaskUpdate, filte
                                             <div>
                                               <Avatar className="w-6 h-6">
                                                 <AvatarFallback className="bg-violet-100 text-violet-700 text-[10px]">
-                                                  {getAssigneeName(task.assignee)}
+                                                  {getAssigneeInitials(task.assignee)}
                                                 </AvatarFallback>
                                               </Avatar>
                                             </div>

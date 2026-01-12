@@ -35,6 +35,7 @@ import {
   DropdownMenuSeparator,
 } from '../../../components/ui/dropdown-menu';
 import { toast } from 'sonner@2.0.3';
+import { EditableEmailTemplatePreview } from '../../../components/email/EditableEmailTemplatePreview';
 
 // Category definitions
 type EmailCategory = {
@@ -525,21 +526,8 @@ export function EmailCustomizationView() {
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedTemplate, setSelectedTemplate] = useState<EmailTemplate | null>(null);
-  const [showEditor, setShowEditor] = useState(false);
-  const [showPreview, setShowPreview] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [showAIDialog, setShowAIDialog] = useState(false);
-  const [isCreating, setIsCreating] = useState(false);
-  const [viewMode, setViewMode] = useState<'browse' | 'edit'>('browse');
-
-  // Editor form state
-  const [editForm, setEditForm] = useState({
-    name: '',
-    subject: '',
-    body: '',
-    category: 'general',
-    tags: [] as string[],
-  });
 
   // AI generation form
   const [aiForm, setAiForm] = useState({
@@ -570,67 +558,40 @@ export function EmailCustomizationView() {
 
   // Handlers
   const handleCreateNew = () => {
-    setSelectedTemplate(null);
-    setEditForm({
-      name: '',
+    // Create a new blank template and add it to the list
+    const newTemplate: EmailTemplate = {
+      id: `custom-${Date.now()}`,
+      name: 'New Template',
       subject: '',
       body: '',
       category: selectedCategory === 'all' ? 'general' : selectedCategory,
-      tags: [],
-    });
-    setIsCreating(true);
-    setViewMode('edit');
-    setShowEditor(true);
-  };
-
-  const handleEdit = (template: EmailTemplate) => {
-    setSelectedTemplate(template);
-    setEditForm({
-      name: template.name,
-      subject: template.subject,
-      body: template.body,
-      category: template.category,
-      tags: template.tags,
-    });
-    setIsCreating(false);
-    setViewMode('edit');
-    setShowEditor(true);
-  };
-
-  const handleSave = () => {
-    if (isCreating) {
-      const newTemplate: EmailTemplate = {
-        id: `custom-${Date.now()}`,
-        name: editForm.name,
-        subject: editForm.subject,
-        body: editForm.body,
-        category: editForm.category,
         isSystem: false,
         isFavorite: false,
-        tags: editForm.tags,
+      tags: [],
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
       };
-      setTemplates([...templates, newTemplate]);
-      toast.success('Email template created!');
-    } else if (selectedTemplate) {
+    setTemplates([newTemplate, ...templates]);
+    toast.success('New template created! Edit it below.');
+  };
+
+  // Handler for inline template updates
+  const handleTemplateSave = (templateId: string, updates: Partial<EmailTemplate>) => {
       setTemplates(templates.map(t => 
-        t.id === selectedTemplate.id 
+      t.id === templateId 
           ? {
               ...t,
-              name: editForm.name,
-              subject: editForm.subject,
-              body: editForm.body,
-              category: editForm.category,
-              tags: editForm.tags,
+            ...updates,
               updatedAt: new Date().toISOString(),
             }
           : t
       ));
       toast.success('Email template updated!');
-    }
-    setShowEditor(false);
-    setViewMode('browse');
+  };
+
+  const handleTemplateDelete = (templateId: string) => {
+    setSelectedTemplate(templates.find(t => t.id === templateId) || null);
+    setShowDeleteConfirm(true);
   };
 
   const handleDelete = () => {
@@ -680,11 +641,6 @@ export function EmailCustomizationView() {
     // TODO: Call AI backend
     toast.info('AI generation will be available soon!');
     setShowAIDialog(false);
-  };
-
-  const handlePreview = (template: EmailTemplate) => {
-    setSelectedTemplate(template);
-    setShowPreview(true);
   };
 
   // Get counts per category
@@ -874,7 +830,7 @@ export function EmailCustomizationView() {
               </div>
             </div>
 
-            {/* Template Cards */}
+            {/* Template List */}
             {sortedTemplates.length === 0 ? (
               <div className="text-center py-12">
                 <Mail className="w-12 h-12 text-gray-300 dark:text-gray-600 mx-auto mb-3" />
@@ -895,413 +851,27 @@ export function EmailCustomizationView() {
                 )}
               </div>
             ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {sortedTemplates.map(template => {
-                  const category = categories.find(c => c.id === template.category);
-                  const CategoryIcon = category?.icon || Mail;
-
-                  return (
-                    <Card 
+              <div className="space-y-4">
+                {sortedTemplates.map(template => (
+                  <EditableEmailTemplatePreview
                       key={template.id} 
-                      className="group hover:shadow-md transition-shadow border"
-                      style={{ borderColor: 'var(--stokeColor, #e5e7eb)' }}
-                    >
-                      <CardContent className="p-4">
-                        {/* Header */}
-                        <div className="flex items-start justify-between mb-3">
-                          <div className="flex items-start gap-3 flex-1 min-w-0">
-                            <div className={`w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0 bg-${category?.color}-100 dark:bg-${category?.color}-900/30`}>
-                              <CategoryIcon className={`w-5 h-5 text-${category?.color}-600 dark:text-${category?.color}-400`} />
-                            </div>
-                            <div className="flex-1 min-w-0">
-                              <h3 className="font-semibold text-gray-900 dark:text-gray-100 mb-1 truncate">
-                                {template.name}
-                              </h3>
-                              <div className="flex items-center gap-2 flex-wrap">
-                                {template.isSystem && (
-                                  <Badge variant="outline" className="text-xs">
-                                    System
-                                  </Badge>
-                                )}
-                                {template.isAutomated && (
-                                  <Badge 
-                                    variant={template.automatedConfig?.enabled ? 'default' : 'secondary'}
-                                    className="text-xs"
-                                  >
-                                    {template.automatedConfig?.enabled ? 'Active' : 'Inactive'}
-                                  </Badge>
-                                )}
-                              </div>
-                            </div>
-                          </div>
-                          <div className="flex items-center gap-1">
-                            <button
-                              onClick={() => handleToggleFavorite(template.id)}
-                              className="p-1.5 hover:bg-gray-100 dark:hover:bg-gray-800 rounded transition-colors"
-                            >
-                              <Star 
-                                className={`w-4 h-4 ${
-                                  template.isFavorite 
-                                    ? 'fill-yellow-400 text-yellow-400' 
-                                    : 'text-gray-400'
-                                }`} 
-                              />
-                            </button>
-                            <DropdownMenu>
-                              <DropdownMenuTrigger asChild>
-                                <button className="p-1.5 hover:bg-gray-100 dark:hover:bg-gray-800 rounded transition-colors">
-                                  <MoreVertical className="w-4 h-4 text-gray-400" />
-                                </button>
-                              </DropdownMenuTrigger>
-                              <DropdownMenuContent align="end">
-                                <DropdownMenuItem onClick={() => handlePreview(template)}>
-                                  <Eye className="w-4 h-4 mr-2" />
-                                  Preview
-                                </DropdownMenuItem>
-                                <DropdownMenuItem onClick={() => handleEdit(template)}>
-                                  <Edit2 className="w-4 h-4 mr-2" />
-                                  Edit
-                                </DropdownMenuItem>
-                                <DropdownMenuItem onClick={() => handleDuplicate(template)}>
-                                  <Copy className="w-4 h-4 mr-2" />
-                                  Duplicate
-                                </DropdownMenuItem>
-                                {!template.isSystem && (
-                                  <>
-                                    <DropdownMenuSeparator />
-                                    <DropdownMenuItem 
-                                      onClick={() => {
-                                        setSelectedTemplate(template);
-                                        setShowDeleteConfirm(true);
-                                      }}
-                                      className="text-red-600 dark:text-red-400"
-                                    >
-                                      <Trash2 className="w-4 h-4 mr-2" />
-                                      Delete
-                                    </DropdownMenuItem>
-                                  </>
-                                )}
-                              </DropdownMenuContent>
-                            </DropdownMenu>
-                          </div>
-                        </div>
-
-                        {/* Subject Preview */}
-                        <div className="mb-3">
-                          <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Subject</p>
-                          <p className="text-sm text-gray-700 dark:text-gray-300 line-clamp-2">
-                            {template.subject}
-                          </p>
-                        </div>
-
-                        {/* Body Preview */}
-                        <div className="mb-4">
-                          <p className="text-xs text-gray-400 dark:text-gray-500 line-clamp-3">
-                            {template.body.substring(0, 120)}...
-                          </p>
-                        </div>
-
-                        {/* Automated Email Special Config */}
-                        {template.isAutomated && template.automatedConfig && (
-                          <div className="mb-4 p-3 bg-purple-50 dark:bg-purple-900/20 rounded-lg border border-purple-200 dark:border-purple-700">
-                            <div className="flex items-center justify-between mb-2">
-                              <span className="text-xs font-medium text-purple-900 dark:text-purple-100">
-                                Automated Sending
-                              </span>
-                              <button
-                                onClick={() => handleToggleAutomation(template.id)}
-                                className="flex items-center gap-1.5"
-                              >
-                                {template.automatedConfig.enabled ? (
-                                  <ToggleRight className="w-5 h-5 text-green-600 dark:text-green-400" />
-                                ) : (
-                                  <ToggleLeft className="w-5 h-5 text-gray-400" />
-                                )}
-                              </button>
-                            </div>
-                            {template.automatedConfig.enabled && (
-                              <div className="text-xs text-purple-700 dark:text-purple-300 space-y-1">
-                                {template.automatedConfig.triggerType === 'birthday' && (
-                                  <p>• Sends automatically on client birthdays</p>
-                                )}
-                                {template.automatedConfig.triggerType === 'holiday' && template.automatedConfig.sendDate && (
-                                  <p>• Sends on {new Date(template.automatedConfig.sendDate).toLocaleDateString()}</p>
-                                )}
-                                <p>• Recipients: {template.automatedConfig.recipientCount || 0} clients</p>
-                              </div>
-                            )}
+                    template={template}
+                    categories={categories}
+                    availableVariables={availableVariables}
+                    onSave={handleTemplateSave}
+                    onDelete={handleTemplateDelete}
+                    onDuplicate={handleDuplicate}
+                    onToggleFavorite={handleToggleFavorite}
+                    onToggleAutomation={handleToggleAutomation}
+                    onGenerateWithAI={() => setShowAIDialog(true)}
+                  />
+                ))}
                           </div>
                         )}
-
-                        {/* Tags */}
-                        {template.tags.length > 0 && (
-                          <div className="flex flex-wrap gap-1.5 mb-4">
-                            {template.tags.slice(0, 3).map(tag => (
-                              <Badge key={tag} variant="secondary" className="text-xs">
-                                {tag}
-                              </Badge>
-                            ))}
-                            {template.tags.length > 3 && (
-                              <Badge variant="secondary" className="text-xs">
-                                +{template.tags.length - 3}
-                              </Badge>
-                            )}
-                          </div>
-                        )}
-
-                        {/* Actions */}
-                        <div className="flex gap-2">
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => handlePreview(template)}
-                            className="flex-1"
-                          >
-                            <Eye className="w-3.5 h-3.5 mr-1.5" />
-                            Preview
-                          </Button>
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => handleEdit(template)}
-                            className="flex-1"
-                          >
-                            <Edit2 className="w-3.5 h-3.5 mr-1.5" />
-                            Edit
-                          </Button>
                         </div>
-
-                        {/* Meta Info */}
-                        <div className="mt-3 pt-3 border-t text-xs text-gray-500 dark:text-gray-400" style={{ borderColor: 'var(--stokeColor, #e5e7eb)' }}>
-                          Updated {new Date(template.updatedAt).toLocaleDateString()}
-                        </div>
-                      </CardContent>
-                    </Card>
-                  );
-                })}
-              </div>
-            )}
-          </div>
         </div>
       </div>
 
-      {/* Editor Dialog */}
-      <Dialog open={showEditor} onOpenChange={(open) => {
-        setShowEditor(open);
-        if (!open) setViewMode('browse');
-      }}>
-        <DialogContent className="max-w-5xl max-h-[90vh] overflow-hidden flex flex-col" aria-describedby="editor-dialog-description">
-          <DialogHeader>
-            <DialogTitle>
-              {isCreating ? 'Create Email Template' : `Edit: ${selectedTemplate?.name}`}
-            </DialogTitle>
-            <DialogDescription id="editor-dialog-description">
-              {isCreating 
-                ? 'Create a new email template for your workflow' 
-                : 'Make changes to your email template'
-              }
-            </DialogDescription>
-          </DialogHeader>
-
-          <div className="flex-1 overflow-auto py-4 space-y-4">
-            {/* Template Name & Category */}
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <Label htmlFor="template-name">
-                  Template Name <span className="text-red-500">*</span>
-                </Label>
-                <Input
-                  id="template-name"
-                  value={editForm.name}
-                  onChange={(e) => setEditForm({ ...editForm, name: e.target.value })}
-                  placeholder="e.g., Welcome New Client"
-                  className="mt-1.5"
-                />
-              </div>
-              <div>
-                <Label htmlFor="category">
-                  Category <span className="text-red-500">*</span>
-                </Label>
-                <Select value={editForm.category} onValueChange={(value) => setEditForm({ ...editForm, category: value })}>
-                  <SelectTrigger className="mt-1.5">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {categories.filter(c => c.id !== 'all').map(category => (
-                      <SelectItem key={category.id} value={category.id}>
-                        {category.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-
-            {/* Subject Line */}
-            <div>
-              <Label htmlFor="subject">
-                Subject Line <span className="text-red-500">*</span>
-              </Label>
-              <Input
-                id="subject"
-                value={editForm.subject}
-                onChange={(e) => setEditForm({ ...editForm, subject: e.target.value })}
-                placeholder="Use variables like {{client_name}} and {{firm_name}}"
-                className="mt-1.5"
-              />
-            </div>
-
-            {/* Email Body */}
-            <div>
-              <div className="flex items-center justify-between mb-1.5">
-                <Label htmlFor="body">
-                  Email Body <span className="text-red-500">*</span>
-                </Label>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => setShowAIDialog(true)}
-                  className="gap-1.5 h-7 text-xs"
-                >
-                  <Sparkles className="w-3.5 h-3.5" />
-                  Generate with AI
-                </Button>
-              </div>
-              <Textarea
-                id="body"
-                value={editForm.body}
-                onChange={(e) => setEditForm({ ...editForm, body: e.target.value })}
-                placeholder="Write your email content here. Use variables like {{client_name}}, {{firm_name}}, etc."
-                rows={16}
-                className="font-mono text-sm"
-              />
-            </div>
-
-            {/* Tags */}
-            <div>
-              <Label htmlFor="tags">Tags (optional)</Label>
-              <Input
-                id="tags"
-                value={editForm.tags.join(', ')}
-                onChange={(e) => setEditForm({ 
-                  ...editForm, 
-                  tags: e.target.value.split(',').map(t => t.trim()).filter(Boolean)
-                })}
-                placeholder="welcome, new-client, onboarding"
-                className="mt-1.5"
-              />
-              <p className="text-xs text-gray-500 dark:text-gray-400 mt-1.5">
-                Separate tags with commas. Tags help organize and search templates.
-              </p>
-            </div>
-
-            {/* Available Variables */}
-            <div className="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-4 border border-blue-200 dark:border-blue-700">
-              <h4 className="text-sm font-semibold text-blue-900 dark:text-blue-100 mb-2">
-                Available Variables
-              </h4>
-              <div className="grid grid-cols-3 gap-2">
-                {availableVariables.map(variable => (
-                  <button
-                    key={variable}
-                    onClick={() => {
-                      // Copy to clipboard
-                      navigator.clipboard.writeText(variable);
-                      toast.success('Variable copied to clipboard!');
-                    }}
-                    className="text-xs px-2 py-1.5 bg-blue-100 dark:bg-blue-900/30 hover:bg-blue-200 dark:hover:bg-blue-900/50 rounded font-mono text-left transition-colors"
-                  >
-                    {variable}
-                  </button>
-                ))}
-              </div>
-              <p className="text-xs text-blue-700 dark:text-blue-300 mt-3">
-                Click any variable to copy it to your clipboard, then paste into your template.
-              </p>
-            </div>
-          </div>
-
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setShowEditor(false)}>
-              Cancel
-            </Button>
-            <Button
-              onClick={handleSave}
-              disabled={!editForm.name || !editForm.subject || !editForm.body}
-              className="text-white"
-              style={{ background: 'var(--primaryColor)' }}
-            >
-              <Save className="w-4 h-4 mr-2" />
-              {isCreating ? 'Create Template' : 'Save Changes'}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      {/* Preview Dialog */}
-      <Dialog open={showPreview} onOpenChange={setShowPreview}>
-        <DialogContent className="max-w-3xl" aria-describedby="preview-dialog-description">
-          <DialogHeader>
-            <DialogTitle>Email Preview</DialogTitle>
-            <DialogDescription id="preview-dialog-description">
-              Preview of {selectedTemplate?.name}
-            </DialogDescription>
-          </DialogHeader>
-          <div className="py-4 space-y-4">
-            <div>
-              <Label className="text-xs text-gray-500 dark:text-gray-400 mb-1.5 block">
-                Subject Line
-              </Label>
-              <div className="p-3 bg-gray-50 dark:bg-gray-900/50 rounded-lg border" style={{ borderColor: 'var(--stokeColor, #e5e7eb)' }}>
-                <p className="text-sm font-medium">{selectedTemplate?.subject}</p>
-              </div>
-            </div>
-            <div>
-              <Label className="text-xs text-gray-500 dark:text-gray-400 mb-1.5 block">
-                Email Body
-              </Label>
-              <div className="p-4 bg-gray-50 dark:bg-gray-900/50 rounded-lg border max-h-96 overflow-auto" style={{ borderColor: 'var(--stokeColor, #e5e7eb)' }}>
-                <pre className="text-sm whitespace-pre-wrap font-sans">
-                  {selectedTemplate?.body}
-                </pre>
-              </div>
-            </div>
-            {selectedTemplate?.isAutomated && selectedTemplate?.automatedConfig && (
-              <div className="p-4 bg-purple-50 dark:bg-purple-900/20 rounded-lg border border-purple-200 dark:border-purple-700">
-                <h4 className="font-semibold text-purple-900 dark:text-purple-100 mb-2">
-                  Automated Email Settings
-                </h4>
-                <div className="text-sm text-purple-700 dark:text-purple-300 space-y-1">
-                  <p>Status: {selectedTemplate.automatedConfig.enabled ? 'Active' : 'Inactive'}</p>
-                  {selectedTemplate.automatedConfig.triggerType === 'birthday' && (
-                    <p>Trigger: Sent automatically on client birthdays</p>
-                  )}
-                  {selectedTemplate.automatedConfig.triggerType === 'holiday' && selectedTemplate.automatedConfig.sendDate && (
-                    <p>Send Date: {new Date(selectedTemplate.automatedConfig.sendDate).toLocaleDateString()}</p>
-                  )}
-                  <p>Recipients: {selectedTemplate.automatedConfig.recipientCount || 0} clients</p>
-                </div>
-              </div>
-            )}
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setShowPreview(false)}>
-              Close
-            </Button>
-            <Button
-              onClick={() => {
-                setShowPreview(false);
-                handleEdit(selectedTemplate!);
-              }}
-              className="text-white"
-              style={{ background: 'var(--primaryColor)' }}
-            >
-              <Edit2 className="w-4 h-4 mr-2" />
-              Edit Template
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
 
       {/* Delete Confirmation */}
       <Dialog open={showDeleteConfirm} onOpenChange={setShowDeleteConfirm}>

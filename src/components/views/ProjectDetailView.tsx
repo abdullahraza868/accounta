@@ -643,6 +643,100 @@ export function ProjectDetailPage({
                 </div>
               </Card> */}
 
+              {/* Action Items */}
+              <Card className="p-6">
+                {/* Header */}
+                <div className="flex items-center justify-between mb-4">
+                  <div className="flex items-center gap-2">
+                    <CheckSquare className="w-5 h-5 text-violet-600" />
+                    <h3 className="text-slate-900">
+                      Action Items
+                    </h3>
+                    <Badge
+                      variant="outline"
+                      className="text-xs"
+                    >
+                      Client Portal View
+                    </Badge>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() =>
+                        setHideCompleted(!hideCompleted)
+                      }
+                      className="gap-2"
+                    >
+                      <EyeOff className="w-4 h-4" />
+                      Hide Completed
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="gap-2"
+                    >
+                      <Plus className="w-4 h-4" />
+                      Add Item
+                    </Button>
+                  </div>
+                </div>
+
+                {/* Action Items List */}
+                <div className="space-y-2">
+                  {filteredActionItems.map((item) => (
+                    <div
+                      key={item.id}
+                      className={`flex items-start gap-3 p-3 rounded border ${
+                        item.completed
+                          ? "bg-green-50 border-green-200"
+                          : "bg-white border-slate-200 hover:bg-slate-50"
+                      }`}
+                    >
+                      <input
+                        type="checkbox"
+                        checked={item.completed}
+                        onChange={() =>
+                          toggleActionItem(item.id)
+                        }
+                        className="w-4 h-4 mt-0.5 accent-green-600"
+                      />
+                      <div className="flex-1 min-w-0">
+                        <p
+                          className={`text-sm ${item.completed ? "line-through text-slate-600" : "text-slate-900"}`}
+                        >
+                          {item.text}
+                        </p>
+                        <p className="text-xs text-slate-500 mt-1">
+                          {item.completed && item.completedAt
+                            ? `Completed: ${item.completedAt}`
+                            : `Due: ${item.dueDate}`}
+                        </p>
+                      </div>
+                      <div className="flex items-center gap-1">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-8 w-8 p-0 hover:bg-slate-200"
+                        >
+                          <Pencil className="w-4 h-4 text-slate-600" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-8 w-8 p-0 hover:bg-red-100"
+                          onClick={() =>
+                            deleteActionItem(item.id)
+                          }
+                        >
+                          <Trash2 className="w-4 h-4 text-red-600" />
+                        </Button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </Card>
+
               {/* Current Stage */}
               <Card className="p-6">
                 <div className="flex items-center justify-between mb-4">
@@ -771,6 +865,53 @@ export function ProjectDetailPage({
                   </div>
                 </div>
               </Card>
+            </div>
+
+            {/* Right Column - Team & Files */}
+            <div className="space-y-6">
+              {/* Highlighted Notes */}
+              <Card className="p-5 border border-gray-200/60 shadow-sm flex flex-col overflow-hidden">
+                <div className="flex items-center justify-between mb-4 flex-shrink-0 pl-8">
+                  <div className="flex items-center gap-2">
+                    <StickyNote className="w-5 h-5 text-yellow-600" />
+                    <h3 className="font-semibold text-gray-900">Highlighted Notes</h3>
+                  </div>
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    className="h-8 text-xs"
+                    onClick={() => setShowAddNoteDialog(true)}
+                  >
+                    <Plus className="w-3 h-3 mr-1" />
+                    Add Note
+                  </Button>
+                </div>
+                <div className="flex-1 overflow-y-auto space-y-3 min-h-0">
+                  {highlightedNotes.filter((n: HighlightedNote) => n.highlighted).map((note: HighlightedNote) => (
+                    <div key={note.id} className="p-3 bg-yellow-50 border border-yellow-200/60 rounded-lg relative group">
+                      <p className="text-sm text-gray-900 pr-6">{note.content}</p>
+                      <div className="flex items-center justify-between mt-2">
+                        <p className="text-xs text-gray-500">{note.author}</p>
+                        <p className="text-xs text-gray-500">{new Date(note.date).toLocaleDateString()}</p>
+                      </div>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="absolute top-2 right-2 h-6 w-6 p-0 opacity-0 group-hover:opacity-100 transition-opacity text-red-600 hover:text-red-700"
+                        onClick={() => handleDeleteNote(note.id)}
+                      >
+                        <Trash2 className="w-3 h-3" />
+                      </Button>
+                    </div>
+                  ))}
+                  {highlightedNotes.filter((n: HighlightedNote) => n.highlighted).length === 0 && (
+                    <div className="text-center py-6 text-gray-500">
+                      <StickyNote className="w-10 h-10 mx-auto mb-2 text-gray-300" />
+                      <p className="text-sm">No highlighted notes yet</p>
+                    </div>
+                  )}
+                </div>
+              </Card>
 
               {/* Recent Activity Preview */}
               <Card className="p-6">
@@ -820,147 +961,6 @@ export function ProjectDetailPage({
                       </p>
                     </div>
                   </div>
-                </div>
-              </Card>
-            </div>
-
-            {/* Right Column - Team & Files */}
-            <div className="space-y-6">
-              {/* Highlighted Notes */}
-              <Card className="p-5 border border-gray-200/60 shadow-sm flex flex-col overflow-hidden">
-                <div className="flex items-center justify-between mb-4 flex-shrink-0 pl-8">
-                  <div className="flex items-center gap-2">
-                    <StickyNote className="w-5 h-5 text-yellow-600" />
-                    <h3 className="font-semibold text-gray-900">Highlighted Notes</h3>
-                  </div>
-                  <Button 
-                    variant="outline" 
-                    size="sm" 
-                    className="h-8 text-xs"
-                    onClick={() => setShowAddNoteDialog(true)}
-                  >
-                    <Plus className="w-3 h-3 mr-1" />
-                    Add Note
-                  </Button>
-                </div>
-                <div className="flex-1 overflow-y-auto space-y-3 min-h-0">
-                  {highlightedNotes.filter((n: HighlightedNote) => n.highlighted).map((note: HighlightedNote) => (
-                    <div key={note.id} className="p-3 bg-yellow-50 border border-yellow-200/60 rounded-lg relative group">
-                      <p className="text-sm text-gray-900 pr-6">{note.content}</p>
-                      <div className="flex items-center justify-between mt-2">
-                        <p className="text-xs text-gray-500">{note.author}</p>
-                        <p className="text-xs text-gray-500">{new Date(note.date).toLocaleDateString()}</p>
-                      </div>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="absolute top-2 right-2 h-6 w-6 p-0 opacity-0 group-hover:opacity-100 transition-opacity text-red-600 hover:text-red-700"
-                        onClick={() => handleDeleteNote(note.id)}
-                      >
-                        <Trash2 className="w-3 h-3" />
-                      </Button>
-                    </div>
-                  ))}
-                  {highlightedNotes.filter((n: HighlightedNote) => n.highlighted).length === 0 && (
-                    <div className="text-center py-6 text-gray-500">
-                      <StickyNote className="w-10 h-10 mx-auto mb-2 text-gray-300" />
-                      <p className="text-sm">No highlighted notes yet</p>
-                    </div>
-                  )}
-                </div>
-              </Card>
-
-              {/* Action Items */}
-              <Card className="p-6">
-                {/* Header */}
-                <div className="flex items-center justify-between mb-4">
-                  <div className="flex items-center gap-2">
-                    <CheckSquare className="w-5 h-5 text-violet-600" />
-                    <h3 className="text-slate-900">
-                      Action Items
-                    </h3>
-                    <Badge
-                      variant="outline"
-                      className="text-xs"
-                    >
-                      Client Portal View
-                    </Badge>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() =>
-                        setHideCompleted(!hideCompleted)
-                      }
-                      className="gap-2"
-                    >
-                      <EyeOff className="w-4 h-4" />
-                      Hide Completed
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="gap-2"
-                    >
-                      <Plus className="w-4 h-4" />
-                      Add Item
-                    </Button>
-                  </div>
-                </div>
-
-                {/* Action Items List */}
-                <div className="space-y-2">
-                  {filteredActionItems.map((item) => (
-                    <div
-                      key={item.id}
-                      className={`flex items-start gap-3 p-3 rounded border ${
-                        item.completed
-                          ? "bg-green-50 border-green-200"
-                          : "bg-white border-slate-200 hover:bg-slate-50"
-                      }`}
-                    >
-                      <input
-                        type="checkbox"
-                        checked={item.completed}
-                        onChange={() =>
-                          toggleActionItem(item.id)
-                        }
-                        className="w-4 h-4 mt-0.5 accent-green-600"
-                      />
-                      <div className="flex-1 min-w-0">
-                        <p
-                          className={`text-sm ${item.completed ? "line-through text-slate-600" : "text-slate-900"}`}
-                        >
-                          {item.text}
-                        </p>
-                        <p className="text-xs text-slate-500 mt-1">
-                          {item.completed && item.completedAt
-                            ? `Completed: ${item.completedAt}`
-                            : `Due: ${item.dueDate}`}
-                        </p>
-                      </div>
-                      <div className="flex items-center gap-1">
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="h-8 w-8 p-0 hover:bg-slate-200"
-                        >
-                          <Pencil className="w-4 h-4 text-slate-600" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="h-8 w-8 p-0 hover:bg-red-100"
-                          onClick={() =>
-                            deleteActionItem(item.id)
-                          }
-                        >
-                          <Trash2 className="w-4 h-4 text-red-600" />
-                        </Button>
-                      </div>
-                    </div>
-                  ))}
                 </div>
               </Card>
 
