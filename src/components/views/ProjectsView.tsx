@@ -23,6 +23,8 @@ import {
 } from "../ui/select";
 import { StandaloneProjectsView } from '../StandaloneProjectsView';
 import { Toaster } from '../ui/sonner';
+import { WorkflowWizard } from '../WorkflowWizard';
+import { WorkflowProvider, useWorkflowContext } from '../WorkflowContext';
 
 type Project = {
   id: string;
@@ -46,12 +48,14 @@ type Project = {
   progress: number;
 };
 
-export function ProjectsView() {
+function ProjectsViewContent() {
   const navigate = useNavigate();
   const { branding } = useBranding();
+  const { addWorkflow } = useWorkflowContext();
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [typeFilter, setTypeFilter] = useState("all");
+  const [showWorkflowWizard, setShowWorkflowWizard] = useState(false);
 
   // Mock projects data
   const allProjects: Project[] = [
@@ -269,16 +273,52 @@ export function ProjectsView() {
     navigate('/workflows/edit/1');
   };
 
+  // Handler for start workflow wizard
+  const handleStartWizard = () => {
+    setShowWorkflowWizard(true);
+  };
+
+  // Handler for workflow wizard completion
+  const handleWorkflowComplete = (workflow: any) => {
+    // Add workflow to context
+    addWorkflow(workflow);
+    setShowWorkflowWizard(false);
+    // Optionally navigate to edit the new workflow
+    // navigate(`/workflows/edit/${workflow.id}`);
+  };
+
+  // Handler for workflow wizard cancel
+  const handleWorkflowCancel = () => {
+    setShowWorkflowWizard(false);
+  };
+
   return (
     <div className="flex-1 overflow-auto">
-          <div className="min-h-screen bg-slate-50">
-      <Toaster />
-      <StandaloneProjectsView 
-        onProjectClick={handleProjectClick}
-        onActivityLogClick={handleActivityLogClick}
-        onEditWorkflow={handleEditWorkflow}
-      />
+      <div className="min-h-screen bg-slate-50">
+        <Toaster />
+        {showWorkflowWizard ? (
+          <WorkflowWizard
+            onComplete={handleWorkflowComplete}
+            onCancel={handleWorkflowCancel}
+          />
+        ) : (
+          <StandaloneProjectsView 
+            onProjectClick={handleProjectClick}
+            onActivityLogClick={handleActivityLogClick}
+            onEditWorkflow={handleEditWorkflow}
+            onStartWizard={handleStartWizard}
+            skipProvider={true}
+          />
+        )}
+      </div>
     </div>
-    </div>
+  );
+}
+
+export function ProjectsView() {
+  return (
+    <WorkflowProvider>
+      <ProjectsViewContent />
+    </WorkflowProvider>
   );
 }

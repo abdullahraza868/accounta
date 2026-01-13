@@ -53,12 +53,6 @@ import { ProjectsCommunicationTab } from "../folder-tabs/ProjectsCommunicationTa
 import { ProjectsActivityLogView } from "./ProjectsActivityLogView";
 import { cn } from "../ui/utils";
 import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "../ui/dropdown-menu";
-import {
   Dialog,
   DialogContent,
   DialogHeader,
@@ -101,6 +95,8 @@ export function ProjectDetailPage({
   } | null>(null);
   const [currentChannelMode, setCurrentChannelMode] = useState<'internal' | 'external' | 'texting' | 'email'>('internal');
   const [communicationKey, setCommunicationKey] = useState(0);
+  const [shouldSetEmailMode, setShouldSetEmailMode] = useState(false);
+  const [shouldSetTextingMode, setShouldSetTextingMode] = useState(false);
 
   // Force re-render when Communication tab becomes active
   useEffect(() => {
@@ -110,6 +106,28 @@ export function ProjectDetailPage({
       }, 100);
     }
   }, [activeTab]);
+
+  // Set email mode when communication tab becomes active and flag is set
+  useEffect(() => {
+    if (activeTab === 'communication' && shouldSetEmailMode) {
+      setTimeout(() => {
+        setCurrentChannelMode('email');
+        communicationTabRef.current?.setChannelMode('email');
+        setShouldSetEmailMode(false);
+      }, 200);
+    }
+  }, [activeTab, shouldSetEmailMode]);
+
+  // Set texting mode when communication tab becomes active and flag is set
+  useEffect(() => {
+    if (activeTab === 'communication' && shouldSetTextingMode) {
+      setTimeout(() => {
+        setCurrentChannelMode('texting');
+        communicationTabRef.current?.setChannelMode('texting');
+        setShouldSetTextingMode(false);
+      }, 200);
+    }
+  }, [activeTab, shouldSetTextingMode]);
 
   // Lead person state
   const [leadPerson, setLeadPerson] = useState("Sarah Miller");
@@ -447,38 +465,43 @@ export function ProjectDetailPage({
             <FileText className="w-4 h-4" />
             Activity log
           </Button>
-          <Button className="gap-2 bg-violet-600 hover:bg-violet-700">
+          <Button
+            variant="outline"
+            onClick={() => {
+              setShouldSetEmailMode(true);
+              setActiveTab("communication");
+            }}
+            className="gap-2"
+          >
             <Mail className="w-4 h-4" />
-            Send Update
+            Send Email
           </Button>
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="outline" className="gap-2">
-                <Zap className="w-4 h-4" />
-                Quick Actions
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-48">
-              <DropdownMenuItem
-                onClick={() => setActiveTab("communication")}
-                className="gap-2"
-              >
-                <Mail className="w-4 h-4" />
-                Send Email
-              </DropdownMenuItem>
-              <DropdownMenuItem
-                onClick={() => setActiveTab("time")}
-                className="gap-2"
-              >
-                <Clock className="w-4 h-4" />
-                Log Time
-              </DropdownMenuItem>
-              <DropdownMenuItem className="gap-2">
-                <DollarSign className="w-4 h-4" />
-                Generate Invoice
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
+          <Button
+            variant="outline"
+            onClick={() => {
+              setShouldSetTextingMode(true);
+              setActiveTab("communication");
+            }}
+            className="gap-2"
+          >
+            <Smartphone className="w-4 h-4" />
+            Send Text
+          </Button>
+          <Button
+            variant="outline"
+            onClick={() => setActiveTab("time")}
+            className="gap-2"
+          >
+            <Clock className="w-4 h-4" />
+            Log Time
+          </Button>
+          <Button
+            variant="outline"
+            className="gap-2"
+          >
+            <DollarSign className="w-4 h-4" />
+            Generate Invoice
+          </Button>
         </div>
       </div>
 

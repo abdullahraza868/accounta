@@ -949,7 +949,7 @@ export function DocumentsTab({ client }: DocumentsTabProps) {
                         ? "bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300"
                         : "text-gray-600 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-800"
                     )}
-                  >
+              >
                     2022
                   </button>
                   <DropdownMenu>
@@ -1041,7 +1041,7 @@ export function DocumentsTab({ client }: DocumentsTabProps) {
                     <button
                     onClick={() => setSearchQuery('')}
                     className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
-                  >
+                    >
                     <X className="w-3.5 h-3.5" />
                     </button>
                 )}
@@ -1054,7 +1054,7 @@ export function DocumentsTab({ client }: DocumentsTabProps) {
                             className={cn(
                   "border-gray-200/60 cursor-pointer transition-all hover:shadow-lg",
                   statusFilter === 'received' && "ring-2 ring-green-500 shadow-lg"
-                )}
+                            )}
                 onClick={() => setStatusFilter(statusFilter === 'received' ? 'all' : 'received')}
               >
                 <CardContent className="pt-6">
@@ -1096,7 +1096,7 @@ export function DocumentsTab({ client }: DocumentsTabProps) {
                                   className={cn(
                   "border-gray-200/60 cursor-pointer transition-all hover:shadow-lg",
                   statusFilter === 'reviewing' && "ring-2 ring-blue-500 shadow-lg"
-                )}
+                                  )}
                 onClick={() => setStatusFilter(statusFilter === 'reviewing' ? 'all' : 'reviewing')}
               >
                 <CardContent className="pt-6">
@@ -1175,8 +1175,8 @@ export function DocumentsTab({ client }: DocumentsTabProps) {
                           {accountsToShow.length}
                         </Badge>
                       )}
-                    </Button>
-                  </DropdownMenuTrigger>
+                      </Button>
+                    </DropdownMenuTrigger>
                   <DropdownMenuContent align="start" className="w-64">
                     <DropdownMenuLabel>Select Account</DropdownMenuLabel>
                     <DropdownMenuSeparator />

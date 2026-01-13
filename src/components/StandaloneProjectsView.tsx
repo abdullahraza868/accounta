@@ -32,6 +32,8 @@ interface StandaloneProjectsViewProps {
   onViewTasks?: (workflowId?: string) => void;
   /** Initial view mode: 'kanban' (cards) or 'list' (table) */
   initialViewMode?: ProjectViewMode;
+  /** If true, skip wrapping with WorkflowProvider (use when already inside a provider) */
+  skipProvider?: boolean;
 }
 
 export function StandaloneProjectsView({
@@ -40,25 +42,34 @@ export function StandaloneProjectsView({
   onStartWizard,
   onEditWorkflow,
   onViewTasks,
-  initialViewMode = 'kanban'
+  initialViewMode = 'kanban',
+  skipProvider = false
 }: StandaloneProjectsViewProps) {
   const [projectViewMode, setProjectViewMode] = useState<ProjectViewMode>(initialViewMode);
 
+  const content = (
+    <TooltipProvider>
+      <div className="flex-1 p-6 overflow-auto bg-white dark:bg-gray-900">
+        <KanbanBoard 
+          viewMode={projectViewMode}
+          onViewModeChange={setProjectViewMode}
+          onProjectClick={onProjectClick}
+          onActivityLogClick={onActivityLogClick}
+          onStartWizard={onStartWizard}
+          onEditWorkflow={onEditWorkflow}
+          onViewTasks={onViewTasks}
+        />
+      </div>
+    </TooltipProvider>
+  );
+
+  if (skipProvider) {
+    return content;
+  }
+
   return (
     <WorkflowProvider>
-      <TooltipProvider>
-        <div className="flex-1 p-6 overflow-auto bg-white dark:bg-gray-900">
-          <KanbanBoard 
-            viewMode={projectViewMode}
-            onViewModeChange={setProjectViewMode}
-            onProjectClick={onProjectClick}
-            onActivityLogClick={onActivityLogClick}
-            onStartWizard={onStartWizard}
-            onEditWorkflow={onEditWorkflow}
-            onViewTasks={onViewTasks}
-          />
-        </div>
-      </TooltipProvider>
+      {content}
     </WorkflowProvider>
   );
 }

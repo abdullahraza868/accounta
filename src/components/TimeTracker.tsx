@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { Card } from './ui/card';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
@@ -9,7 +9,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { Label } from './ui/label';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from './ui/table';
 import { Progress } from './ui/progress';
-import { Clock, Play, Pause, Plus, Edit2, Trash2, Check, X, DollarSign, TrendingUp, AlertCircle, Receipt, Upload, Users, BarChart3, Calendar as CalendarIcon, Target, ChevronDown, ChevronUp, CheckCircle, User, Settings, FileImage } from 'lucide-react';
+import { Clock, Play, Pause, Plus, Edit2, Trash2, Check, X, DollarSign, TrendingUp, AlertCircle, Receipt, Upload, Users, BarChart3, Calendar as CalendarIcon, Target, ChevronDown, ChevronUp, CheckCircle, User, Settings, FileImage, MoveVertical } from 'lucide-react';
 import { Separator } from './ui/separator';
 import { RadioGroup, RadioGroupItem } from './ui/radio-group';
 import { Avatar, AvatarFallback } from './ui/avatar';
@@ -473,7 +473,7 @@ export function TimeTracker({ projectId, projectName }: TimeTrackerProps) {
                               <RadioGroupItem value="include-total" id="include-total" className="mt-1" />
                               <div className="flex-1">
                                 <Label htmlFor="include-total" className="font-medium cursor-pointer">
-                                  Include in total budget
+                                  Include expenses in total budget
                                 </Label>
                                 <p className="text-xs text-slate-500 mt-1">
                                   Expenses are added to total budget, remaining budget, and all budget calculations. Both time and expenses reduce the budget.
@@ -484,7 +484,7 @@ export function TimeTracker({ projectId, projectName }: TimeTrackerProps) {
                               <RadioGroupItem value="exclude-total" id="exclude-total" className="mt-1" />
                               <div className="flex-1">
                                 <Label htmlFor="exclude-total" className="font-medium cursor-pointer">
-                                  Exclude from total budget
+                                  Exclude expenses from total budget
                                 </Label>
                                 <p className="text-xs text-slate-500 mt-1">
                                   Expenses are not included in budget calculations (total budget, remaining budget, etc.). Expenses will still appear in stats cards and expense tables for tracking purposes.
@@ -1464,14 +1464,51 @@ function ExpenseForm({ onSubmit, onCancel }: { onSubmit: (expense: Omit<Expense,
   });
   
   const [receiptFile, setReceiptFile] = useState<File | null>(null);
+  const [receiptDragActive, setReceiptDragActive] = useState(false);
+  const receiptInputRef = useRef<HTMLInputElement>(null);
   
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
+  const handleFileUpload = (file: File) => {
     if (file) {
       setReceiptFile(file);
       // In a real app, you would upload the file and get a URL
       // For now, we'll store the filename
       setForm({ ...form, receipt: file.name });
+    }
+  };
+  
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      handleFileUpload(file);
+    }
+  };
+  
+  // Receipt upload drag handlers
+  const handleReceiptDrag = (e: React.DragEvent<HTMLButtonElement>) => {
+    e.preventDefault();
+    e.stopPropagation();
+  };
+
+  const handleReceiptDragIn = (e: React.DragEvent<HTMLButtonElement>) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setReceiptDragActive(true);
+  };
+
+  const handleReceiptDragOut = (e: React.DragEvent<HTMLButtonElement>) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setReceiptDragActive(false);
+  };
+
+  const handleReceiptDrop = (e: React.DragEvent<HTMLButtonElement>) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setReceiptDragActive(false);
+    
+    const files = e.dataTransfer.files;
+    if (files && files.length > 0) {
+      handleFileUpload(files[0]);
     }
   };
 
@@ -1551,34 +1588,92 @@ function ExpenseForm({ onSubmit, onCancel }: { onSubmit: (expense: Omit<Expense,
       </div>
       <div className="space-y-2">
         <Label htmlFor="receipt">Receipt</Label>
-        <div className="flex items-center gap-2">
-          <Input
-            id="receipt"
-            type="file"
-            accept="image/*,.pdf"
-            onChange={handleFileChange}
-            className="flex-1"
-          />
-          {receiptFile && (
-            <div className="flex items-center gap-2 text-sm text-slate-600">
-              <FileImage className="w-4 h-4" />
-              <span className="truncate max-w-[150px]">{receiptFile.name}</span>
-              <Button
-                type="button"
-                variant="ghost"
-                size="sm"
-                onClick={() => {
-                  setReceiptFile(null);
-                  setForm({ ...form, receipt: undefined });
-                }}
-                className="h-6 w-6 p-0"
-              >
-                <X className="w-3 h-3" />
-              </Button>
+        {receiptFile ? (
+          <div className="flex items-center gap-2 p-3 border border-slate-200 rounded-lg bg-slate-50">
+            <FileImage className="w-5 h-5 text-slate-600" />
+            <span className="flex-1 text-sm text-slate-700 truncate">{receiptFile.name}</span>
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              onClick={() => {
+                setReceiptFile(null);
+                setForm({ ...form, receipt: undefined });
+                if (receiptInputRef.current) {
+                  receiptInputRef.current.value = '';
+                }
+              }}
+              className="h-8 w-8 p-0"
+            >
+              <X className="w-4 h-4" />
+            </Button>
+          </div>
+        ) : (
+          <button
+            type="button"
+            onClick={() => receiptInputRef.current?.click()}
+            onDragEnter={handleReceiptDragIn}
+            onDragLeave={handleReceiptDragOut}
+            onDragOver={handleReceiptDrag}
+            onDrop={handleReceiptDrop}
+            className={`group relative w-full p-6 border-2 rounded-lg transition-all text-center ${
+              receiptDragActive 
+                ? 'border-purple-500 bg-purple-50 dark:bg-purple-900/30 scale-105 shadow-lg' 
+                : 'border-dashed border-gray-300 dark:border-gray-600 hover:bg-purple-50/50 dark:hover:bg-purple-900/20 hover:border-purple-400'
+            }`}
+            onMouseEnter={(e) => {
+              if (!receiptDragActive) {
+                e.currentTarget.style.borderColor = 'var(--primaryColor)';
+              }
+            }}
+            onMouseLeave={(e) => {
+              if (!receiptDragActive) {
+                e.currentTarget.style.borderColor = '';
+              }
+            }}
+          >
+            {/* Drag indicator badge */}
+            <div className={`absolute top-2 right-2 flex items-center gap-1 px-2 py-1 rounded-full text-xs transition-all ${
+              receiptDragActive
+                ? 'bg-purple-600 text-white'
+                : 'bg-purple-100 dark:bg-purple-900/40 text-purple-700 dark:text-purple-300 group-hover:bg-purple-200 dark:group-hover:bg-purple-800/60'
+            }`}>
+              <MoveVertical className="w-3 h-3" />
+              <span>Drag</span>
             </div>
-          )}
-        </div>
-        <p className="text-xs text-slate-500">Upload receipt image (JPG, PNG) or PDF</p>
+            
+            <div className={`w-16 h-16 rounded-lg flex items-center justify-center mx-auto mb-3 transition-all ${
+              receiptDragActive
+                ? 'bg-purple-200 dark:bg-purple-800 scale-110'
+                : 'bg-gray-100 dark:bg-gray-800 group-hover:bg-purple-100 dark:group-hover:bg-purple-900/30'
+            }`}>
+              <Upload className={`w-8 h-8 transition-colors ${
+                receiptDragActive
+                  ? 'text-purple-700 dark:text-purple-300'
+                  : 'text-gray-600 dark:text-gray-400 group-hover:text-purple-600 dark:group-hover:text-purple-400'
+              }`} />
+            </div>
+            <h3 className="font-medium text-gray-900 dark:text-gray-100 mb-2">
+              Upload Receipt
+            </h3>
+            <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">
+              {receiptDragActive ? '📥 Drop file here' : 'Click to browse'}
+            </p>
+            <p className="text-xs text-purple-600 dark:text-purple-400 font-medium">
+              or drag & drop
+            </p>
+            <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">
+              Supported: JPG, PNG, PDF
+            </p>
+          </button>
+        )}
+        <input
+          ref={receiptInputRef}
+          type="file"
+          accept="image/*,.pdf"
+          onChange={handleFileChange}
+          className="hidden"
+        />
       </div>
       <div className="flex justify-end gap-2 pt-4">
         <Button type="button" variant="outline" onClick={onCancel}>

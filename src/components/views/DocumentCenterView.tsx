@@ -31,6 +31,7 @@ import {
   DropdownMenuItem,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
+  DropdownMenuLabel,
 } from '../ui/dropdown-menu';
 import { Label } from '../ui/label';
 import { Textarea } from '../ui/textarea';
@@ -2654,18 +2655,20 @@ export function DocumentCenterView() {
                   </Card>
                 </div>
 
-                {/* Filters and Actions Bar */}
-                <div className="flex items-center justify-between gap-3 bg-white border border-gray-200 rounded-lg p-3">
-                  <div className="flex items-center gap-3 flex-1">
+                {/* Search and Filters Bar */}
+                <div className="flex items-center justify-between gap-4">
+                  {/* Filters - Left Side */}
+                  <div className="flex items-center gap-3 flex-1 flex-wrap">
                     {/* Year Filter - Quick Access */}
-                    <div className="flex items-center gap-2 border-r border-gray-200 pr-3">
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm text-gray-600 dark:text-gray-400 mr-1">Year:</span>
                       <button
                         onClick={() => setSelectedYear('2024')}
                         className={cn(
                           "px-3 py-1.5 text-sm font-medium rounded-md transition-all",
                           selectedYear === '2024'
-                            ? "bg-purple-100 text-purple-700"
-                            : "text-gray-600 hover:bg-gray-100"
+                            ? "bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300"
+                            : "text-gray-600 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-800"
                         )}
                       >
                         2024
@@ -2675,8 +2678,8 @@ export function DocumentCenterView() {
                         className={cn(
                           "px-3 py-1.5 text-sm font-medium rounded-md transition-all",
                           selectedYear === '2023'
-                            ? "bg-purple-100 text-purple-700"
-                            : "text-gray-600 hover:bg-gray-100"
+                            ? "bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300"
+                            : "text-gray-600 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-800"
                         )}
                       >
                         2023
@@ -2686,8 +2689,8 @@ export function DocumentCenterView() {
                         className={cn(
                           "px-3 py-1.5 text-sm font-medium rounded-md transition-all",
                           selectedYear === '2022'
-                            ? "bg-purple-100 text-purple-700"
-                            : "text-gray-600 hover:bg-gray-100"
+                            ? "bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300"
+                            : "text-gray-600 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-800"
                         )}
                       >
                         2022
@@ -2715,18 +2718,168 @@ export function DocumentCenterView() {
                       </DropdownMenu>
                     </div>
 
-                    <div className="relative flex-1 max-w-xs">
-                      <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-                      <Input 
-                        placeholder="Search documents..." 
-                        className="pl-9"
-                        value={searchQuery}
-                        onChange={(e) => setSearchQuery(e.target.value)}
-                      />
+                    {/* Quick Filter - Status Buttons */}
+                    <div className="flex items-center gap-2 border-l border-gray-200 dark:border-gray-700 pl-3">
+                      <span className="text-sm text-gray-600 dark:text-gray-400 mr-1">Status:</span>
+                      <button
+                        onClick={() => setStatusFilter('all')}
+                        className={cn(
+                          "px-3 py-1.5 rounded-full text-xs font-medium transition-all",
+                          statusFilter === 'all'
+                            ? "bg-purple-600 text-white shadow-sm"
+                            : "bg-gray-100 text-gray-700 hover:bg-gray-200 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700"
+                        )}
+                      >
+                        All Documents
+                      </button>
+                      <button
+                        onClick={() => setStatusFilter('reviewing')}
+                        className={cn(
+                          "px-3 py-1.5 rounded-full text-xs font-medium transition-all flex items-center gap-1.5",
+                          statusFilter === 'reviewing'
+                            ? "bg-blue-600 text-white shadow-sm"
+                            : "bg-blue-50 text-blue-700 hover:bg-blue-100 dark:bg-blue-900/30 dark:text-blue-300 dark:hover:bg-blue-900/50"
+                        )}
+                      >
+                        <Eye className="w-3.5 h-3.5" />
+                        Needs Review ({clientStats.needReview})
+                      </button>
+                      <button
+                        onClick={() => setStatusFilter('pending')}
+                        className={cn(
+                          "px-3 py-1.5 rounded-full text-xs font-medium transition-all flex items-center gap-1.5",
+                          statusFilter === 'pending'
+                            ? "bg-orange-600 text-white shadow-sm"
+                            : "bg-orange-50 text-orange-700 hover:bg-orange-100 dark:bg-orange-900/30 dark:text-orange-300 dark:hover:bg-orange-900/50"
+                        )}
+                      >
+                        <Bell className="w-3.5 h-3.5" />
+                        Requested ({clientStats.pending})
+                      </button>
+                      <button
+                        onClick={() => setStatusFilter('received')}
+                        className={cn(
+                          "px-3 py-1.5 rounded-full text-xs font-medium transition-all flex items-center gap-1.5",
+                          statusFilter === 'received'
+                            ? "bg-green-600 text-white shadow-sm"
+                            : "bg-green-50 text-green-700 hover:bg-green-100 dark:bg-green-900/30 dark:text-green-300 dark:hover:bg-green-900/50"
+                        )}
+                      >
+                        <CheckCircle className="w-3.5 h-3.5" />
+                        Approved ({clientStats.received})
+                      </button>
                     </div>
                   </div>
 
-                  <div className="flex items-center gap-2">
+                  {/* Search - Right Side */}
+                  <div className="relative w-64 flex-shrink-0">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400" />
+                    <Input
+                      placeholder="Search documents..."
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      className="pl-9 pr-9 h-8 text-sm"
+                    />
+                    {searchQuery && (
+                      <button
+                        onClick={() => setSearchQuery('')}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                      >
+                        <X className="w-3.5 h-3.5" />
+                      </button>
+                    )}
+                  </div>
+                </div>
+
+                {/* Actions Bar */}
+                <div className="flex items-center gap-2 bg-white border border-gray-200 rounded-lg p-3">
+                  {/* Left Side - Linked Accounts Dropdown */}
+                  {hasLinkedAccounts && accountsToShow.length > 0 && (
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button 
+                          variant="outline" 
+                          size="default"
+                          className="gap-2 font-semibold border-2 border-purple-300 dark:border-purple-600 bg-purple-50 dark:bg-purple-950/30 text-purple-700 dark:text-purple-300 hover:bg-purple-100 dark:hover:bg-purple-900/50 hover:border-purple-400 dark:hover:border-purple-500 shadow-sm"
+                        >
+                          <Users className="w-4 h-4" />
+                          Linked Accounts
+                          {!showLinkedAccounts && selectedClientIds.length === 1 && selectedClientIds[0] !== primaryClient?.id && (
+                            <Badge variant="secondary" className="ml-1 bg-purple-200 dark:bg-purple-800 text-purple-800 dark:text-purple-200 border-purple-300 dark:border-purple-700">
+                              1
+                            </Badge>
+                          )}
+                          {showLinkedAccounts && accountsToShow.length > 1 && (
+                            <Badge variant="secondary" className="ml-1 bg-purple-200 dark:bg-purple-800 text-purple-800 dark:text-purple-200 border-purple-300 dark:border-purple-700">
+                              {accountsToShow.length}
+                            </Badge>
+                          )}
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="start" className="w-64">
+                        <DropdownMenuLabel>Select Account</DropdownMenuLabel>
+                        <DropdownMenuSeparator />
+                        {/* All Accounts Option */}
+                        <DropdownMenuItem
+                          className="cursor-pointer"
+                          onSelect={() => {
+                            handleAllAccounts();
+                          }}
+                        >
+                          <div className="flex items-center gap-3 w-full">
+                            <Checkbox
+                              checked={showLinkedAccounts}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                              }}
+                            />
+                            <Users className="w-4 h-4 text-purple-600 dark:text-purple-400" />
+                            <span className="flex-1">All Accounts</span>
+                            {showLinkedAccounts && (
+                              <CheckCircle2 className="w-4 h-4 text-purple-600 dark:text-purple-400" />
+                            )}
+                          </div>
+                        </DropdownMenuItem>
+                        {/* Individual Accounts */}
+                        {accountsToShow.map(account => {
+                          const isActive = selectedClientIds.includes(account.id) && !showLinkedAccounts;
+                          return (
+                            <DropdownMenuItem
+                              key={account.id}
+                              className="cursor-pointer"
+                              onSelect={() => {
+                                handleAccountSwitch(account.id);
+                              }}
+                            >
+                              <div className="flex items-center gap-3 w-full">
+                                <Checkbox
+                                  checked={isActive}
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                  }}
+                                />
+                                {account.type === 'Business' ? (
+                                  <Building2 className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+                                ) : (
+                                  <User className="w-4 h-4 text-green-600 dark:text-green-400" />
+                                )}
+                                <div className="flex-1">
+                                  <div className="font-medium">{account.name}</div>
+                                  <div className="text-xs text-gray-500 dark:text-gray-400">{account.type}</div>
+                                </div>
+                                {isActive && (
+                                  <CheckCircle2 className="w-4 h-4 text-purple-600 dark:text-purple-400" />
+                                )}
+                              </div>
+                            </DropdownMenuItem>
+                          );
+                        })}
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  )}
+
+                  {/* Right Side - Action Buttons */}
+                  <div className="flex items-center gap-2 ml-auto">
                     <Button 
                       variant={showOrganizeView ? "default" : "outline"}
                       size="sm"
@@ -2739,21 +2892,21 @@ export function DocumentCenterView() {
 
                     <DropdownMenu>
                       <div className="flex">
-                    <Button 
-                      variant="outline" 
-                      size="sm"
-                      disabled={selectedDocuments.length === 0}
-                      onClick={handleDownload}
+                        <Button 
+                          variant="outline" 
+                          size="sm"
+                          disabled={selectedDocuments.length === 0}
+                          onClick={handleDownload}
                           className="rounded-r-none border-r-0"
-                    >
-                      <Download className="w-4 h-4 mr-2" />
+                        >
+                          <Download className="w-4 h-4 mr-2" />
                           Download {selectedDocuments.length > 0 ? `(${selectedDocuments.length})` : ''}
-                    </Button>
+                        </Button>
                         <DropdownMenuTrigger asChild>
-                    <Button 
-                      variant="outline" 
-                      size="sm"
-                      disabled={filteredDocuments.length === 0}
+                          <Button 
+                            variant="outline" 
+                            size="sm"
+                            disabled={filteredDocuments.length === 0}
                             className="rounded-l-none px-2"
                           >
                             <ChevronDown className="w-4 h-4" />
@@ -2762,10 +2915,10 @@ export function DocumentCenterView() {
                       </div>
                       <DropdownMenuContent align="end">
                         <DropdownMenuItem 
-                      onClick={handleDownloadAll}
+                          onClick={handleDownloadAll}
                           disabled={filteredDocuments.length === 0}
-                    >
-                      <Download className="w-4 h-4 mr-2" />
+                        >
+                          <Download className="w-4 h-4 mr-2" />
                           Download All ({filteredDocuments.length} documents)
                         </DropdownMenuItem>
                       </DropdownMenuContent>
@@ -2793,161 +2946,9 @@ export function DocumentCenterView() {
                   </div>
                 </div>
 
-                {/* Quick Status Filter Pills */}
-                <div className="flex items-center justify-between gap-2">
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <span className="text-sm text-gray-600 dark:text-gray-400 mr-2">Quick Filter:</span>
-                    <button
-                      onClick={() => setStatusFilter('all')}
-                      className={cn(
-                        "px-3 py-1.5 rounded-full text-xs font-medium transition-all",
-                        statusFilter === 'all'
-                          ? "bg-purple-600 text-white shadow-sm"
-                          : "bg-gray-100 text-gray-700 hover:bg-gray-200 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700"
-                      )}
-                    >
-                      All Documents
-                    </button>
-                    <button
-                      onClick={() => setStatusFilter('reviewing')}
-                      className={cn(
-                        "px-3 py-1.5 rounded-full text-xs font-medium transition-all flex items-center gap-1.5",
-                        statusFilter === 'reviewing'
-                          ? "bg-blue-600 text-white shadow-sm"
-                          : "bg-blue-50 text-blue-700 hover:bg-blue-100 dark:bg-blue-900/30 dark:text-blue-300 dark:hover:bg-blue-900/50"
-                      )}
-                    >
-                      <Eye className="w-3.5 h-3.5" />
-                      Needs Review ({clientStats.needReview})
-                    </button>
-                    <button
-                      onClick={() => setStatusFilter('pending')}
-                      className={cn(
-                        "px-3 py-1.5 rounded-full text-xs font-medium transition-all flex items-center gap-1.5",
-                        statusFilter === 'pending'
-                          ? "bg-orange-600 text-white shadow-sm"
-                          : "bg-orange-50 text-orange-700 hover:bg-orange-100 dark:bg-orange-900/30 dark:text-orange-300 dark:hover:bg-orange-900/50"
-                      )}
-                    >
-                      <Bell className="w-3.5 h-3.5" />
-                      Requested ({clientStats.pending})
-                    </button>
-                    <button
-                      onClick={() => setStatusFilter('received')}
-                      className={cn(
-                        "px-3 py-1.5 rounded-full text-xs font-medium transition-all flex items-center gap-1.5",
-                        statusFilter === 'received'
-                          ? "bg-green-600 text-white shadow-sm"
-                          : "bg-green-50 text-green-700 hover:bg-green-100 dark:bg-green-900/30 dark:text-green-300 dark:hover:bg-green-900/50"
-                      )}
-                    >
-                      <CheckCircle className="w-3.5 h-3.5" />
-                      Approved ({clientStats.received})
-                    </button>
-
-                    {/* Linked Accounts Quick Filters - Only show if linked accounts exist */}
-                    {hasLinkedAccounts && accountsToShow.length > 0 && (
-                      <>
-                        <span className="text-sm text-gray-600 dark:text-gray-400 mr-1 ml-2">Linked Accounts:</span>
-                        {/* All Accounts Chip */}
-                        <button
-                          onClick={handleAllAccounts}
-                          className={cn(
-                            "px-3 py-1.5 rounded-full text-xs font-medium transition-all flex items-center gap-1.5",
-                            showLinkedAccounts
-                              ? "bg-purple-600 text-white shadow-sm"
-                              : "bg-gray-100 text-gray-700 hover:bg-gray-200 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700"
-                          )}
-                        >
-                          <Users className="w-3.5 h-3.5" />
-                          All Accounts
-                        </button>
-                        {/* Individual Account Chips - Show first 3, rest in "More" dropdown */}
-                        {accountsToShow.slice(0, 3).map(account => {
-                          const isActive = selectedClientIds.includes(account.id) && !showLinkedAccounts;
-                          const isBusiness = account.type === 'Business';
-                          return (
-                            <button
-                              key={account.id}
-                              onClick={() => handleAccountSwitch(account.id)}
-                              className={cn(
-                                "px-3 py-1.5 rounded-full text-xs font-medium transition-all flex items-center gap-1.5",
-                                isActive
-                                  ? isBusiness
-                                    ? "bg-blue-600 text-white shadow-sm"
-                                    : "bg-green-600 text-white shadow-sm"
-                                  : isBusiness
-                                    ? "bg-blue-50 text-blue-700 hover:bg-blue-100 dark:bg-blue-900/30 dark:text-blue-300 dark:hover:bg-blue-900/50"
-                                    : "bg-green-50 text-green-700 hover:bg-green-100 dark:bg-green-900/30 dark:text-green-300 dark:hover:bg-green-900/50"
-                              )}
-                            >
-                              {isBusiness ? (
-                                <Building2 className="w-3.5 h-3.5" />
-                              ) : (
-                                <User className="w-3.5 h-3.5" />
-                              )}
-                              {account.name}
-                            </button>
-                          );
-                        })}
-                        {/* "More" Dropdown for overflow accounts */}
-                        {accountsToShow.length > 3 && (
-                              <DropdownMenu>
-                                <DropdownMenuTrigger asChild>
-                              <button
-                                  className={cn(
-                                  "px-3 py-1.5 rounded-full text-xs font-medium transition-all flex items-center gap-1.5",
-                                  "bg-gray-100 text-gray-700 hover:bg-gray-200 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700"
-                                )}
-                              >
-                                More
-                                <ChevronDown className="w-3.5 h-3.5" />
-                              </button>
-                                </DropdownMenuTrigger>
-                              <DropdownMenuContent align="end" className="w-64">
-                                <div className="px-2 py-1.5 border-b border-gray-200 dark:border-gray-700 mb-1">
-                                <p className="text-xs font-medium text-gray-700 dark:text-gray-300">Additional Accounts</p>
-                                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
-                                  Switch to another linked account
-                                  </p>
-                                </div>
-                              {accountsToShow.slice(3).map(account => {
-                                const isActive = selectedClientIds.includes(account.id) && !showLinkedAccounts;
-                                return (
-                            <DropdownMenuItem
-                              key={account.id}
-                              onClick={() => handleAccountSwitch(account.id)}
-                              className={cn(
-                                      isActive && "bg-purple-50 dark:bg-purple-900/20"
-                              )}
-                            >
-                              <div className="flex items-center gap-3 w-full">
-                                {account.type === 'Business' ? (
-                                        <Building2 className="w-4 h-4 text-blue-600 dark:text-blue-400" />
-                                ) : (
-                                        <User className="w-4 h-4 text-green-600 dark:text-green-400" />
-                                )}
-                                <div className="flex-1">
-                                  <div className="font-medium">{account.name}</div>
-                                  <div className="text-xs text-gray-500 dark:text-gray-400">{account.type}</div>
-                                </div>
-                                      {isActive && (
-                                  <CheckCircle2 className="w-4 h-4 text-purple-600 dark:text-purple-400" />
-                                )}
-                              </div>
-                            </DropdownMenuItem>
-                                );
-                              })}
-                              </DropdownMenuContent>
-                            </DropdownMenu>
-                        )}
-                      </>
-                    )}
-                  </div>
-
-                  <div className="flex items-center gap-2">
-                    {/* View Toggle - Only show if multiple accounts AND at least one is Individual (spouse-linked) */}
-                    {accountGroups.length > 1 && hasIndividualAccounts && (
+                {/* View Toggle Row - Only show if multiple accounts and Individual accounts exist */}
+                {accountGroups.length > 1 && hasIndividualAccounts && (
+                  <div className="flex items-center justify-end gap-2 flex-wrap">
                     <div className="flex items-center gap-1 border border-gray-200 dark:border-gray-700 rounded-lg p-1 bg-gray-50 dark:bg-gray-800/50">
                       <Button
                         size="sm"
@@ -2980,9 +2981,8 @@ export function DocumentCenterView() {
                         Split View
                       </Button>
                     </div>
-                    )}
                   </div>
-                </div>
+                )}
 
                 {/* Bulk Actions Bar - Shows when documents selected */}
                 {selectedDocuments.length > 0 && (
@@ -3077,8 +3077,9 @@ export function DocumentCenterView() {
                   <Card className="border-gray-200/60">
                     <div className="overflow-x-auto">
                       {(() => {
-                        // Determine if client column should be shown
-                        const showClientColumn = showLinkedAccounts || accountGroups.length > 1;
+                        // Determine if client column should be shown (when viewing multiple clients or a single linked account is selected)
+                        const isSingleLinkedAccountSelected = selectedClientIds.length === 1 && primaryClient && selectedClientIds[0] !== primaryClient.id && !showLinkedAccounts;
+                        const showClientColumn = showLinkedAccounts || accountGroups.length > 1 || isSingleLinkedAccountSelected;
                         const columnCount = showClientColumn ? 9 : 8;
                         
                         return (

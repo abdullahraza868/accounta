@@ -1510,14 +1510,15 @@ export function WorkflowBuilder({ onStartWizard, newWorkflow, onPreview }: Workf
                 )}
               </div>
             </div>
-            <div className="space-y-2">
+            {/* Estimated Time - Hidden for now */}
+            {/* <div className="space-y-2">
               <Label>Estimated Time</Label>
               <Input 
                 placeholder="e.g., 5 min" 
                 value={taskTime}
                 onChange={(e) => setTaskTime(e.target.value)}
               />
-            </div>
+            </div> */}
             {selectedStage?.tasks && selectedStage.tasks.length > 0 && (
               <div className="space-y-2">
                 <Label>Task Dependencies</Label>
